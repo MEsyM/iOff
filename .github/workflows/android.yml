@@ -1,44 +1,31 @@
-name: Android APK
-
+name: Android v0.4 CI
 on:
   push:
-    branches: [main]
+    branches: [main, ioff-v031]
   pull_request:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
+        with: {distribution: temurin, java-version: '17', cache: gradle}
       - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
+        with: {gradle-version: '8.11.1'}
       - name: Unit tests
         run: gradle :app:testDebugUnitTest --stacktrace --no-daemon
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
-      - name: Build release APK
-        run: gradle :app:assembleRelease --stacktrace --no-daemon
-      - name: Verify APKs
+      - name: Build APKs
+        run: gradle :app:assembleDebug :app:assembleRelease --stacktrace --no-daemon
+      - name: Verify
         run: |
-          test -f app/build/outputs/apk/debug/app-debug.apk
-          test -f app/build/outputs/apk/release/app-release-unsigned.apk
-          unzip -t app/build/outputs/apk/debug/app-debug.apk
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          unzip -t app/build/outputs/apk/debug/app-debug.apk >/dev/null
+          ls -lh app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
-        with:
-          name: iOff-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 30
+        with: {name: iOff-v0.4-debug-apk, path: app/build/outputs/apk/debug/app-debug.apk, if-no-files-found: error, retention-days: 30}
