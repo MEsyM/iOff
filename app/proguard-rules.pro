@@ -1,0 +1,2 @@
+-keep class cz.ioff.app.ShieldService { *; }
+-keep class cz.ioff.app.NotificationMetricsService { *; }
