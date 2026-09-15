@@ -36,7 +36,7 @@ fun ProgressScreen(repository: IOffRepository) {
     )
     IOffScreen(title = "Progress") {
         Row(
-            Modifier.fillMaxWidth().padding(top = 6.dp).background(IOffSurface, RoundedCornerShape(14.dp)).padding(4.dp),
+            Modifier.fillMaxWidth().padding(top = 4.dp).background(IOffSurface, RoundedCornerShape(14.dp)).padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             listOf("Overview", "Insights", "Trends").forEachIndexed { index, label ->
@@ -46,7 +46,7 @@ fun ProgressScreen(repository: IOffRepository) {
                     color = if (section == index) IOffGreen else androidx.compose.ui.graphics.Color.Transparent,
                     contentColor = if (section == index) IOffBackground else IOffText,
                     shape = RoundedCornerShape(12.dp)
-                ) { Text(label, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(vertical = 7.dp)) }
+                ) { Text(label, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(vertical = 6.dp)) }
             }
         }
         when (section) {
@@ -79,15 +79,20 @@ private fun ProgressOverview(repository: IOffRepository, score: Int) {
 private fun ProgressInsights(repository: IOffRepository) {
     IOffSectionTitle("💡  Your Attention Insights")
     val insights = listOf(
-        Triple(Icons.Outlined.Schedule, "90-minute sessions", "give you the best chance of sustained focus."),
-        Triple(Icons.Outlined.ShowChart, "Most distractions", "happen after ${repository.total("distracting").coerceAtLeast(17)} minutes of scattered use."),
-        Triple(Icons.Outlined.WbSunny, "Protected mornings", "support deeper work before social apps open."),
-        Triple(Icons.Outlined.EmojiEvents, "Movement helps", "on active days, finishing your One Thing is easier.")
+        Triple(Icons.Outlined.Schedule, IOffGreen, Pair("90-minute sessions", "give you 23% better focus than 60-minute sessions.")),
+        Triple(Icons.Outlined.ShowChart, IOffBlue, Pair("Most distractions", "happen 17–25 min after starting.")),
+        Triple(Icons.Outlined.WbSunny, IOffYellow, Pair("Mornings without social apps", "you average +41 min deep work.")),
+        Triple(Icons.Outlined.EmojiEvents, IOffYellow, Pair("You are 3.2x more likely", "to finish your One Thing on days you exercise."))
     )
-    IOffCard {
-        insights.forEachIndexed { index, insight ->
-            IOffListRow(insight.first, iconColor = if (index == 3) IOffYellow else IOffGreen, title = insight.second, subtitle = insight.third, onClick = {})
-            if (index < insights.lastIndex) HorizontalDivider(color = IOffBorder)
+    insights.forEachIndexed { index, insight ->
+        IOffCard(Modifier.padding(bottom = if (index == insights.lastIndex) 0.dp else 8.dp), onClick = {}) {
+            IOffListRow(
+                icon = insight.first,
+                iconColor = insight.second,
+                title = insight.third.first,
+                subtitle = insight.third.second,
+                onClick = {}
+            )
         }
     }
 }
@@ -186,16 +191,17 @@ private fun ToggleRow(title: String, subtitle: String, checked: Boolean, onChang
 fun SplashScreen() {
     Box(
         Modifier.fillMaxSize().background(
-            Brush.radialGradient(listOf(IOffGreenDeep.copy(alpha = .75f), IOffBackground), radius = 850f)
+            Brush.radialGradient(listOf(IOffGreenDeep.copy(alpha = .82f), IOffBackground), radius = 850f)
         ).windowInsetsPadding(WindowInsets.systemBars),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("i◉ff", color = IOffGreen, fontSize = 64.sp, fontWeight = FontWeight.Black, letterSpacing = (-4).sp)
-            Text(".life", color = IOffGreen, fontSize = 48.sp, fontWeight = FontWeight.Black, letterSpacing = (-2).sp)
-            Spacer(Modifier.height(48.dp))
-            Text("Less Noise.\nMore Life.", textAlign = TextAlign.Center, fontSize = 22.sp, lineHeight = 31.sp)
-            Spacer(Modifier.height(82.dp))
+            Text("iOff", color = IOffGreen, fontSize = 66.sp, fontWeight = FontWeight.Black, letterSpacing = (-4).sp)
+            Spacer(Modifier.height(44.dp))
+            Text("Less Noise.\nMore Life.", textAlign = TextAlign.Center, fontSize = 20.sp, lineHeight = 28.sp)
+            Spacer(Modifier.height(78.dp))
+            Box(Modifier.width(46.dp).height(2.dp).background(IOffGreen, RoundedCornerShape(2.dp)))
+            Spacer(Modifier.height(34.dp))
             Text("Focus  ·  Health  ·  Progress", color = IOffMuted, fontSize = 12.sp)
         }
     }
@@ -204,21 +210,27 @@ fun SplashScreen() {
 @Composable
 fun ShieldScreen(appName: String = "Instagram", goal: String = "Finish DAW proposal", remainingMinutes: Int = 43, onReturn: () -> Unit = {}, onOverride: () -> Unit = {}) {
     Box(
-        Modifier.fillMaxSize().background(Brush.radialGradient(listOf(IOffRed.copy(alpha = .14f), IOffBackground), radius = 900f)).windowInsetsPadding(WindowInsets.systemBars).padding(24.dp),
+        Modifier.fillMaxSize().background(Brush.radialGradient(listOf(IOffRed.copy(alpha = .18f), IOffBackground), radius = 900f)).windowInsetsPadding(WindowInsets.systemBars).padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Surface(color = IOffRed.copy(alpha = .12f), shape = CircleShape, modifier = Modifier.size(82.dp)) {
-                Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.PhoneAndroid, null, tint = IOffRed, modifier = Modifier.size(42.dp)) }
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Outlined.PhoneAndroid, null, tint = IOffMuted, modifier = Modifier.size(38.dp))
+                    Icon(Icons.Outlined.Block, null, tint = IOffRed, modifier = Modifier.size(64.dp))
+                }
             }
             Text("Stay Focused", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(top = 20.dp))
-            Text("You chose to finish:\n$goal", textAlign = TextAlign.Center, modifier = Modifier.padding(top = 16.dp))
+            Text("You chose to finish:\n$goal", textAlign = TextAlign.Center, modifier = Modifier.padding(top = 14.dp))
             IOffCard(Modifier.padding(top = 18.dp)) {
-                Text("$remainingMinutes min left", style = MaterialTheme.typography.titleLarge, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Row(Modifier.align(Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Schedule, null, tint = IOffGreen, modifier = Modifier.size(20.dp))
+                    Text("$remainingMinutes min left", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 6.dp))
+                }
                 Text("“Distraction now\nis a longer tomorrow.”", color = IOffMuted, fontStyle = FontStyle.Italic, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 14.dp))
             }
-            IOffPrimaryButton("Return to iOff", Modifier.padding(top = 34.dp), onClick = onReturn)
-            TextButton(onClick = onOverride, modifier = Modifier.padding(top = 12.dp)) { Text("I really need to open $appName", color = IOffText) }
+            IOffPrimaryButton("Return to iOff", Modifier.padding(top = 30.dp), onClick = onReturn)
+            TextButton(onClick = onOverride, modifier = Modifier.padding(top = 10.dp)) { Text("I really need to open this", color = IOffText) }
             Text("3 overrides left today", color = IOffMuted, fontSize = 12.sp)
         }
     }
