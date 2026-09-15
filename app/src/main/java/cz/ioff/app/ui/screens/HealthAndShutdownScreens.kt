@@ -1,7 +1,6 @@
 package cz.ioff.app.ui.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -13,7 +12,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import cz.ioff.app.DailyLife
 import cz.ioff.app.data.IOffRepository
-import cz.ioff.app.data.ShutdownEntry
 import cz.ioff.app.ui.components.*
 import cz.ioff.app.ui.theme.*
 import java.text.SimpleDateFormat
@@ -46,8 +44,10 @@ fun HealthScreen(repository: IOffRepository, onBack: () -> Unit) {
         IOffCard {
             if (life.sports.isEmpty()) IOffEmptyState("No activity yet", "Add every movement session.", Icons.Outlined.DirectionsRun)
             life.sports.forEachIndexed { index, sport ->
+                val bike = sport.activity.contains("bike", ignoreCase = true) || sport.activity.contains("cycling", ignoreCase = true)
                 IOffListRow(
-                    Icons.Outlined.DirectionsRun,
+                    if (bike) Icons.Outlined.DirectionsBike else Icons.Outlined.DirectionsRun,
+                    iconColor = if (bike) IOffBlue else IOffGreen,
                     title = sport.activity,
                     subtitle = "${sport.minutes} min",
                     trailing = { IconButton(onClick = { repository.deleteSport(sport.id, day); revision++ }) { Icon(Icons.Outlined.MoreHoriz, "Remove") } }
@@ -81,7 +81,7 @@ fun HealthScreen(repository: IOffRepository, onBack: () -> Unit) {
 
 @Composable
 private fun CommitmentRow(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, checked: Boolean, onChecked: (Boolean) -> Unit) {
-    IOffListRow(icon, iconColor = if (checked) IOffGreen else IOffYellow, title = title, trailing = {
+    IOffListRow(icon, iconColor = IOffYellow, title = title, trailing = {
         Checkbox(checked = checked, onCheckedChange = onChecked, colors = CheckboxDefaults.colors(checkedColor = IOffGreen, checkmarkColor = IOffBackground))
     })
 }
@@ -118,11 +118,11 @@ private fun AddSexDialog(onDismiss: () -> Unit, onSave: (String) -> Unit) {
 fun ShutdownScreen(repository: IOffRepository, onBack: () -> Unit, onSaved: () -> Unit) {
     var entry by remember { mutableStateOf(repository.shutdown()) }
     IOffScreen(title = "Daily Shutdown", onBack = onBack) {
-        Text("Take 1 minute to reflect.", color = IOffMuted, modifier = Modifier.padding(bottom = 12.dp))
+        Text("Take 1 minute to reflect.", color = IOffMuted, modifier = Modifier.padding(bottom = 10.dp))
         ShutdownQuestion("What did I finish today?", entry.finished) { entry = entry.copy(finished = it) }
         ShutdownQuestion("What stole my attention?", entry.distraction) { entry = entry.copy(distraction = it) }
         ShutdownQuestion("Tomorrow’s One Thing?", entry.tomorrow) { entry = entry.copy(tomorrow = it) }
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(12.dp))
         IOffPrimaryButton("Save & Close Day") {
             repository.saveShutdown(entry.copy(completed = true))
             onSaved()
@@ -131,7 +131,7 @@ fun ShutdownScreen(repository: IOffRepository, onBack: () -> Unit, onSaved: () -
             "A better tomorrow\nstarts with an honest today.",
             color = IOffText,
             fontStyle = FontStyle.Italic,
-            modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 24.dp)
+            modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 22.dp)
         )
     }
 }
@@ -139,16 +139,20 @@ fun ShutdownScreen(repository: IOffRepository, onBack: () -> Unit, onSaved: () -
 @Composable
 private fun ShutdownQuestion(label: String, value: String, onChange: (String) -> Unit) {
     Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Surface(color = IOffGreen, contentColor = IOffBackground, shape = CircleShape, modifier = Modifier.size(16.dp)) {
-            Icon(Icons.Outlined.Check, null, modifier = Modifier.padding(2.dp))
-        }
-        Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 8.dp))
+        Checkbox(
+            checked = true,
+            onCheckedChange = null,
+            modifier = Modifier.size(20.dp),
+            colors = CheckboxDefaults.colors(checkedColor = IOffGreen, checkmarkColor = IOffBackground)
+        )
+        Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 6.dp))
     }
     OutlinedTextField(
         value = value,
         onValueChange = { onChange(it.take(500)) },
-        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 5.dp),
         minLines = 2,
+        maxLines = 3,
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = IOffSurface, focusedContainerColor = IOffSurface)
     )
