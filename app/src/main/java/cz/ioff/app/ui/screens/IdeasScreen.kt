@@ -21,7 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun IdeasScreen(repository: IOffRepository) {
+fun IdeasScreen(repository: IOffRepository, onBack: () -> Unit = {}) {
     var revision by remember { mutableIntStateOf(0) }
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf<IdeaState?>(null) }
@@ -32,9 +32,10 @@ fun IdeasScreen(repository: IOffRepository) {
         (filter == null || it.state == filter) && (query.isBlank() || it.text.contains(query, ignoreCase = true))
     }
 
-    IOffScreen(title = "Idea Parking", action = {
+    IOffScreen(title = "Idea Parking", onBack = onBack, action = {
         FilledIconButton(
             onClick = { creating = true },
+            modifier = Modifier.size(42.dp),
             colors = IconButtonDefaults.filledIconButtonColors(containerColor = IOffGreen, contentColor = IOffBackground),
             shape = CircleShape
         ) { Icon(Icons.Outlined.Add, "Add idea") }
@@ -42,13 +43,14 @@ fun IdeasScreen(repository: IOffRepository) {
         OutlinedTextField(
             query,
             { query = it },
-            Modifier.fillMaxWidth().padding(top = 6.dp),
-            leadingIcon = { Icon(Icons.Outlined.Search, null) },
+            Modifier.fillMaxWidth().padding(top = 4.dp).height(48.dp),
+            leadingIcon = { Icon(Icons.Outlined.Search, null, modifier = Modifier.size(20.dp)) },
             placeholder = { Text("Search ideas…") },
+            textStyle = MaterialTheme.typography.bodyMedium,
             singleLine = true,
             shape = RoundedCornerShape(13.dp)
         )
-        Row(Modifier.padding(top = 9.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             IdeaFilterChip("All", filter == null) { filter = null }
             IdeaState.entries.forEach { state -> IdeaFilterChip("${state.label()} (${repository.ideas().count { it.state == state }})", filter == state) { filter = state } }
         }
@@ -61,7 +63,7 @@ fun IdeasScreen(repository: IOffRepository) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(idea.text, style = MaterialTheme.typography.titleMedium)
-                            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                                 IdeaBadge(idea.state)
                                 Icon(Icons.Outlined.Schedule, null, tint = IOffMuted, modifier = Modifier.padding(start = 9.dp).size(13.dp))
                                 Text(
@@ -95,6 +97,7 @@ private fun IdeaFilterChip(label: String, selected: Boolean, onClick: () -> Unit
         selected = selected,
         onClick = onClick,
         label = { Text(label, fontSize = 10.sp) },
+        modifier = Modifier.height(34.dp),
         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = IOffGreen, selectedLabelColor = IOffBackground)
     )
 }
@@ -102,7 +105,7 @@ private fun IdeaFilterChip(label: String, selected: Boolean, onClick: () -> Unit
 @Composable
 private fun IdeaBadge(state: IdeaState) {
     val color = when (state) { IdeaState.DO -> IOffYellow; IdeaState.LATER -> IOffYellow; IdeaState.DONE -> IOffGreen }
-    Surface(color = color.copy(alpha = .2f), contentColor = color, shape = RoundedCornerShape(6.dp)) {
+    Surface(color = color.copy(alpha = .24f), contentColor = color, shape = RoundedCornerShape(6.dp)) {
         Text(state.label().uppercase(), fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp))
     }
 }
