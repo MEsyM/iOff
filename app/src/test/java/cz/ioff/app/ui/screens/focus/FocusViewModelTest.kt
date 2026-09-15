@@ -41,6 +41,7 @@ class FocusViewModelTest {
         assertEquals(FocusPhase.ACTIVE,vm.uiState.value.phase)
         assertEquals("Ship",repo.active?.goal)
         assertEquals(1,dnd.entered)
+        vm.endFocus(); dispatcher.scheduler.runCurrent()
     }
 
     @Test fun recoveryResumesExistingSession() = runTest(dispatcher) {
@@ -50,6 +51,7 @@ class FocusViewModelTest {
         assertEquals(FocusPhase.ACTIVE,vm.uiState.value.phase)
         assertEquals(51_000,vm.uiState.value.remainingMillis)
         assertEquals(1,dnd.restoredFocus)
+        vm.endFocus(); dispatcher.scheduler.runCurrent()
     }
 
     @Test fun expiredRecoveryCompletesAtPlannedEnd() = runTest(dispatcher) {

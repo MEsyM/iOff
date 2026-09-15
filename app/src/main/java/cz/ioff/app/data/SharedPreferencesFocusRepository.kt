@@ -1,6 +1,7 @@
 package cz.ioff.app.data
 
 import android.content.SharedPreferences
+import cz.ioff.app.MetricKeys
 import cz.ioff.app.domain.focus.ActiveFocus
 import cz.ioff.app.domain.focus.FocusSession
 import kotlinx.coroutines.flow.Flow
@@ -10,6 +11,8 @@ import org.json.JSONObject
 import java.util.UUID
 
 class SharedPreferencesFocusRepository(private val prefs: SharedPreferences) : FocusRepository {
+    init { migrateLegacyData() }
+
     private val activeFlow = MutableStateFlow(readActive())
     private val sessionsFlow = MutableStateFlow(readSessions())
 
@@ -75,12 +78,20 @@ class SharedPreferencesFocusRepository(private val prefs: SharedPreferences) : F
     }
 
     override suspend fun completeSession(sessionId: String, focusScore: Int, output: String) {
-        val sessions = readSessions().map { session ->
+        val current = readSessions()
+        val original = current.firstOrNull { it.id == sessionId }
+        val sessions = current.map { session ->
             if (session.id == sessionId) {
                 session.copy(focusScore = focusScore.coerceIn(1, 10), output = output.trim())
             } else session
         }
         writeSessions(sessions)
+        if (original != null && original.focusScore == null) {
+            addMetric(original.experimentDay, "mins", original.actualMinutes)
+            addMetric(original.experimentDay, "urges", original.urges)
+            addMetric(original.experimentDay, "sessions", 1)
+            addMetric(original.experimentDay, "focusSum", focusScore.coerceIn(1, 10))
+        }
         sessionsFlow.value = sessions
     }
 
@@ -176,6 +187,55 @@ class SharedPreferencesFocusRepository(private val prefs: SharedPreferences) : F
             )
         }
         check(prefs.edit().putString(KEY_SESSIONS, array.toString()).commit())
+    }
+
+    private fun addMetric(day: Int, name: String, amount: Int) {
+        val key = MetricKeys.experiment(day.coerceIn(1, 7), name)
+        prefs.edit().putInt(key, prefs.getInt(key, 0) + amount).apply()
+    }
+
+    private fun migrateLegacyData() {
+        if (!prefs.contains(KEY_ACTIVE) && prefs.getBoolean("focus_active", false)) {
+            val start = prefs.getLong("focus_start", System.currentTimeMillis())
+            val end = prefs.getLong("focus_end", start)
+            val active = ActiveFocus(
+                sessionId = "legacy-$start",
+                startedAt = start,
+                endsAt = end,
+                experimentDay = prefs.getInt("focus_day", prefs.getInt("day", 1)).coerceIn(1, 7),
+                plannedMinutes = prefs.getInt("focus_planned", 60),
+                goal = prefs.getString("goal", "") ?: "",
+                urges = prefs.getInt("focus_urges", 0)
+            )
+            prefs.edit().putString(KEY_ACTIVE, activeJson(active).toString()).putBoolean("focus_active", false).commit()
+        }
+        if (!prefs.contains(KEY_SESSIONS)) {
+            val legacy = prefs.getString("sessions_json", null) ?: return
+            val migrated = runCatching {
+                val array = JSONArray(legacy)
+                buildList {
+                    for (i in 0 until array.length()) {
+                        val o = array.getJSONObject(i)
+                        val start = o.optLong("start")
+                        val focus = o.optInt("focus")
+                        add(FocusSession(
+                            id = "legacy-$start-$i",
+                            startedAt = start,
+                            endedAt = o.optLong("end").takeIf { it > 0L },
+                            experimentDay = o.optInt("experimentDay", 1).coerceIn(1, 7),
+                            plannedMinutes = o.optInt("planned", 60),
+                            actualMinutes = o.optInt("actual"),
+                            urges = o.optInt("urges"),
+                            focusScore = focus.takeIf { it > 0 },
+                            goal = o.optString("goal"),
+                            output = o.optString("output"),
+                            interrupted = o.optBoolean("interrupted")
+                        ))
+                    }
+                }
+            }.getOrDefault(emptyList())
+            if (migrated.isNotEmpty()) writeSessions(migrated)
+        }
     }
 
     companion object {

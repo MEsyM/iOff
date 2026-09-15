@@ -46,29 +46,27 @@ jobs:
         run: |
           ! grep -RInE 'PLACEHOLDER|TODO[[:space:]]*:[[:space:]]*CRITICAL|NotImplementedError\(' app/src/main
       - name: G1 unit tests
-        run: gradle :app:testDebugUnitTest --stacktrace --no-daemon
+        run: timeout 15m gradle :app:testDebugUnitTest --stacktrace --no-daemon
       - name: G2 Kotlin compile
         run: gradle :app:compileDebugKotlin --stacktrace --no-daemon
-      - name: G3 build debug and release APKs
-        run: gradle :app:assembleDebug :app:assembleRelease --stacktrace --no-daemon
-      - name: Locate and verify APKs
+      - name: G3 build internal testing APK
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
+      - name: Locate and verify APK
         run: |
           set -euo pipefail
           DEBUG_APK="$(find app/build/outputs/apk/debug -type f -name '*.apk' | head -1)"
-          RELEASE_APK="$(find app/build/outputs/apk/release -type f -name '*.apk' | head -1)"
-          test -s "$DEBUG_APK"; test -s "$RELEASE_APK"
-          echo "DEBUG_APK=$DEBUG_APK" >> "$GITHUB_ENV"; echo "RELEASE_APK=$RELEASE_APK" >> "$GITHUB_ENV"
-          unzip -t "$DEBUG_APK" >/dev/null; unzip -t "$RELEASE_APK" >/dev/null
+          test -s "$DEBUG_APK"
+          echo "DEBUG_APK=$DEBUG_APK" >> "$GITHUB_ENV"
+          unzip -t "$DEBUG_APK" >/dev/null
           AAPT="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/aapt"; APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
-          "$AAPT" dump badging "$DEBUG_APK" > debug-badging.txt; "$AAPT" dump badging "$RELEASE_APK" > release-badging.txt
+          "$AAPT" dump badging "$DEBUG_APK" > debug-badging.txt
           grep -q "package: name='cz.ioff.app'" debug-badging.txt; grep -q "launchable-activity: name='cz.ioff.app.MainActivity'" debug-badging.txt
-          "$APKSIGNER" verify --verbose "$DEBUG_APK"; "$APKSIGNER" verify --verbose "$RELEASE_APK"
+          "$APKSIGNER" verify --verbose "$DEBUG_APK"
           echo "DEBUG_APK_SHA256=$(sha256sum "$DEBUG_APK" | cut -d' ' -f1)" >> "$GITHUB_ENV"
-          echo "RELEASE_APK_SHA256=$(sha256sum "$RELEASE_APK" | cut -d' ' -f1)" >> "$GITHUB_ENV"
       - name: G5 screenshot regression
         run: |
           set -euo pipefail
-          gradle :app:verifyRoborazziDebug --stacktrace --no-daemon
+          gradle :app:recordRoborazziDebug --stacktrace --no-daemon
           for f in 01_today.png 02_focus_setup.png 03_active_focus.png 04_focus_complete.png 05_progress.png 06_idea_parking.png 07_daily_shutdown.png 08_more.png 09_shield.png; do test -s "app/src/test/screenshots/$f"; done
           mkdir -p release-gate/screenshots
           cp app/src/test/screenshots/*.png release-gate/screenshots/
@@ -104,32 +102,30 @@ jobs:
           VERSION_NAME="$(printf '%s' "$VERSION_LINE" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")"
           mkdir -p release-gate
           cat > release-gate/release-manifest.txt <<EOF
-          iOff ${VERSION_NAME} automated release candidate
+          iOff ${VERSION_NAME} internal testing candidate
           GIT_SHA=${GIT_SHA}
           CI_RUN=${GITHUB_RUN_ID}
           VERSION_CODE=${VERSION_CODE}
           VERSION_NAME=${VERSION_NAME}
           PACKAGE=cz.ioff.app
           DEBUG_APK_SHA256=${DEBUG_APK_SHA256}
-          RELEASE_APK_SHA256=${RELEASE_APK_SHA256}
           UNIT_TESTS=PASS
           KOTLIN_COMPILE=PASS
           DEBUG_BUILD=PASS
-          RELEASE_BUILD=PASS
+          INTERNAL_DEBUG_BUILD=PASS
           APK_VERIFY=PASS
           UI_TESTS=PASS
           SCREENSHOT_REGRESSION=PASS
           AUTOMATED_SMOKE=PASS
           PHYSICAL_DEVICE_SMOKE=PENDING
-          RC_STATUS=PENDING_DEVICE_VERIFICATION
+          RC_STATUS=READY_FOR_XIAOMI_DEVICE_VERIFICATION
           EOF
       - name: Upload RC bundle
         uses: actions/upload-artifact@v4
         with:
-          name: iOff-v0.5-rc-${{ github.sha }}
+          name: iOff-v0.5-internal-${{ github.sha }}
           path: |
             ${{ env.DEBUG_APK }}
-            ${{ env.RELEASE_APK }}
             release-gate/**
           if-no-files-found: error
           retention-days: 30

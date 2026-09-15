@@ -41,6 +41,7 @@ class FocusViewModel(
 
     fun setGoal(v:String){_state.update{it.copy(goal=v.take(200),error=null)}}
     fun setDuration(v:Int){if(v in setOf(30,60,90,120))_state.update{it.copy(selectedMinutes=v,error=null)}}
+    fun refreshSystemState(){_state.update{it.copy(dndReady=dnd.hasAccess())}}
 
     fun startFocus(){
         if(_state.value.phase==FocusPhase.ACTIVE)return

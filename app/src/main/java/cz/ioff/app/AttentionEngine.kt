@@ -1,5 +1,6 @@
 package cz.ioff.app
 
+import cz.ioff.app.domain.focus.FocusSession
 import kotlin.math.roundToInt
 
 data class AttentionSnapshot(
@@ -24,14 +25,14 @@ object AttentionEngine {
     fun reclaimedMinutes(currentDistracting: Int, baselineDistracting: Int): Int =
         (baselineDistracting - currentDistracting).coerceAtLeast(0)
 
-    fun insight(sessions: List<Session>): String? {
-        val rated = sessions.filter { it.focus > 0 && it.actual >= 20 }
+    fun insight(sessions: List<FocusSession>): String? {
+        val rated = sessions.filter { (it.focusScore ?: 0) > 0 && it.actualMinutes >= 20 }
         if (rated.size < 4) return null
-        val short = rated.filter { it.planned <= 60 }
-        val long = rated.filter { it.planned >= 90 }
+        val short = rated.filter { it.plannedMinutes <= 60 }
+        val long = rated.filter { it.plannedMinutes >= 90 }
         if (short.size >= 2 && long.size >= 2) {
-            val a = short.map { it.focus }.average()
-            val b = long.map { it.focus }.average()
+            val a = short.mapNotNull { it.focusScore }.average()
+            val b = long.mapNotNull { it.focusScore }.average()
             if (kotlin.math.abs(a - b) >= .5) {
                 val winner = if (b > a) "90+ minute" else "30–60 minute"
                 return "$winner sessions currently produce better focus for you."

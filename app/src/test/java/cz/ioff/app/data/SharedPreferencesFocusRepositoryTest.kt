@@ -37,6 +37,9 @@ class SharedPreferencesFocusRepositoryTest {
         val stored = repository.getSessionsForDay(3).single()
         assertEquals(8, stored.focusScore)
         assertEquals("shipped", stored.output)
+        assertEquals(30, preferences().getInt("exp_3_mins", 0))
+        repository.completeSession(finished.id, 9, "updated")
+        assertEquals(30, preferences().getInt("exp_3_mins", 0))
     }
 
     @Test fun resetRemovesActiveAndHistory() = runBlocking {
@@ -46,4 +49,7 @@ class SharedPreferencesFocusRepositoryTest {
         assertNull(repository.getActiveFocus())
         assertTrue(repository.getSessionsForDay(1).isEmpty())
     }
+
+    private fun preferences() = ApplicationProvider.getApplicationContext<Context>()
+        .getSharedPreferences("focus_repo_test", Context.MODE_PRIVATE)
 }
