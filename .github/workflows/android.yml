@@ -51,6 +51,7 @@ jobs:
       - name: G0 source sanity
         run: |
           ! grep -RInE 'PLACEHOLDER|TODO[[:space:]]*:[[:space:]]*CRITICAL|NotImplementedError\(' app/src/main
+          ! grep -RInF 'iOff.life' app/src/main
 
       - name: G1 unit tests
         run: timeout 15m gradle :app:testDebugUnitTest --stacktrace --no-daemon
