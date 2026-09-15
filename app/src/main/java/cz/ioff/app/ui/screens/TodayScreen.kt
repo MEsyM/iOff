@@ -46,15 +46,18 @@ fun TodayScreen(repository: IOffRepository, onStartFocus: (String) -> Unit, onHe
         )
     )
 
-    IOffScreen(title = SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(Date())) {
-        Spacer(Modifier.height(6.dp))
+    IOffScreen(title = SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(Date()), brand = true) {
+        Spacer(Modifier.height(4.dp))
         IOffCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(color = IOffGreenDeep, shape = RoundedCornerShape(12.dp), modifier = Modifier.size(44.dp)) {
-                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.TrackChanges, null, tint = IOffGreen) }
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.TrackChanges, null, tint = IOffGreen, modifier = Modifier.size(26.dp)) }
                 }
                 Column(Modifier.padding(start = 12.dp).weight(1f)) {
-                    Text("Today’s One Thing", style = MaterialTheme.typography.titleMedium)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Today’s One Thing", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        Icon(Icons.Outlined.MoreHoriz, null, tint = IOffMuted, modifier = Modifier.size(19.dp))
+                    }
                     OutlinedTextField(
                         value = oneThing,
                         onValueChange = { oneThing = it.take(200); repository.saveOneThing(oneThing, day) },
@@ -69,10 +72,10 @@ fun TodayScreen(repository: IOffRepository, onStartFocus: (String) -> Unit, onHe
                     )
                 }
             }
-            IOffPrimaryButton("▶  Start Focus", Modifier.padding(top = 8.dp), enabled = oneThing.isNotBlank()) { onStartFocus(oneThing.trim()) }
+            IOffPrimaryButton("▶  Start Focus", Modifier.padding(top = 6.dp), enabled = oneThing.isNotBlank()) { onStartFocus(oneThing.trim()) }
         }
 
-        Row(Modifier.padding(top = 9.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IOffCard(Modifier.weight(1f)) {
                 Text("Attention Score", color = IOffMuted, style = MaterialTheme.typography.bodyMedium)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -81,8 +84,21 @@ fun TodayScreen(repository: IOffRepository, onStartFocus: (String) -> Unit, onHe
                     }
                     Text("↑  today", color = IOffGreen, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 7.dp))
                 }
+                Text("Good focus today", color = IOffMuted, fontSize = 10.sp)
             }
-            IOffMetricCard("Focus Time", formatDuration(repository.metric("mins", day)), Modifier.weight(1f), repository.metric("mins", day) / 240f)
+            IOffCard(Modifier.weight(1f)) {
+                Text("Focus Time", color = IOffMuted, style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(7.dp))
+                Text(formatDuration(repository.metric("mins", day)), style = MaterialTheme.typography.headlineMedium)
+                Text("of 4h goal", color = IOffMuted, fontSize = 10.sp)
+                Spacer(Modifier.height(9.dp))
+                LinearProgressIndicator(
+                    progress = { (repository.metric("mins", day) / 240f).coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth().height(5.dp),
+                    color = IOffGreen,
+                    trackColor = IOffBorder
+                )
+            }
         }
 
         Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
