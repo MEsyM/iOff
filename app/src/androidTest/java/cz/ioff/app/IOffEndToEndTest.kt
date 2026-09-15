@@ -15,10 +15,16 @@ class IOffEndToEndTest {
         compose.onNodeWithText("▶  Start Focus").performClick()
         compose.onNodeWithText("Finish one thing.").assertIsDisplayed()
         compose.onNodeWithText("▶  Begin Focus").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Deep Work").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Deep Work").assertIsDisplayed()
-        compose.onNodeWithText("End").performClick()
+
+        // Click the actual icon button action, not the visual label below it.
+        compose.onNodeWithContentDescription("End").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Protected.").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Protected.").assertIsDisplayed()
+
         compose.onNodeWithText("Save session  ✓").performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("Finish one thing.").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Finish one thing.").assertIsDisplayed()
 
         compose.onNodeWithTag("tab_ideas").performClick()
