@@ -5,9 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -22,7 +20,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "w411dp-h891dp-xxhdpi")
 class IOffScreenshotTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = androidx.compose.ui.test.junit4.createComposeRule()
     private lateinit var context: Context
     private lateinit var store: Store
 
@@ -47,15 +45,20 @@ class IOffScreenshotTest {
             .putInt(MetricKeys.experiment(4, "focusSum"), 17)
             .putString("ideas", IdeaCodec.prepend("", 1_725_000_000_000L, "Voice capture for Idea Parking"))
             .commit()
-        DailyLifeStore.from(store.p).apply {
-            save(4, DailyLife(true, true, true, listOf(SexEntry(1L, "Connection")), listOf(SportEntry(2L, "Trail ride", 45))))
-        }
+        DailyLifeStore.from(store.p).save(
+            4,
+            DailyLife(
+                true, true, true,
+                listOf(SexEntry(1L, "Connection")),
+                listOf(SportEntry(2L, "Trail ride", 45))
+            )
+        )
     }
 
     private fun shot(name: String, content: @androidx.compose.runtime.Composable () -> Unit) {
         compose.setContent { Theme { Surface(Modifier.fillMaxSize(), color = Bg) { content() } } }
         compose.waitForIdle()
-        compose.onRoot().captureRoboImage("src/test/screenshots/$name")
+        compose.onRoot(useUnmergedTree = true).captureRoboImage("src/test/screenshots/$name")
     }
 
     @Test fun today() = shot("01_today.png") { V05Today(store, {}, {}) }
@@ -68,7 +71,7 @@ class IOffScreenshotTest {
                 Text("WHAT ARE YOU FINISHING?", color = Muted)
                 OutlinedTextField("Ship iOff v0.5 release candidate", {}, Modifier.fillMaxWidth(), enabled = false)
                 Text("DURATION", color = Muted, modifier = Modifier.padding(top = 16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf(30,60,90).forEach { FilterChip(it == 60, {}, { Text("$it min") }) } }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { listOf(30, 60, 90).forEach { FilterChip(it == 60, {}, { Text("$it min") }) } }
             }
             ScreenshotCard { Text("Focus Protection"); Text("Do Not Disturb is ready", color = Mint) }
             Button({}, Modifier.fillMaxWidth()) { Text("Begin Focus  →") }
@@ -101,9 +104,7 @@ class IOffScreenshotTest {
     }
 
     @Test fun progress() = shot("05_progress.png") { AttentionProgress(store) }
-
     @Test fun ideaParking() = shot("06_idea_parking.png") { Ideas(store) {} }
-
     @Test fun dailyShutdown() = shot("07_daily_shutdown.png") { Shutdown(store) {} }
 
     @Test fun more() = shot("08_more.png") {
