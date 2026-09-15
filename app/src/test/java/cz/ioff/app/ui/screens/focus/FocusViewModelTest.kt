@@ -59,7 +59,7 @@ class FocusViewModelTest {
         val dnd=FakeDnd(); val vm=vm(repo,dnd,FakeClock(120_000))
         dispatcher.scheduler.runCurrent()
         assertEquals(FocusPhase.COMPLETING,vm.uiState.value.phase)
-        assertEquals(60_000,vm.uiState.value.completedSession?.endedAt)
+        assertEquals(60_000L,vm.uiState.value.completedSession?.endedAt)
         assertEquals(1,dnd.exited)
     }
 
