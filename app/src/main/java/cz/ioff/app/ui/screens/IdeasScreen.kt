@@ -79,9 +79,9 @@ fun IdeasScreen(repository: IOffRepository) {
         }
     }
 
-    if (creating) IdeaEditor(null, onDismiss = { creating = false }) { text ->
+    if (creating) IdeaEditor(null, onDismiss = { creating = false }, onSave = { text ->
         repository.parkIdea(text); revision++; creating = false
-    }
+    })
     dialog?.let { idea ->
         IdeaEditor(idea, onDismiss = { dialog = null }, onSave = { text -> repository.updateIdea(idea, text); revision++; dialog = null }, onState = {
             repository.setIdeaState(idea, it); revision++; dialog = null
