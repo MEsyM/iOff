@@ -28,29 +28,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {fetch-depth: 0}
+
       - name: Record source SHA
         run: |
           echo "GIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17', cache: gradle}
+
       - uses: android-actions/setup-android@v3
         with: {packages: platform-tools}
+
       - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-${ANDROID_API}" "build-tools;${BUILD_TOOLS}" "emulator" "system-images;android-${ANDROID_API};google_apis;x86_64"
+          sdkmanager "platforms;android-${ANDROID_API}" "build-tools;${BUILD_TOOLS}"
+
       - uses: gradle/actions/setup-gradle@v4
         with: {gradle-version: '8.11.1'}
+
       - name: G0 source sanity
         run: |
           ! grep -RInE 'PLACEHOLDER|TODO[[:space:]]*:[[:space:]]*CRITICAL|NotImplementedError\(' app/src/main
+
       - name: G1 unit tests
         run: timeout 15m gradle :app:testDebugUnitTest --stacktrace --no-daemon
+
       - name: G2 Kotlin compile
         run: gradle :app:compileDebugKotlin --stacktrace --no-daemon
+
       - name: G3 build internal testing APK
         run: gradle :app:assembleDebug --stacktrace --no-daemon
+
       - name: Locate and verify APK
         run: |
           set -euo pipefail
@@ -58,42 +68,50 @@ jobs:
           test -s "$DEBUG_APK"
           echo "DEBUG_APK=$DEBUG_APK" >> "$GITHUB_ENV"
           unzip -t "$DEBUG_APK" >/dev/null
-          AAPT="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/aapt"; APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
+          AAPT="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/aapt"
+          APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
           "$AAPT" dump badging "$DEBUG_APK" > debug-badging.txt
-          grep -q "package: name='cz.ioff.app'" debug-badging.txt; grep -q "launchable-activity: name='cz.ioff.app.MainActivity'" debug-badging.txt
+          grep -q "package: name='cz.ioff.app'" debug-badging.txt
+          grep -q "launchable-activity: name='cz.ioff.app.MainActivity'" debug-badging.txt
           "$APKSIGNER" verify --verbose "$DEBUG_APK"
           echo "DEBUG_APK_SHA256=$(sha256sum "$DEBUG_APK" | cut -d' ' -f1)" >> "$GITHUB_ENV"
-      - name: G5 screenshot regression
+
+      - name: G4 screenshot regression
         run: |
           set -euo pipefail
           gradle :app:recordRoborazziDebug --stacktrace --no-daemon
-          for f in 01_today.png 02_focus_setup.png 03_active_focus.png 04_focus_complete.png 05_progress.png 06_idea_parking.png 07_daily_shutdown.png 08_more.png 09_shield.png; do test -s "app/src/test/screenshots/$f"; done
+          for f in 01_today.png 02_focus_setup.png 03_active_focus.png 04_focus_complete.png 05_progress.png 06_idea_parking.png 07_daily_shutdown.png 08_more.png 09_shield.png; do
+            test -s "app/src/test/screenshots/$f"
+          done
           mkdir -p release-gate/screenshots
           cp app/src/test/screenshots/*.png release-gate/screenshots/
-      - name: Create emulator
-        run: echo no | avdmanager create avd -n ioff-ci -k "system-images;android-${ANDROID_API};google_apis;x86_64" --force
-      - name: Boot emulator
-        run: |
-          nohup emulator -avd ioff-ci -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect > emulator.log 2>&1 &
-          adb wait-for-device
-          timeout 300 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 2; done'
-          adb shell settings put global window_animation_scale 0; adb shell settings put global transition_animation_scale 0; adb shell settings put global animator_duration_scale 0
-      - name: G5 UI instrumentation tests
-        run: gradle :app:connectedDebugAndroidTest --stacktrace --no-daemon
-      - name: G6 automated APK smoke
-        run: |
-          set -euo pipefail
-          adb install -r "$DEBUG_APK"
-          adb shell am force-stop cz.ioff.app
-          adb shell monkey -p cz.ioff.app -c android.intent.category.LAUNCHER 1
-          sleep 3
-          adb shell pidof cz.ioff.app >/dev/null
-          adb logcat -d > smoke-logcat.txt
-          ! grep -E 'FATAL EXCEPTION: main|Process: cz\.ioff\.app.*has died' smoke-logcat.txt
-          adb shell am force-stop cz.ioff.app
-          adb shell monkey -p cz.ioff.app -c android.intent.category.LAUNCHER 1
-          sleep 2
-          adb shell pidof cz.ioff.app >/dev/null
+
+      - name: G5 UI instrumentation + G6 APK smoke
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          disable-animations: true
+          emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+          script: |
+            set -euo pipefail
+            adb wait-for-device
+            timeout 180 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 2; done'
+            gradle :app:connectedDebugAndroidTest --stacktrace --no-daemon
+            adb install -r "$DEBUG_APK"
+            adb shell am force-stop cz.ioff.app
+            adb shell monkey -p cz.ioff.app -c android.intent.category.LAUNCHER 1
+            sleep 3
+            adb shell pidof cz.ioff.app >/dev/null
+            adb logcat -d > smoke-logcat.txt
+            ! grep -E 'FATAL EXCEPTION: main|Process: cz\.ioff\.app.*has died' smoke-logcat.txt
+            adb shell am force-stop cz.ioff.app
+            adb shell monkey -p cz.ioff.app -c android.intent.category.LAUNCHER 1
+            sleep 2
+            adb shell pidof cz.ioff.app >/dev/null
+
       - name: Release manifest
         run: |
           set -euo pipefail
@@ -120,6 +138,7 @@ jobs:
           PHYSICAL_DEVICE_SMOKE=PENDING
           RC_STATUS=READY_FOR_XIAOMI_DEVICE_VERIFICATION
           EOF
+
       - name: Upload RC bundle
         uses: actions/upload-artifact@v4
         with:
@@ -129,13 +148,13 @@ jobs:
             release-gate/**
           if-no-files-found: error
           retention-days: 30
+
       - name: Upload diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: iOff-v0.5-failure-${{ github.sha }}
           path: |
-            emulator.log
             smoke-logcat.txt
             app/build/reports/**
             app/build/test-results/**
