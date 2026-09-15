@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -36,24 +35,34 @@ enum class MainTab(val title: String, val icon: ImageVector) {
 }
 
 @Composable
-fun IOffTopBar(title: String? = null, onBack: (() -> Unit)? = null, action: (@Composable () -> Unit)? = null) {
+fun IOffTopBar(
+    title: String? = null,
+    onBack: (() -> Unit)? = null,
+    action: (@Composable () -> Unit)? = null,
+    brand: Boolean = false
+) {
     Row(
         modifier = Modifier.fillMaxWidth().height(52.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (onBack != null) {
-            IconButton(onClick = onBack, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Outlined.ArrowBackIosNew, contentDescription = "Back", tint = IOffText)
+        when {
+            onBack != null -> {
+                IconButton(onClick = onBack, modifier = Modifier.size(40.dp)) {
+                    Icon(Icons.Outlined.ArrowBackIosNew, contentDescription = "Back", tint = IOffText)
+                }
+                Text(title.orEmpty(), style = MaterialTheme.typography.titleLarge)
             }
-            Text(title.orEmpty(), style = MaterialTheme.typography.titleLarge)
-        } else {
-            Text("iOff.life", color = IOffGreen, fontSize = 26.sp, fontWeight = FontWeight.Black, letterSpacing = (-1.1).sp)
-            if (title != null) {
-                Spacer(Modifier.weight(1f))
-                Text(title, color = IOffMuted, style = MaterialTheme.typography.labelMedium)
-            }
+            brand -> Text("iOff", color = IOffGreen, fontSize = 26.sp, fontWeight = FontWeight.Black, letterSpacing = (-1.1).sp)
+            title != null -> Text(title, style = MaterialTheme.typography.titleLarge)
+            else -> Text("iOff", color = IOffGreen, fontSize = 26.sp, fontWeight = FontWeight.Black, letterSpacing = (-1.1).sp)
         }
         Spacer(Modifier.weight(1f))
+        if (brand && title != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, color = IOffMuted, style = MaterialTheme.typography.labelMedium)
+                Icon(Icons.Outlined.CalendarMonth, null, tint = IOffGreen, modifier = Modifier.padding(start = 8.dp).size(17.dp))
+            }
+        }
         action?.invoke()
     }
 }
@@ -64,17 +73,18 @@ fun IOffScreen(
     onBack: (() -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,
     scroll: Boolean = true,
+    brand: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val base = Modifier
         .fillMaxSize()
         .background(IOffBackground)
         .windowInsetsPadding(WindowInsets.statusBars)
-        .padding(horizontal = 18.dp)
+        .padding(horizontal = 16.dp)
     Column(if (scroll) base.verticalScroll(rememberScrollState()) else base) {
-        IOffTopBar(title, onBack, action)
+        IOffTopBar(title, onBack, action, brand)
         content()
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -99,9 +109,9 @@ fun IOffCard(
 fun IOffPrimaryButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().height(52.dp),
+        modifier = modifier.fillMaxWidth().height(48.dp),
         enabled = enabled,
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = IOffGreen,
             contentColor = IOffBackground,
@@ -123,7 +133,7 @@ fun IOffBottomBar(selected: MainTab, onSelect: (MainTab) -> Unit) {
                 modifier = Modifier.testTag("tab_${item.name.lowercase()}"),
                 selected = item == selected,
                 onClick = { onSelect(item) },
-                icon = { Icon(item.icon, item.title, modifier = Modifier.size(21.dp)) },
+                icon = { Icon(item.icon, item.title, modifier = Modifier.size(20.dp)) },
                 label = { Text(item.title, fontSize = 10.sp) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = IOffGreen,
@@ -146,8 +156,9 @@ fun IOffCircularProgress(
 ) {
     Box(modifier = modifier.aspectRatio(1f), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
-            drawArc(IOffGreenDeep, -90f, 360f, false, style = Stroke(strokeWidth, cap = StrokeCap.Round))
-            drawArc(IOffGreen, -90f, 360f * value.coerceIn(0f, 1f), false, style = Stroke(strokeWidth, cap = StrokeCap.Round))
+            val strokePx = strokeWidth * density
+            drawArc(IOffGreenDeep, -90f, 360f, false, style = Stroke(strokePx, cap = StrokeCap.Round))
+            drawArc(IOffGreen, -90f, 360f * value.coerceIn(0f, 1f), false, style = Stroke(strokePx, cap = StrokeCap.Round))
         }
         center()
     }
@@ -173,7 +184,7 @@ fun IOffMetricCard(label: String, value: String, modifier: Modifier = Modifier, 
 
 @Composable
 fun IOffSectionTitle(title: String, action: String? = null, onAction: (() -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(title, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.weight(1f))
         if (action != null && onAction != null) TextButton(onClick = onAction) { Text(action, color = IOffGreen) }
@@ -190,11 +201,11 @@ fun IOffListRow(
     onClick: (() -> Unit)? = null
 ) {
     Row(
-        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(vertical = 11.dp),
+        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Surface(shape = CircleShape, color = iconColor.copy(alpha = .12f), modifier = Modifier.size(38.dp)) {
-            Box(contentAlignment = Alignment.Center) { Icon(icon, null, tint = iconColor, modifier = Modifier.size(21.dp)) }
+        Surface(shape = CircleShape, color = iconColor.copy(alpha = .12f), modifier = Modifier.size(36.dp)) {
+            Box(contentAlignment = Alignment.Center) { Icon(icon, null, tint = iconColor, modifier = Modifier.size(20.dp)) }
         }
         Column(Modifier.padding(start = 11.dp).weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
