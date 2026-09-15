@@ -86,6 +86,15 @@ jobs:
           mkdir -p release-gate/screenshots
           cp app/src/test/screenshots/*.png release-gate/screenshots/
 
+      - name: Enable KVM acceleration
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+            ls -l /dev/kvm
+          else
+            echo "KVM device unavailable; emulator runner will use software acceleration."
+          fi
+
       - name: G5 UI instrumentation + G6 APK smoke
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
@@ -96,9 +105,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
           script: |
-            set -euo pipefail
-            adb wait-for-device
-            timeout 180 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 2; done'
+            set -eu
             gradle :app:connectedDebugAndroidTest --stacktrace --no-daemon
             adb install -r "$DEBUG_APK"
             adb shell am force-stop cz.ioff.app
