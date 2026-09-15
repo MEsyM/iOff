@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ioff-v05-${{ github.workflow }}-${{ github.ref }}
+  group: ioff-v05-${{ github.workflow }}-${{ github.sha }}
   cancel-in-progress: true
 
 env:
