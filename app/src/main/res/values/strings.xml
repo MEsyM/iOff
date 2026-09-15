@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">iOff</string>
+    <string name="shield_description">iOff Shield adds deliberate friction when you open selected distracting apps during protected focus time.</string>
+</resources>
