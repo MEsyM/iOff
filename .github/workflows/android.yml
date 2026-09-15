@@ -1,4 +1,4 @@
-name: Android v0.4 CI
+name: Android v0.5 CI
 on:
   push:
     branches: [main, ioff-v031]
@@ -15,7 +15,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17', cache: gradle}
-      - uses: android-actions/setup-android@v3
+      - name: Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - uses: gradle/actions/setup-gradle@v4
         with: {gradle-version: '8.11.1'}
       - name: Unit tests
@@ -28,4 +32,4 @@ jobs:
           unzip -t app/build/outputs/apk/debug/app-debug.apk >/dev/null
           ls -lh app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
-        with: {name: iOff-v0.4-debug-apk, path: app/build/outputs/apk/debug/app-debug.apk, if-no-files-found: error, retention-days: 30}
+        with: {name: iOff-v0.5-debug-apk, path: app/build/outputs/apk/debug/app-debug.apk, if-no-files-found: error, retention-days: 30}
