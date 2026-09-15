@@ -1,8 +1,8 @@
-name: Android APK
+name: Android v0.5 Release Gate
 
 on:
   push:
-    branches: [main]
+    branches: [main, ioff-v031]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -10,50 +10,139 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ioff-v05-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
+  GRADLE_VERSION: '8.11.1'
+  ANDROID_API: '35'
+  BUILD_TOOLS: '35.0.0'
+
 jobs:
-  build:
+  release-gate:
+    name: test-build-verify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-
+    timeout-minutes: 45
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.9'
-
-      - name: Environment diagnostics
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Record source SHA
         run: |
-          java -version
-          gradle --version
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls -la
-          find app -maxdepth 2 -type f -print | sort
-
-      - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
-
-      - name: Verify APK
+          echo "GIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '17', cache: gradle}
+      - uses: android-actions/setup-android@v3
+        with: {packages: platform-tools}
+      - name: Install Android SDK packages
         run: |
-          test -f app/build/outputs/apk/debug/app-debug.apk
-          ls -lh app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Upload APK
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-${ANDROID_API}" "build-tools;${BUILD_TOOLS}" "emulator" "system-images;android-${ANDROID_API};google_apis;x86_64"
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: '8.11.1'}
+      - name: G0 source sanity
+        run: |
+          ! grep -RInE 'PLACEHOLDER|TODO[[:space:]]*:[[:space:]]*CRITICAL|NotImplementedError\(' app/src/main
+      - name: G1 unit tests
+        run: gradle :app:testDebugUnitTest --stacktrace --no-daemon
+      - name: G2 Kotlin compile
+        run: gradle :app:compileDebugKotlin --stacktrace --no-daemon
+      - name: G3 build debug and release APKs
+        run: gradle :app:assembleDebug :app:assembleRelease --stacktrace --no-daemon
+      - name: Locate and verify APKs
+        run: |
+          set -euo pipefail
+          DEBUG_APK="$(find app/build/outputs/apk/debug -type f -name '*.apk' | head -1)"
+          RELEASE_APK="$(find app/build/outputs/apk/release -type f -name '*.apk' | head -1)"
+          test -s "$DEBUG_APK"; test -s "$RELEASE_APK"
+          echo "DEBUG_APK=$DEBUG_APK" >> "$GITHUB_ENV"; echo "RELEASE_APK=$RELEASE_APK" >> "$GITHUB_ENV"
+          unzip -t "$DEBUG_APK" >/dev/null; unzip -t "$RELEASE_APK" >/dev/null
+          AAPT="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/aapt"; APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
+          "$AAPT" dump badging "$DEBUG_APK" > debug-badging.txt; "$AAPT" dump badging "$RELEASE_APK" > release-badging.txt
+          grep -q "package: name='cz.ioff.app'" debug-badging.txt; grep -q "launchable-activity: name='cz.ioff.app.MainActivity'" debug-badging.txt
+          "$APKSIGNER" verify --verbose "$DEBUG_APK"; "$APKSIGNER" verify --verbose "$RELEASE_APK"
+          echo "DEBUG_APK_SHA256=$(sha256sum "$DEBUG_APK" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "RELEASE_APK_SHA256=$(sha256sum "$RELEASE_APK" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: G5 screenshot regression
+        run: |
+          set -euo pipefail
+          gradle :app:verifyRoborazziDebug --stacktrace --no-daemon
+          for f in 01_today.png 02_focus_setup.png 03_active_focus.png 04_focus_complete.png 05_progress.png 06_idea_parking.png 07_daily_shutdown.png 08_more.png 09_shield.png; do test -s "app/src/test/screenshots/$f"; done
+          mkdir -p release-gate/screenshots
+          cp app/src/test/screenshots/*.png release-gate/screenshots/
+      - name: Create emulator
+        run: echo no | avdmanager create avd -n ioff-ci -k "system-images;android-${ANDROID_API};google_apis;x86_64" --force
+      - name: Boot emulator
+        run: |
+          nohup emulator -avd ioff-ci -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect > emulator.log 2>&1 &
+          adb wait-for-device
+          timeout 300 bash -c 'until [ "$(adb shell getprop sys.boot_completed | tr -d "\r")" = "1" ]; do sleep 2; done'
+          adb shell settings put global window_animation_scale 0; adb shell settings put global transition_animation_scale 0; adb shell settings put global animator_duration_scale 0
+      - name: G5 UI instrumentation tests
+        run: gradle :app:connectedDebugAndroidTest --stacktrace --no-daemon
+      - name: G6 automated APK smoke
+        run: |
+          set -euo pipefail
+          adb install -r "$DEBUG_APK"
+          adb shell am force-stop cz.ioff.app
+          adb shell monkey -p cz.ioff.app -c android.intent.category.LAUNCHER 1
+          sleep 3
+          adb shell pidof cz.ioff.app >/dev/null
+          adb logcat -d > smoke-logcat.txt
+          ! grep -E 'FATAL EXCEPTION: main|Process: cz\.ioff\.app.*has died' smoke-logcat.txt
+          adb shell am force-stop cz.ioff.app
+          adb shell monkey -p cz.ioff.app -c android.intent.category.LAUNCHER 1
+          sleep 2
+          adb shell pidof cz.ioff.app >/dev/null
+      - name: Release manifest
+        run: |
+          set -euo pipefail
+          VERSION_LINE="$(grep "package: name='cz.ioff.app'" debug-badging.txt | head -1)"
+          VERSION_CODE="$(printf '%s' "$VERSION_LINE" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
+          VERSION_NAME="$(printf '%s' "$VERSION_LINE" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")"
+          mkdir -p release-gate
+          cat > release-gate/release-manifest.txt <<EOF
+          iOff ${VERSION_NAME} automated release candidate
+          GIT_SHA=${GIT_SHA}
+          CI_RUN=${GITHUB_RUN_ID}
+          VERSION_CODE=${VERSION_CODE}
+          VERSION_NAME=${VERSION_NAME}
+          PACKAGE=cz.ioff.app
+          DEBUG_APK_SHA256=${DEBUG_APK_SHA256}
+          RELEASE_APK_SHA256=${RELEASE_APK_SHA256}
+          UNIT_TESTS=PASS
+          KOTLIN_COMPILE=PASS
+          DEBUG_BUILD=PASS
+          RELEASE_BUILD=PASS
+          APK_VERIFY=PASS
+          UI_TESTS=PASS
+          SCREENSHOT_REGRESSION=PASS
+          AUTOMATED_SMOKE=PASS
+          PHYSICAL_DEVICE_SMOKE=PENDING
+          RC_STATUS=PENDING_DEVICE_VERIFICATION
+          EOF
+      - name: Upload RC bundle
         uses: actions/upload-artifact@v4
         with:
-          name: iOff-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: iOff-v0.5-rc-${{ github.sha }}
+          path: |
+            ${{ env.DEBUG_APK }}
+            ${{ env.RELEASE_APK }}
+            release-gate/**
           if-no-files-found: error
           retention-days: 30
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOff-v0.5-failure-${{ github.sha }}
+          path: |
+            emulator.log
+            smoke-logcat.txt
+            app/build/reports/**
+            app/build/test-results/**
+            app/src/test/screenshots/**
+          if-no-files-found: warn
+          retention-days: 14
