@@ -11,7 +11,12 @@ import org.json.JSONObject
 import java.util.UUID
 
 class SharedPreferencesFocusRepository(private val prefs: SharedPreferences) : FocusRepository {
-    init { migrateLegacyData() }
+    private val protection = ProtectionStore(prefs)
+
+    init {
+        migrateLegacyData()
+        readActive()?.let(protection::syncFocusSession)
+    }
 
     private val activeFlow = MutableStateFlow(readActive())
     private val sessionsFlow = MutableStateFlow(readSessions())
@@ -20,6 +25,7 @@ class SharedPreferencesFocusRepository(private val prefs: SharedPreferences) : F
 
     override suspend fun getActiveFocus(): ActiveFocus? = readActive().also {
         activeFlow.value = it
+        it?.let(protection::syncFocusSession)
     }
 
     override suspend fun startFocus(
@@ -29,7 +35,10 @@ class SharedPreferencesFocusRepository(private val prefs: SharedPreferences) : F
         startedAt: Long,
         endsAt: Long
     ): ActiveFocus {
-        readActive()?.let { return it }
+        readActive()?.let {
+            protection.syncFocusSession(it)
+            return it
+        }
         val active = ActiveFocus(
             sessionId = UUID.randomUUID().toString(),
             startedAt = startedAt,
@@ -40,6 +49,7 @@ class SharedPreferencesFocusRepository(private val prefs: SharedPreferences) : F
             urges = 0
         )
         check(prefs.edit().putString(KEY_ACTIVE, activeJson(active).toString()).commit())
+        protection.syncFocusSession(active)
         activeFlow.value = active
         return active
     }
@@ -48,6 +58,7 @@ class SharedPreferencesFocusRepository(private val prefs: SharedPreferences) : F
         val active = readActive() ?: return
         val updated = active.copy(urges = active.urges + 1)
         check(prefs.edit().putString(KEY_ACTIVE, activeJson(updated).toString()).commit())
+        protection.syncFocusSession(updated)
         activeFlow.value = updated
     }
 
@@ -72,6 +83,7 @@ class SharedPreferencesFocusRepository(private val prefs: SharedPreferences) : F
         val sessions = readSessions() + session
         writeSessions(sessions)
         check(prefs.edit().remove(KEY_ACTIVE).commit())
+        protection.clearFocusSession(active.sessionId)
         activeFlow.value = null
         sessionsFlow.value = sessions
         return session
@@ -101,12 +113,15 @@ class SharedPreferencesFocusRepository(private val prefs: SharedPreferences) : F
         readSessions().filter { it.experimentDay == experimentDay }
 
     override suspend fun clearCurrentFocus() {
+        val active = readActive()
         check(prefs.edit().remove(KEY_ACTIVE).commit())
+        protection.clearFocusSession(active?.sessionId)
         activeFlow.value = null
     }
 
     override suspend fun resetSessions() {
         check(prefs.edit().remove(KEY_ACTIVE).remove(KEY_SESSIONS).commit())
+        protection.clearFocusSession()
         activeFlow.value = null
         sessionsFlow.value = emptyList()
     }
