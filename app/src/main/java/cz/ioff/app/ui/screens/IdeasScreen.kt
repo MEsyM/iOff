@@ -21,7 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun IdeasScreen(repository: IOffRepository, onBack: () -> Unit = {}) {
+fun IdeasScreen(repository: IOffRepository) {
     var revision by remember { mutableIntStateOf(0) }
     var query by remember { mutableStateOf("") }
     var filter by remember { mutableStateOf<IdeaState?>(null) }
@@ -32,7 +32,7 @@ fun IdeasScreen(repository: IOffRepository, onBack: () -> Unit = {}) {
         (filter == null || it.state == filter) && (query.isBlank() || it.text.contains(query, ignoreCase = true))
     }
 
-    IOffScreen(title = "Idea Parking", onBack = onBack, action = {
+    IOffScreen(title = "Idea Parking", action = {
         FilledIconButton(
             onClick = { creating = true },
             modifier = Modifier.size(42.dp),
