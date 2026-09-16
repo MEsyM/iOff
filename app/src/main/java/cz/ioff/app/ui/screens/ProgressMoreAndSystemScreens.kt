@@ -123,6 +123,7 @@ fun MoreScreen(
     dndReady: Boolean,
     onHealth: () -> Unit,
     onShutdown: () -> Unit,
+    onProtectedApps: () -> Unit,
     onDataReset: () -> Unit
 ) {
     val context = LocalContext.current
@@ -132,6 +133,8 @@ fun MoreScreen(
     val usageReady = UsageMetrics.hasAccess(context)
     val accessibilityReady = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty().contains(context.packageName)
     val notificationReady = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners").orEmpty().contains(context.packageName)
+    val selectedApps = repository.protectedPackages().size
+    val recentBlocks = repository.shieldEvents(100).count { it.type.name == "BLOCKED" }
 
     IOffScreen(title = "More") {
         IOffSectionTitle("Life")
@@ -142,6 +145,13 @@ fun MoreScreen(
         }
         IOffSectionTitle("Protection")
         IOffCard {
+            IOffListRow(
+                Icons.Outlined.Apps,
+                title = "Blocked Apps",
+                subtitle = "$selectedApps selected · $recentBlocks shield events",
+                onClick = onProtectedApps
+            )
+            HorizontalDivider(color = IOffBorder)
             AccessRow("Do Not Disturb", dndReady, settingsNavigator::openDoNotDisturbAccess)
             HorizontalDivider(color = IOffBorder)
             AccessRow("Focus Shield", accessibilityReady, settingsNavigator::openAccessibilityAccess)
@@ -152,7 +162,7 @@ fun MoreScreen(
         }
         IOffSectionTitle("Automation")
         IOffCard {
-            ToggleRow("Focus Shield", "Block distractions during focus", shield) { shield = it; repository.setShieldEnabled(it) }
+            ToggleRow("Focus Shield", "Block selected apps during focus", shield) { shield = it; repository.setShieldEnabled(it) }
             HorizontalDivider(color = IOffBorder)
             ToggleRow("Morning Protection", "06:00–09:00", morning) { morning = it; repository.setMorningShieldEnabled(it) }
         }

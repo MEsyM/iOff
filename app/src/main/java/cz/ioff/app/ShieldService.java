@@ -15,11 +15,10 @@ import android.view.accessibility.AccessibilityEvent;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import cz.ioff.app.data.ProtectionSession;
+import cz.ioff.app.data.ProtectionStore;
+import cz.ioff.app.data.ShieldEventType;
 import org.json.JSONObject;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.Set;
 
 public final class ShieldService extends AccessibilityService {
     private static final int BG = Color.rgb(5, 9, 9);
@@ -28,42 +27,43 @@ public final class ShieldService extends AccessibilityService {
     private static final int MUTED = Color.rgb(164, 173, 170);
     private static final int GREEN = Color.rgb(93, 245, 139);
     private static final int RED = Color.rgb(255, 83, 91);
-    private static final Set<String> DEFAULT_BLOCKED = new HashSet<>(Arrays.asList(
-        "com.instagram.android", "com.facebook.katana", "com.zhiliaoapp.musically",
-        "com.google.android.youtube", "com.twitter.android", "com.reddit.frontpage",
-        "com.snapchat.android"
-    ));
+    private static final int MAX_OVERRIDES_PER_DAY = 3;
 
     private WindowManager windowManager;
     private View overlay;
+    private ProtectionStore store;
     private String blockedPackage;
-    private long bypassUntil;
+    private String currentSessionId;
+    private String lastBlockedPackage;
+    private long lastBlockAt;
 
     @Override public void onServiceConnected() {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        store = new ProtectionStore(getSharedPreferences("ioff", 0));
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || event.getPackageName() == null) return;
         String packageName = event.getPackageName().toString();
         if (packageName.equals(getPackageName())) return;
-        SharedPreferences preferences = getSharedPreferences("ioff", 0);
-        if (!preferences.getBoolean("shield_enabled", true)
-            || !isProtectedNow(preferences)
-            || System.currentTimeMillis() < bypassUntil
-            || !preferences.getStringSet("blocked_apps", DEFAULT_BLOCKED).contains(packageName)) return;
-        blockedPackage = packageName;
-        showOverlay(false, true);
-    }
 
-    private boolean isProtectedNow(SharedPreferences preferences) {
-        JSONObject active = activeFocus(preferences);
-        if (active != null && active.optLong("end") > System.currentTimeMillis()) return true;
-        if (!preferences.getBoolean("morning_shield", true)) return false;
-        Calendar now = Calendar.getInstance();
-        int minute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
-        return minute >= preferences.getInt("morning_start", 360)
-            && minute < preferences.getInt("morning_until", 540);
+        SharedPreferences preferences = getSharedPreferences("ioff", 0);
+        if (!preferences.getBoolean("shield_enabled", true)) return;
+        if (store == null) store = new ProtectionStore(preferences);
+
+        long now = System.currentTimeMillis();
+        ProtectionSession session = store.activeSession(now);
+        if (session == null || !session.getActive()) return;
+        if (!store.isPackageProtected(packageName)) return;
+        if (now < store.bypassUntil(packageName)) return;
+        if (packageName.equals(lastBlockedPackage) && now - lastBlockAt < 1_000L && overlay != null) return;
+
+        blockedPackage = packageName;
+        currentSessionId = session.getId();
+        lastBlockedPackage = packageName;
+        lastBlockAt = now;
+        store.appendEvent(packageName, ShieldEventType.BLOCKED, session.getId(), now);
+        showOverlay(false, true);
     }
 
     private JSONObject activeFocus(SharedPreferences preferences) {
@@ -81,23 +81,20 @@ public final class ShieldService extends AccessibilityService {
     }
 
     private String appName() {
-        if (blockedPackage == null) return "This app";
-        if (blockedPackage.contains("instagram")) return "Instagram";
-        if (blockedPackage.contains("youtube")) return "YouTube";
-        if (blockedPackage.contains("reddit")) return "Reddit";
-        if (blockedPackage.contains("facebook")) return "Facebook";
-        if (blockedPackage.contains("twitter")) return "X";
-        if (blockedPackage.contains("tiktok") || blockedPackage.contains("zhiliao")) return "TikTok";
-        if (blockedPackage.contains("snapchat")) return "Snapchat";
-        return "This app";
+        if (blockedPackage == null || store == null) return "This app";
+        return store.displayNameForPackage(blockedPackage);
     }
 
     private void showOverlay(boolean confirmation, boolean countIntervention) {
         removeOverlay();
         SharedPreferences preferences = getSharedPreferences("ioff", 0);
-        JSONObject active = activeFocus(preferences);
-        String goal = active == null ? "" : active.optString("goal");
-        long remaining = active == null ? 0 : Math.max(0, active.optLong("end") - System.currentTimeMillis());
+        if (store == null) store = new ProtectionStore(preferences);
+        long now = System.currentTimeMillis();
+        ProtectionSession session = store.activeSession(now);
+        if (session == null) return;
+        currentSessionId = session.getId();
+        String goal = session.getGoal();
+        long remaining = Math.max(0, session.getPlannedEndAt() - now);
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -127,17 +124,39 @@ public final class ShieldService extends AccessibilityService {
         back.setOnClickListener(v -> returnToIOff());
         content.addView(back, new LinearLayout.LayoutParams(-1, dp(56)));
 
-        int bypasses = preferences.getInt("exp_" + experimentDay(preferences) + "_bypasses", 0);
-        Button pass = button(confirmation ? "CONTINUE FOR 5 MINUTES" : "I REALLY NEED TO OPEN " + appName().toUpperCase(), Color.TRANSPARENT, TEXT);
+        int overrides = store.overridesToday(now);
+        boolean canOverride = overrides < MAX_OVERRIDES_PER_DAY;
+        String overrideLabel;
+        if (!canOverride) {
+            overrideLabel = "NO OVERRIDES LEFT TODAY";
+        } else if (confirmation) {
+            overrideLabel = "CONTINUE FOR 5 MINUTES";
+        } else {
+            overrideLabel = "I REALLY NEED TO OPEN " + appName().toUpperCase();
+        }
+        Button pass = button(overrideLabel, Color.TRANSPARENT, canOverride ? TEXT : MUTED);
+        pass.setEnabled(canOverride);
+        pass.setAlpha(canOverride ? 1f : 0.55f);
         pass.setOnClickListener(v -> {
-            if (!confirmation) { showOverlay(true, false); return; }
-            bypassUntil = System.currentTimeMillis() + 300_000;
+            if (!confirmation) {
+                showOverlay(true, false);
+                return;
+            }
+            long overrideAt = System.currentTimeMillis();
+            if (store.overridesToday(overrideAt) >= MAX_OVERRIDES_PER_DAY) {
+                showOverlay(false, false);
+                return;
+            }
+            if (blockedPackage != null && currentSessionId != null) {
+                store.appendEvent(blockedPackage, ShieldEventType.OVERRIDE, currentSessionId, overrideAt);
+                store.setBypassUntil(blockedPackage, overrideAt + 300_000L);
+            }
             String key = "exp_" + experimentDay(preferences) + "_bypasses";
             preferences.edit().putInt(key, preferences.getInt(key, 0) + 1).apply();
             removeOverlay();
         });
         content.addView(pass, new LinearLayout.LayoutParams(-1, dp(54)));
-        content.addView(text(Math.max(0, 3 - bypasses) + " overrides left today", 12, MUTED, Typeface.NORMAL));
+        content.addView(text(Math.max(0, MAX_OVERRIDES_PER_DAY - overrides) + " overrides left today", 12, MUTED, Typeface.NORMAL));
 
         int type = Build.VERSION.SDK_INT >= 26
             ? WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
@@ -154,6 +173,10 @@ public final class ShieldService extends AccessibilityService {
     }
 
     private void returnToIOff() {
+        long now = System.currentTimeMillis();
+        if (store != null && blockedPackage != null && currentSessionId != null) {
+            store.appendEvent(blockedPackage, ShieldEventType.RETURNED_TO_FOCUS, currentSessionId, now);
+        }
         Intent intent = new Intent(this, MainActivity.class)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         startActivity(intent);

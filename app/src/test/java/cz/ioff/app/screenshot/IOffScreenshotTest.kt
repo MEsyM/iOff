@@ -88,10 +88,22 @@ class IOffScreenshotTest {
     @Test fun progress() = shot("05_progress.png") { ProgressScreen(repository) }
     @Test fun ideas() = shot("06_idea_parking.png") { IdeasScreen(repository) }
     @Test fun shutdown() = shot("07_daily_shutdown.png") { ShutdownScreen(repository, {}, {}) }
-    @Test fun more() = shot("08_more.png") { MoreScreen(repository, NoOpSettings, true, {}, {}, {}) }
+    @Test fun more() = shot("08_more.png") { MoreScreen(repository, NoOpSettings, true, {}, {}, {}, {}) }
     @Test fun shield() = shot("09_shield.png") { ShieldScreen() }
     @Test fun splash() = shot("00_splash.png") { SplashScreen() }
     @Test fun health() = shot("10_health.png") { HealthScreen(repository, {}) }
+    @Test fun protectedApps() = shot("11_protected_apps.png") {
+        ProtectedAppsContent(
+            apps = listOf(
+                InstalledAppUi("com.instagram.android", "Instagram"),
+                InstalledAppUi("com.android.chrome", "Chrome"),
+                InstalledAppUi("com.google.android.youtube", "YouTube"),
+                InstalledAppUi("com.spotify.music", "Spotify"),
+                InstalledAppUi("com.whatsapp", "WhatsApp")
+            ),
+            protectedPackages = setOf("com.instagram.android", "com.android.chrome", "com.google.android.youtube")
+        )
+    }
 
     private object NoOpSettings : SettingsNavigator {
         override fun openDoNotDisturbAccess() = Unit

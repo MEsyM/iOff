@@ -17,6 +17,7 @@ data class ShutdownEntry(
 
 class IOffRepository(val preferences: SharedPreferences) {
     private val dailyLife = DailyLifeStore.from(preferences)
+    private val protection = ProtectionStore(preferences)
 
     fun day(): Int = preferences.getInt(KEY_DAY, 1).coerceIn(1, 7)
     fun oneThing(day: Int = day()): String = preferences.getString("one_thing_$day", "") ?: ""
@@ -67,6 +68,14 @@ class IOffRepository(val preferences: SharedPreferences) {
 
     fun shieldEnabled(): Boolean = preferences.getBoolean(KEY_SHIELD_ENABLED, true)
     fun setShieldEnabled(enabled: Boolean) = preferences.edit().putBoolean(KEY_SHIELD_ENABLED, enabled).apply()
+
+    fun protectedPackages(): Set<String> = protection.protectedPackages()
+    fun protectedApps(): List<ProtectedApp> = protection.protectedApps()
+    fun setProtectedApp(packageName: String, displayName: String, enabled: Boolean, category: String = "Selected") =
+        protection.setProtected(packageName, displayName, category, enabled)
+    fun shieldEvents(limit: Int = 100): List<ShieldEvent> = protection.events(limit)
+    fun overridesToday(): Int = protection.overridesToday()
+    fun activeProtectionSession(): ProtectionSession? = protection.activeSession()
 
     fun resetAll() = preferences.edit().clear().putInt(KEY_DAY, 1).apply()
 
