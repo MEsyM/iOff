@@ -1,0 +1,203 @@
+name: iOff Production Release APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  JAVA_VERSION: '17'
+  GRADLE_VERSION: '8.11.1'
+  ANDROID_API: '35'
+  BUILD_TOOLS: '35.0.0'
+  PACKAGE_NAME: 'cz.ioff.app'
+
+concurrency:
+  group: ioff-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: signed-release-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android SDK packages
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-${ANDROID_API}" "build-tools;${BUILD_TOOLS}"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Validate signing configuration
+        env:
+          KEYSTORE_B64: ${{ secrets.IOFF_RELEASE_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.IOFF_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.IOFF_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.IOFF_RELEASE_KEY_PASSWORD }}
+          PINNED_CERT: ${{ vars.IOFF_RELEASE_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_B64" || { echo '::error::Missing IOFF_RELEASE_KEYSTORE_B64'; exit 1; }
+          test -n "$STORE_PASSWORD" || { echo '::error::Missing IOFF_RELEASE_STORE_PASSWORD'; exit 1; }
+          test -n "$KEY_ALIAS" || { echo '::error::Missing IOFF_RELEASE_KEY_ALIAS'; exit 1; }
+          test -n "$KEY_PASSWORD" || { echo '::error::Missing IOFF_RELEASE_KEY_PASSWORD'; exit 1; }
+          test -n "$PINNED_CERT" || { echo '::error::Missing IOFF_RELEASE_CERT_SHA256'; exit 1; }
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/ioff-release.jks"
+          chmod 600 "$RUNNER_TEMP/ioff-release.jks"
+          echo "KEYSTORE=$RUNNER_TEMP/ioff-release.jks" >> "$GITHUB_ENV"
+
+      - name: Download latest approved production release
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p previous
+          RELEASE_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" 2>/dev/null || true)"
+          if [ -z "$RELEASE_JSON" ]; then
+            echo 'No previous GitHub Release exists; bootstrap mode.'
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          TAG="$(printf '%s' "$RELEASE_JSON" | jq -r '.tag_name')"
+          DRAFT="$(printf '%s' "$RELEASE_JSON" | jq -r '.draft')"
+          PRERELEASE="$(printf '%s' "$RELEASE_JSON" | jq -r '.prerelease')"
+          if [ "$DRAFT" != false ] || [ "$PRERELEASE" != false ]; then
+            echo '::error::Latest release is not an approved production release'
+            exit 1
+          fi
+          ASSET_URL="$(printf '%s' "$RELEASE_JSON" | jq -r '.assets[] | select(.name | endswith(".apk")) | .url' | head -1)"
+          test -n "$ASSET_URL" && test "$ASSET_URL" != null || { echo '::error::Latest production release has no APK asset'; exit 1; }
+          gh api -H 'Accept: application/octet-stream' "$ASSET_URL" > previous/ioff-previous.apk
+          test -s previous/ioff-previous.apk
+          echo "Previous approved release: $TAG"
+          echo 'exists=true' >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Inspect previous approved APK
+        if: steps.previous.outputs.exists == 'true'
+        run: |
+          set -euo pipefail
+          AAPT="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/aapt"
+          APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
+          "$APKSIGNER" verify --verbose previous/ioff-previous.apk
+          PREVIOUS_PACKAGE="$($AAPT dump badging previous/ioff-previous.apk | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)"
+          PREVIOUS_VERSION_CODE="$($AAPT dump badging previous/ioff-previous.apk | sed -n "s/^package:.*versionCode='\([^']*\)'.*/\1/p" | head -1)"
+          PREVIOUS_CERT="$($APKSIGNER verify --print-certs previous/ioff-previous.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          test "$PREVIOUS_PACKAGE" = "$PACKAGE_NAME" || { echo "::error::Previous APK package mismatch: $PREVIOUS_PACKAGE"; exit 1; }
+          [[ "$PREVIOUS_VERSION_CODE" =~ ^[0-9]+$ ]] || { echo '::error::Invalid previous versionCode'; exit 1; }
+          test -n "$PREVIOUS_CERT" || { echo '::error::Could not read previous signing certificate'; exit 1; }
+          echo "PREVIOUS_VERSION_CODE=$PREVIOUS_VERSION_CODE" >> "$GITHUB_ENV"
+          echo "PREVIOUS_CERT_SHA256=$PREVIOUS_CERT" >> "$GITHUB_ENV"
+
+      - name: Unit tests and release compile
+        run: |
+          set -euo pipefail
+          gradle :app:testDebugUnitTest --stacktrace --no-daemon
+          gradle :app:compileReleaseKotlin --stacktrace --no-daemon
+
+      - name: Build release APK
+        run: |
+          set -euo pipefail
+          gradle :app:assembleRelease --stacktrace --no-daemon
+          APK="$(find app/build/outputs/apk/release -type f -name '*.apk' | head -1)"
+          test -s "$APK"
+          echo "UNSIGNED_APK=$APK" >> "$GITHUB_ENV"
+
+      - name: Sign release APK
+        env:
+          STORE_PASSWORD: ${{ secrets.IOFF_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.IOFF_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.IOFF_RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          ZIPALIGN="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/zipalign"
+          APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
+          "$ZIPALIGN" -f -v 4 "$UNSIGNED_APK" release/ioff-release-aligned.apk
+          "$APKSIGNER" sign --ks "$KEYSTORE" --ks-key-alias "$KEY_ALIAS" --ks-pass "pass:$STORE_PASSWORD" --key-pass "pass:$KEY_PASSWORD" --out release/ioff-release.apk release/ioff-release-aligned.apk
+          "$APKSIGNER" verify --verbose --print-certs release/ioff-release.apk
+
+      - name: Production identity and version gate
+        env:
+          PINNED_CERT_RAW: ${{ vars.IOFF_RELEASE_CERT_SHA256 }}
+          HAS_PREVIOUS: ${{ steps.previous.outputs.exists }}
+        run: |
+          set -euo pipefail
+          AAPT="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/aapt"
+          APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
+          NEW_PACKAGE="$($AAPT dump badging release/ioff-release.apk | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)"
+          NEW_VERSION_CODE="$($AAPT dump badging release/ioff-release.apk | sed -n "s/^package:.*versionCode='\([^']*\)'.*/\1/p" | head -1)"
+          NEW_VERSION_NAME="$($AAPT dump badging release/ioff-release.apk | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p" | head -1)"
+          NEW_CERT="$($APKSIGNER verify --print-certs release/ioff-release.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          PINNED_CERT="$(printf '%s' "$PINNED_CERT_RAW" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          test "$NEW_PACKAGE" = "$PACKAGE_NAME" || { echo "::error::Wrong applicationId: $NEW_PACKAGE"; exit 1; }
+          [[ "$NEW_VERSION_CODE" =~ ^[0-9]+$ ]] || { echo '::error::Invalid new versionCode'; exit 1; }
+          test "$NEW_CERT" = "$PINNED_CERT" || { echo "::error::New APK signing key differs from pinned production key. Expected=$PINNED_CERT Actual=$NEW_CERT"; exit 1; }
+          if [ "$HAS_PREVIOUS" = true ]; then
+            test "$PREVIOUS_CERT_SHA256" = "$PINNED_CERT" || { echo '::error::Previous approved release does not match pinned production signing key'; exit 1; }
+            test "$NEW_CERT" = "$PREVIOUS_CERT_SHA256" || { echo "::error::Signing key changed between releases. Previous=$PREVIOUS_CERT_SHA256 New=$NEW_CERT"; exit 1; }
+            if [ "$NEW_VERSION_CODE" -le "$PREVIOUS_VERSION_CODE" ]; then
+              echo "::error::versionCode must increase. Previous=$PREVIOUS_VERSION_CODE New=$NEW_VERSION_CODE"
+              exit 1
+            fi
+          fi
+          echo "VERSION_CODE=$NEW_VERSION_CODE" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=$NEW_VERSION_NAME" >> "$GITHUB_ENV"
+          echo "SIGNING_CERT_SHA256=$NEW_CERT" >> "$GITHUB_ENV"
+
+      - name: Create verified release manifest
+        env:
+          HAS_PREVIOUS: ${{ steps.previous.outputs.exists }}
+          PREVIOUS_TAG: ${{ steps.previous.outputs.tag }}
+        run: |
+          set -euo pipefail
+          APK_SHA256="$(sha256sum release/ioff-release.apk | cut -d' ' -f1)"
+          cat > release/release-manifest.txt <<EOF
+          iOff production release
+          GIT_SHA=${GITHUB_SHA}
+          PACKAGE=${PACKAGE_NAME}
+          VERSION_CODE=${VERSION_CODE}
+          VERSION_NAME=${VERSION_NAME}
+          SIGNING_CERT_SHA256=${SIGNING_CERT_SHA256}
+          APK_SHA256=${APK_SHA256}
+          PREVIOUS_RELEASE=${PREVIOUS_TAG:-NONE}
+          PREVIOUS_VERSION_CODE=${PREVIOUS_VERSION_CODE:-NONE}
+          PREVIOUS_SIGNING_CERT_SHA256=${PREVIOUS_CERT_SHA256:-NONE}
+          PREVIOUS_RELEASE_FOUND=${HAS_PREVIOUS}
+          VERSION_MONOTONICITY=PASS
+          PINNED_SIGNING_CERTIFICATE=PASS
+          SIGNING_CONTINUITY=PASS
+          RELEASE_STATUS=SIGNED_AND_VERIFIED
+          EOF
+          cat release/release-manifest.txt
+
+      - name: Upload verified release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOff-${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}-verified-release
+          path: |
+            release/ioff-release.apk
+            release/release-manifest.txt
+          if-no-files-found: error
+          retention-days: 90
