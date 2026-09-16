@@ -18,7 +18,6 @@ class IOffEndToEndTest {
         compose.waitUntil(5_000) { compose.onAllNodesWithText("Deep Work").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Deep Work").assertIsDisplayed()
 
-        // Click the actual icon button action, not the visual label below it.
         compose.onNodeWithContentDescription("End").performClick()
         compose.waitUntil(5_000) { compose.onAllNodesWithText("Protected.").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("Protected.").assertIsDisplayed()
@@ -32,6 +31,14 @@ class IOffEndToEndTest {
         compose.onNodeWithTag("tab_progress").performClick()
         compose.onNodeWithText("Your Attention Insights", substring = true).assertIsDisplayed()
         compose.onNodeWithTag("tab_more").performClick()
+        compose.onNodeWithText("Daily Shutdown").assertIsDisplayed()
+
+        compose.onNodeWithText("Blocked Apps").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("Choose which apps iOff blocks", substring = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("Choose which apps iOff blocks", substring = true).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText("Daily Shutdown").assertIsDisplayed()
 
         val preferences = compose.activity.getSharedPreferences("ioff", 0)
