@@ -1,0 +1,108 @@
+name: iOff Production Release APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  JAVA_VERSION: '17'
+  GRADLE_VERSION: '8.11.1'
+  ANDROID_API: '35'
+  BUILD_TOOLS: '35.0.0'
+  PACKAGE_NAME: 'cz.ioff.app'
+
+concurrency:
+  group: ioff-production-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: signed-release-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android SDK packages
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-${ANDROID_API}" "build-tools;${BUILD_TOOLS}"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Validate signing configuration
+        env:
+          KEYSTORE_B64: ${{ secrets.IOFF_RELEASE_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.IOFF_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.IOFF_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.IOFF_RELEASE_KEY_PASSWORD }}
+          PINNED_CERT: ${{ vars.IOFF_RELEASE_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_B64"
+          test -n "$STORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+          test -n "$PINNED_CERT"
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/ioff-release.jks"
+          chmod 600 "$RUNNER_TEMP/ioff-release.jks"
+          echo "KEYSTORE=$RUNNER_TEMP/ioff-release.jks" >> "$GITHUB_ENV"
+      - name: Unit tests and release compile
+        run: |
+          set -euo pipefail
+          gradle :app:testDebugUnitTest --stacktrace --no-daemon
+          gradle :app:compileReleaseKotlin --stacktrace --no-daemon
+      - name: Build release APK
+        run: |
+          set -euo pipefail
+          gradle :app:assembleRelease --stacktrace --no-daemon
+          APK="$(find app/build/outputs/apk/release -type f -name '*.apk' | head -1)"
+          test -s "$APK"
+          echo "UNSIGNED_APK=$APK" >> "$GITHUB_ENV"
+      - name: Sign release APK
+        env:
+          STORE_PASSWORD: ${{ secrets.IOFF_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.IOFF_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.IOFF_RELEASE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          ZIPALIGN="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/zipalign"
+          APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
+          "$ZIPALIGN" -f -v 4 "$UNSIGNED_APK" release/ioff-release-aligned.apk
+          "$APKSIGNER" sign --ks "$KEYSTORE" --ks-key-alias "$KEY_ALIAS" --ks-pass "pass:$STORE_PASSWORD" --key-pass "pass:$KEY_PASSWORD" --out release/ioff-release.apk release/ioff-release-aligned.apk
+          "$APKSIGNER" verify --verbose --print-certs release/ioff-release.apk
+      - name: Production identity gate
+        env:
+          PINNED_CERT_RAW: ${{ vars.IOFF_RELEASE_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          AAPT="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/aapt"
+          APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
+          BADGING="$($AAPT dump badging release/ioff-release.apk | head -1)"
+          echo "$BADGING" | grep -q "package: name='cz.ioff.app'"
+          echo "$BADGING" | grep -q "versionCode='7'"
+          echo "$BADGING" | grep -q "versionName='0.6.1'"
+          NEW_CERT="$($APKSIGNER verify --print-certs release/ioff-release.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          PINNED_CERT="$(printf '%s' "$PINNED_CERT_RAW" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          test "$NEW_CERT" = "$PINNED_CERT"
+      - name: Upload verified release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOff-0.6.1-7-verified-release
+          path: release/ioff-release.apk
+          if-no-files-found: error
+          retention-days: 90
