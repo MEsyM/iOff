@@ -1,8 +1,8 @@
-name: Android v0.5 Release Gate
+name: Android v0.6 Release Gate
 
 on:
   push:
-    branches: [main, ioff-v031]
+    branches: [main, ioff-v031, codex/ioff-v06-shield-core]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ioff-v05-${{ github.workflow }}-${{ github.sha }}
+  group: ioff-v06-${{ github.workflow }}-${{ github.sha }}
   cancel-in-progress: true
 
 env:
@@ -52,6 +52,7 @@ jobs:
         run: |
           ! grep -RInE 'PLACEHOLDER|TODO[[:space:]]*:[[:space:]]*CRITICAL|NotImplementedError\(' app/src/main
           ! grep -RInF 'iOff.life' app/src/main
+          grep -q 'versionName = "0.6.0"' app/build.gradle.kts
 
       - name: G1 unit tests
         run: timeout 15m gradle :app:testDebugUnitTest --stacktrace --no-daemon
@@ -73,6 +74,7 @@ jobs:
           APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
           "$AAPT" dump badging "$DEBUG_APK" > debug-badging.txt
           grep -q "package: name='cz.ioff.app'" debug-badging.txt
+          grep -q "versionName='0.6.0'" debug-badging.txt
           grep -q "launchable-activity: name='cz.ioff.app.MainActivity'" debug-badging.txt
           "$APKSIGNER" verify --verbose "$DEBUG_APK"
           echo "DEBUG_APK_SHA256=$(sha256sum "$DEBUG_APK" | cut -d' ' -f1)" >> "$GITHUB_ENV"
@@ -81,7 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           gradle :app:recordRoborazziDebug --stacktrace --no-daemon
-          for f in 01_today.png 02_focus_setup.png 03_active_focus.png 04_focus_complete.png 05_progress.png 06_idea_parking.png 07_daily_shutdown.png 08_more.png 09_shield.png; do
+          for f in 00_splash.png 01_today.png 02_focus_setup.png 03_active_focus.png 04_focus_complete.png 05_progress.png 06_idea_parking.png 07_daily_shutdown.png 08_more.png 09_shield.png 10_health.png 11_protected_apps.png; do
             test -s "app/src/test/screenshots/$f"
           done
           mkdir -p release-gate/screenshots
@@ -128,7 +130,7 @@ jobs:
           VERSION_NAME="$(printf '%s' "$VERSION_LINE" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")"
           mkdir -p release-gate
           cat > release-gate/release-manifest.txt <<EOF
-          iOff ${VERSION_NAME} internal testing candidate
+          iOff ${VERSION_NAME} internal Shield Core candidate
           GIT_SHA=${GIT_SHA}
           CI_RUN=${GITHUB_RUN_ID}
           VERSION_CODE=${VERSION_CODE}
@@ -142,15 +144,16 @@ jobs:
           APK_VERIFY=PASS
           UI_TESTS=PASS
           SCREENSHOT_REGRESSION=PASS
+          SHIELD_CORE_PERSISTENCE=PASS
           AUTOMATED_SMOKE=PASS
-          PHYSICAL_DEVICE_SMOKE=PENDING
-          RC_STATUS=READY_FOR_XIAOMI_DEVICE_VERIFICATION
+          PHYSICAL_XIAOMI_SHIELD_SMOKE=PENDING
+          RC_STATUS=READY_FOR_XIAOMI_SHIELD_VERIFICATION
           EOF
 
       - name: Upload RC bundle
         uses: actions/upload-artifact@v4
         with:
-          name: iOff-v0.5-internal-${{ github.sha }}
+          name: iOff-v0.6-shield-core-${{ github.sha }}
           path: |
             ${{ env.DEBUG_APK }}
             release-gate/**
@@ -161,7 +164,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: iOff-v0.5-failure-${{ github.sha }}
+          name: iOff-v0.6-failure-${{ github.sha }}
           path: |
             smoke-logcat.txt
             app/build/reports/**
