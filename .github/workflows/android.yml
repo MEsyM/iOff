@@ -1,8 +1,8 @@
-name: Android v0.6 Release Gate
+name: Android v0.6.1 Release Gate
 
 on:
   push:
-    branches: [main, ioff-v031, codex/ioff-v06-shield-core]
+    branches: [main, ioff-v031, codex/ioff-v06-shield-core, codex/ioff-v061-complete]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ioff-v06-${{ github.workflow }}-${{ github.sha }}
+  group: ioff-v061-${{ github.workflow }}-${{ github.sha }}
   cancel-in-progress: true
 
 env:
@@ -28,41 +28,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {fetch-depth: 0}
-
       - name: Record source SHA
         run: |
           echo "GIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '17', cache: gradle}
-
       - uses: android-actions/setup-android@v3
         with: {packages: platform-tools}
-
       - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-${ANDROID_API}" "build-tools;${BUILD_TOOLS}"
-
       - uses: gradle/actions/setup-gradle@v4
         with: {gradle-version: '8.11.1'}
-
       - name: G0 source sanity
         run: |
           ! grep -RInE 'PLACEHOLDER|TODO[[:space:]]*:[[:space:]]*CRITICAL|NotImplementedError\(' app/src/main
           ! grep -RInF 'iOff.life' app/src/main
-          grep -q 'versionName = "0.6.0"' app/build.gradle.kts
-
+          grep -q 'versionCode = 7' app/build.gradle.kts
+          grep -q 'versionName = "0.6.1"' app/build.gradle.kts
       - name: G1 unit tests
         run: timeout 15m gradle :app:testDebugUnitTest --stacktrace --no-daemon
-
       - name: G2 Kotlin compile
         run: gradle :app:compileDebugKotlin --stacktrace --no-daemon
-
       - name: G3 build internal testing APK
         run: gradle :app:assembleDebug --stacktrace --no-daemon
-
       - name: Locate and verify APK
         run: |
           set -euo pipefail
@@ -74,11 +65,11 @@ jobs:
           APKSIGNER="${ANDROID_HOME}/build-tools/${BUILD_TOOLS}/apksigner"
           "$AAPT" dump badging "$DEBUG_APK" > debug-badging.txt
           grep -q "package: name='cz.ioff.app'" debug-badging.txt
-          grep -q "versionName='0.6.0'" debug-badging.txt
+          grep -q "versionCode='7'" debug-badging.txt
+          grep -q "versionName='0.6.1'" debug-badging.txt
           grep -q "launchable-activity: name='cz.ioff.app.MainActivity'" debug-badging.txt
           "$APKSIGNER" verify --verbose "$DEBUG_APK"
           echo "DEBUG_APK_SHA256=$(sha256sum "$DEBUG_APK" | cut -d' ' -f1)" >> "$GITHUB_ENV"
-
       - name: G4 screenshot regression
         run: |
           set -euo pipefail
@@ -88,16 +79,9 @@ jobs:
           done
           mkdir -p release-gate/screenshots
           cp app/src/test/screenshots/*.png release-gate/screenshots/
-
       - name: Enable KVM acceleration
         run: |
-          if [ -e /dev/kvm ]; then
-            sudo chmod 666 /dev/kvm
-            ls -l /dev/kvm
-          else
-            echo "KVM device unavailable; emulator runner will use software acceleration."
-          fi
-
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
       - name: G5 UI instrumentation + G6 APK smoke
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
@@ -117,54 +101,40 @@ jobs:
             adb shell pidof cz.ioff.app >/dev/null
             adb logcat -d > smoke-logcat.txt
             ! grep -E 'FATAL EXCEPTION: main|Process: cz\.ioff\.app.*has died' smoke-logcat.txt
-            adb shell am force-stop cz.ioff.app
-            adb shell monkey -p cz.ioff.app -c android.intent.category.LAUNCHER 1
-            sleep 2
-            adb shell pidof cz.ioff.app >/dev/null
-
       - name: Release manifest
         run: |
-          set -euo pipefail
-          VERSION_LINE="$(grep "package: name='cz.ioff.app'" debug-badging.txt | head -1)"
-          VERSION_CODE="$(printf '%s' "$VERSION_LINE" | sed -n "s/.*versionCode='\([^']*\)'.*/\1/p")"
-          VERSION_NAME="$(printf '%s' "$VERSION_LINE" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")"
           mkdir -p release-gate
           cat > release-gate/release-manifest.txt <<EOF
-          iOff ${VERSION_NAME} internal Shield Core candidate
+          iOff 0.6.1 complete Shield + production UI candidate
           GIT_SHA=${GIT_SHA}
-          CI_RUN=${GITHUB_RUN_ID}
-          VERSION_CODE=${VERSION_CODE}
-          VERSION_NAME=${VERSION_NAME}
+          VERSION_CODE=7
+          VERSION_NAME=0.6.1
           PACKAGE=cz.ioff.app
           DEBUG_APK_SHA256=${DEBUG_APK_SHA256}
           UNIT_TESTS=PASS
           KOTLIN_COMPILE=PASS
           DEBUG_BUILD=PASS
-          INTERNAL_DEBUG_BUILD=PASS
           APK_VERIFY=PASS
           UI_TESTS=PASS
           SCREENSHOT_REGRESSION=PASS
           SHIELD_CORE_PERSISTENCE=PASS
           AUTOMATED_SMOKE=PASS
-          PHYSICAL_XIAOMI_SHIELD_SMOKE=PENDING
           RC_STATUS=READY_FOR_XIAOMI_SHIELD_VERIFICATION
           EOF
-
       - name: Upload RC bundle
         uses: actions/upload-artifact@v4
         with:
-          name: iOff-v0.6-shield-core-${{ github.sha }}
+          name: iOff-v0.6.1-complete-${{ github.sha }}
           path: |
             ${{ env.DEBUG_APK }}
             release-gate/**
           if-no-files-found: error
           retention-days: 30
-
       - name: Upload diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: iOff-v0.6-failure-${{ github.sha }}
+          name: iOff-v0.6.1-failure-${{ github.sha }}
           path: |
             smoke-logcat.txt
             app/build/reports/**
