@@ -17,7 +17,7 @@ import cz.ioff.app.ui.screens.focus.*
 import cz.ioff.app.ui.theme.IOffBackground
 import kotlinx.coroutines.delay
 
-private enum class DetailDestination { NONE, HEALTH, SHUTDOWN }
+private enum class DetailDestination { NONE, HEALTH, SHUTDOWN, PROTECTED_APPS }
 
 @Composable
 fun IOffApp(
@@ -79,6 +79,10 @@ fun IOffApp(
                     onBack = { detail = DetailDestination.NONE },
                     onSaved = { detail = DetailDestination.NONE; revision++ }
                 )
+                detail == DetailDestination.PROTECTED_APPS -> ProtectedAppsScreen(
+                    repository = repository,
+                    onBack = { detail = DetailDestination.NONE }
+                )
                 selectedTab == MainTab.TODAY -> TodayScreen(
                     repository = repository,
                     onStartFocus = { goal ->
@@ -102,6 +106,7 @@ fun IOffApp(
                     dndReady = focus.dndReady,
                     onHealth = { detail = DetailDestination.HEALTH },
                     onShutdown = { detail = DetailDestination.SHUTDOWN },
+                    onProtectedApps = { detail = DetailDestination.PROTECTED_APPS },
                     onDataReset = { focusViewModel.recoverFocus(); revision++ }
                 )
             }
