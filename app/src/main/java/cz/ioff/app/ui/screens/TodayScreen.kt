@@ -78,13 +78,16 @@ fun TodayScreen(repository: IOffRepository, onStartFocus: (String) -> Unit, onHe
         Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IOffCard(Modifier.weight(1f)) {
                 Text("Attention Score", color = IOffMuted, style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IOffCircularProgress(attention / 100f, Modifier.size(74.dp), strokeWidth = 8f) {
-                        Text("$attention", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    IOffCircularProgress(attention / 100f, Modifier.size(66.dp), strokeWidth = 6f) {
+                        Text("$attention", fontSize = 19.sp, fontWeight = FontWeight.Bold)
                     }
-                    Text("↑  today", color = IOffGreen, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 7.dp))
+                    Column(Modifier.padding(start = 10.dp)) {
+                        Text("↑ today", color = IOffGreen, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Good focus", color = IOffMuted, fontSize = 9.sp, modifier = Modifier.padding(top = 3.dp))
+                    }
                 }
-                Text("Good focus today", color = IOffMuted, fontSize = 10.sp)
             }
             IOffCard(Modifier.weight(1f)) {
                 Text("Focus Time", color = IOffMuted, style = MaterialTheme.typography.bodyMedium)
