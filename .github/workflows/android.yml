@@ -2,7 +2,7 @@ name: Android v0.5 Release Gate
 
 on:
   push:
-    branches: [main, ioff-v031]
+    branches: [main, ioff-v031, codex/ioff-v05-production-refactor]
   pull_request:
     branches: [main]
   workflow_dispatch:
