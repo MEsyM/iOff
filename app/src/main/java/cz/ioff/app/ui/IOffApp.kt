@@ -94,7 +94,7 @@ fun IOffApp(
                     onStart = focusViewModel::startFocus,
                     onEnableDnd = settingsNavigator::openDoNotDisturbAccess
                 )
-                selectedTab == MainTab.IDEAS -> IdeasScreen(repository, onBack = { selectedTab = MainTab.TODAY })
+                selectedTab == MainTab.IDEAS -> IdeasScreen(repository)
                 selectedTab == MainTab.PROGRESS -> ProgressScreen(repository)
                 else -> MoreScreen(
                     repository = repository,
