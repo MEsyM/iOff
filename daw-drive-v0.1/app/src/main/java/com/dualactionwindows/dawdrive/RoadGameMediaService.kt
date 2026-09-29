@@ -747,11 +747,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             }
 
             "stop" -> {
-                stopGame()
-                speakSystem(
-                    en = "Game paused. Your progress is saved.",
-                    cs = "Hra pozastavena. Postup je uložen."
-                )
+                shutdownService()
             }
         }
 
