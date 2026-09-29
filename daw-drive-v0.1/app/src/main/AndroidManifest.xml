@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <uses-feature
         android:name="android.hardware.gamepad"
         android:required="false" />
@@ -11,7 +14,8 @@
         android:label="DAW Drive"
         android:roundIcon="@drawable/ic_daw_drive"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DAWDrive">
+        android:theme="@style/Theme.DAWDrive"
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".MainActivity"
