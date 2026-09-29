@@ -41,7 +41,7 @@ class TriviaGameEngine(context: Context) {
     )
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    private val recentIds = ArrayDeque<String>()
+    private val recentIds = ArrayDeque<String>().apply {\n        prefs.getString(KEY_RECENT_IDS, "")\n            ?.split(",")\n            ?.filter { it.isNotBlank() }\n            ?.forEach { addLast(it) }\n    }
     private var currentQuestion: Question? = null
     private var roundAnswered = 0
     private var roundCorrect = 0
@@ -121,11 +121,20 @@ class TriviaGameEngine(context: Context) {
 
         recentIds.addLast(selected.id)
         while (recentIds.size > RECENT_WINDOW) recentIds.removeFirst()
+        prefs.edit()
+            .putString(KEY_RECENT_IDS, recentIds.joinToString(","))
+            .putString(KEY_CURRENT_QUESTION_ID, selected.id)
+            .apply()
 
         return selected
     }
 
-    fun currentQuestion(): Question? = currentQuestion
+    fun currentQuestion(): Question? {
+        if (currentQuestion != null) return currentQuestion
+        val savedId = prefs.getString(KEY_CURRENT_QUESTION_ID, null)
+        currentQuestion = questions.firstOrNull { it.id == savedId }
+        return currentQuestion
+    }
 
     fun answer(rawAnswer: String): AnswerResult {
         val question = currentQuestion ?: nextQuestion()
@@ -153,6 +162,8 @@ class TriviaGameEngine(context: Context) {
 
         prefs.edit()
             .putInt(KEY_XP, newXp)
+            .putInt(KEY_ROUND_ANSWERED, roundAnswered)
+            .putInt(KEY_ROUND_CORRECT, roundCorrect)
             .putInt(KEY_TOTAL_ANSWERED, before.totalAnswered + 1)
             .putInt(KEY_TOTAL_CORRECT, before.totalCorrect + if (correct) 1 else 0)
             .putInt(KEY_CURRENT_STREAK, newStreak)
@@ -189,6 +200,11 @@ class TriviaGameEngine(context: Context) {
         roundAnswered = 0
         roundCorrect = 0
         currentQuestion = null
+        prefs.edit()
+            .putInt(KEY_ROUND_ANSWERED, 0)
+            .putInt(KEY_ROUND_CORRECT, 0)
+            .remove(KEY_CURRENT_QUESTION_ID)
+            .apply()
     }
 
     private fun adaptiveTargetLevel(profileLevel: Int): Int {
@@ -270,7 +286,7 @@ class TriviaGameEngine(context: Context) {
         private const val KEY_TOTAL_CORRECT = "total_correct"
         private const val KEY_BEST_STREAK = "best_streak"
         private const val KEY_CURRENT_STREAK = "current_streak"
-        private const val KEY_ROUNDS_COMPLETED = "rounds_completed"
+        private const val KEY_ROUNDS_COMPLETED = "rounds_completed"\n        private const val KEY_ROUND_ANSWERED = "round_answered"\n        private const val KEY_ROUND_CORRECT = "round_correct"\n        private const val KEY_RECENT_IDS = "recent_ids"\n        private const val KEY_CURRENT_QUESTION_ID = "current_question_id"
 
         private const val ROUND_SIZE = 10
         private const val RECENT_WINDOW = 8
