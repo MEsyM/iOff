@@ -29,13 +29,19 @@ class CarPreviewActivity : ComponentActivity() {
     private var question by mutableStateOf("Press Play to start")
     private var isPlaying by mutableStateOf(false)
     private var connected by mutableStateOf(false)
+    private var selectedGame by mutableStateOf(Game.TRIVIA)
     private var pendingAfterPermission: (() -> Unit)? = null
+
+    private enum class Game(val mediaId: String) {
+        TRIVIA(MEDIA_ID_TRIVIA),
+        SPELLING(MEDIA_ID_SPELLING)
+    }
 
     private val controllerCallback = object : MediaControllerCompat.Callback() {
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
             metadata ?: return
             title = metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
-                ?: "Quick Trivia"
+                ?: selectedGameTitle()
             subtitle = metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
                 ?: "DAW Drive"
             question = metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE)
@@ -98,13 +104,23 @@ class CarPreviewActivity : ComponentActivity() {
                 title = title,
                 subtitle = subtitle,
                 question = question,
+                selectedGame = if (selectedGame == Game.TRIVIA) "trivia" else "spelling",
                 isPlaying = isPlaying,
                 connected = connected,
+                onSelectTrivia = {
+                    selectGame(Game.TRIVIA)
+                },
+                onSelectSpelling = {
+                    selectGame(Game.SPELLING)
+                },
                 onPlayPause = {
                     runWithPermissions {
                         val transport = controller?.transportControls
-                        if (isPlaying) transport?.pause()
-                        else transport?.playFromMediaId(MEDIA_ID_TRIVIA, null)
+                        if (isPlaying) {
+                            transport?.pause()
+                        } else {
+                            transport?.playFromMediaId(selectedGame.mediaId, null)
+                        }
                     }
                 },
                 onRepeat = {
@@ -118,9 +134,10 @@ class CarPreviewActivity : ComponentActivity() {
                     }
                 },
                 onStop = {
-                    controller?.transportControls?.stop()
+                    stopRoadVoiceCompletely()
                 },
                 onClose = {
+                    stopRoadVoiceCompletely()
                     finish()
                 }
             )
@@ -139,6 +156,27 @@ class CarPreviewActivity : ComponentActivity() {
         }
         super.onStop()
     }
+
+    override fun onDestroy() {
+        if (isFinishing) {
+            stopRoadVoiceCompletely()
+        }
+        super.onDestroy()
+    }
+
+    private fun selectGame(game: Game) {
+        if (selectedGame == game) return
+
+        controller?.transportControls?.stop()
+        selectedGame = game
+        title = selectedGameTitle()
+        subtitle = "Phone Car Preview"
+        question = "Press Play to start"
+        isPlaying = false
+    }
+
+    private fun selectedGameTitle(): String =
+        if (selectedGame == Game.TRIVIA) "Quick Trivia" else "Spelling Bee"
 
     private fun runWithPermissions(action: () -> Unit) {
         val missing = buildList {
@@ -187,7 +225,17 @@ class CarPreviewActivity : ComponentActivity() {
         )
     }
 
+    private fun stopRoadVoiceCompletely() {
+        controller?.transportControls?.stop()
+        startService(
+            Intent(this, RoadGameMediaService::class.java)
+                .setAction(RoadGameMediaService.ACTION_STOP_VOICE)
+        )
+        isPlaying = false
+    }
+
     companion object {
         private const val MEDIA_ID_TRIVIA = "trivia_career"
+        private const val MEDIA_ID_SPELLING = "spelling_bee"
     }
 }
