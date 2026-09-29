@@ -1,10 +1,14 @@
 package com.dualactionwindows.dawdrive
 
+import android.Manifest
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -13,6 +17,7 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import androidx.core.content.ContextCompat
 import androidx.media.MediaBrowserServiceCompat
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
@@ -71,7 +76,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     override fun onCreate() {
         super.onCreate()
 
-        createNotificationChannel()
+        createNotificationChannels()
         tts = TextToSpeech(this, this)
 
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
@@ -92,18 +97,21 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             mainHandler.postDelayed({ startListeningForAnswer() }, 700)
                         } else {
                             retryCount = 0
-                            speakSystemMessage("I didn't catch that. Say repeat to hear the question again, or next to skip.")
+                            speakSystemMessage("I didn't catch that. Tap next to skip or play to repeat.")
                         }
                     }
 
                     override fun onResults(results: Bundle?) {
                         listening = false
                         retryCount = 0
-                        val matches = results
+
+                        val best = results
                             ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                             .orEmpty()
+                            .firstOrNull()
+                            .orEmpty()
+                            .trim()
 
-                        val best = matches.firstOrNull().orEmpty().trim()
                         if (best.isBlank()) {
                             startListeningForAnswer()
                         } else {
@@ -119,7 +127,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         mediaSession = MediaSessionCompat(this, "DAWDriveRoadGames").apply {
             setCallback(object : MediaSessionCompat.Callback() {
-                override fun onPlay() = speakCurrent()
+                override fun onPlay() {
+                    if (ensureRoadVoiceForPlayback()) {
+                        speakCurrent()
+                    }
+                }
 
                 override fun onPause() {
                     stopListening()
@@ -143,7 +155,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     currentIndex = 0
                     score = 0
                     attempted = 0
-                    speakCurrent()
+
+                    if (ensureRoadVoiceForPlayback()) {
+                        speakCurrent()
+                    }
                 }
 
                 override fun onPlayFromSearch(query: String?, extras: Bundle?) {
@@ -163,7 +178,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     currentIndex = 0
                     score = 0
                     attempted = 0
-                    speakCurrent()
+
+                    if (ensureRoadVoiceForPlayback()) {
+                        speakCurrent()
+                    }
                 }
             })
 
@@ -182,9 +200,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START_VOICE -> {
-                voiceModeEnabled = true
-                startForeground(NOTIFICATION_ID, buildNotification())
-                speakSystemMessage("Road Voice is ready. Open DAW Drive Road Games in Android Auto.")
+                activateRoadVoiceForeground()
+                if (intent.getBooleanExtra(EXTRA_RESUME_GAME, false)) {
+                    mainHandler.postDelayed({ speakCurrent() }, 250)
+                } else {
+                    speakSystemMessage("Road Voice is ready.")
+                }
             }
 
             ACTION_STOP_VOICE -> {
@@ -195,6 +216,41 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             }
         }
         return Service.START_STICKY
+    }
+
+    private fun ensureRoadVoiceForPlayback(): Boolean {
+        if (voiceModeEnabled) return true
+
+        if (
+            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            showEnableRoadVoiceNotification(needsPermission = true)
+            speakSystemMessage("Road Voice needs one-time microphone permission. Tap the phone notification to enable it.")
+            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            return false
+        }
+
+        return try {
+            activateRoadVoiceForeground()
+            true
+        } catch (_: ForegroundServiceStartNotAllowedException) {
+            showEnableRoadVoiceNotification(needsPermission = false)
+            speakSystemMessage("Tap the Road Voice notification once to enable hands-free mode.")
+            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            false
+        } catch (_: SecurityException) {
+            showEnableRoadVoiceNotification(needsPermission = false)
+            speakSystemMessage("Tap the Road Voice notification once to enable hands-free mode.")
+            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            false
+        }
+    }
+
+    private fun activateRoadVoiceForeground() {
+        startForeground(NOTIFICATION_ID, buildActiveNotification())
+        voiceModeEnabled = true
+        getSystemService(NotificationManager::class.java).cancel(ENABLE_NOTIFICATION_ID)
     }
 
     override fun onInit(status: Int) {
@@ -239,25 +295,23 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         result.sendResult(
             mutableListOf(
-                mediaItem("trivia", "Quick Trivia", "Automatic hands-free answers with Road Voice"),
-                mediaItem("words", "Word Challenge", "Automatic hands-free answers with Road Voice"),
-                mediaItem("math", "Mental Math", "Automatic hands-free answers with Road Voice")
+                mediaItem("trivia", "Quick Trivia", "Play to start hands-free"),
+                mediaItem("words", "Word Challenge", "Play to start hands-free"),
+                mediaItem("math", "Mental Math", "Play to start hands-free")
             )
         )
     }
 
     private fun startListeningForAnswer() {
         if (!voiceModeEnabled || !awaitingAnswer || listening) return
+
         val recognizer = speechRecognizer ?: run {
             speakSystemMessage("Speech recognition is not available on this phone.")
             return
         }
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-            )
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.US.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
@@ -276,16 +330,47 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
     }
 
+    private fun showEnableRoadVoiceNotification(needsPermission: Boolean) {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra(MainActivity.EXTRA_ENABLE_ROAD_VOICE, true)
+            putExtra(MainActivity.EXTRA_RESUME_GAME, true)
+            putExtra(MainActivity.EXTRA_NEEDS_MIC_PERMISSION, needsPermission)
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            9001,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = Notification.Builder(this, ENABLE_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setContentTitle("Enable DAW Road Voice")
+            .setContentText(
+                if (needsPermission) {
+                    "Tap once to grant microphone access and continue the game"
+                } else {
+                    "Tap once to start hands-free microphone mode"
+                }
+            )
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        getSystemService(NotificationManager::class.java)
+            .notify(ENABLE_NOTIFICATION_ID, notification)
+    }
+
     private fun mediaItem(id: String, title: String, subtitle: String): MediaBrowserCompat.MediaItem {
         val description = MediaDescriptionCompat.Builder()
             .setMediaId(id)
             .setTitle(title)
             .setSubtitle(subtitle)
             .build()
-        return MediaBrowserCompat.MediaItem(
-            description,
-            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
-        )
+
+        return MediaBrowserCompat.MediaItem(description, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE)
     }
 
     private fun selectPack(mediaId: String?) {
@@ -300,7 +385,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         stopListening()
         awaitingAnswer = false
         currentIndex = (currentIndex + delta + items.size) % items.size
-        speakCurrent()
+
+        if (ensureRoadVoiceForPlayback()) {
+            speakCurrent()
+        }
     }
 
     private fun speakCurrent() {
@@ -316,14 +404,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         awaitingAnswer = true
         retryCount = 0
 
-        val suffix = if (voiceModeEnabled) {
-            " Answer now."
-        } else {
-            " Use Android Auto voice search to answer, or start Road Voice on your phone for automatic listening."
-        }
-
         tts.speak(
-            items[currentIndex].prompt + suffix,
+            items[currentIndex].prompt + " Answer now.",
             TextToSpeech.QUEUE_FLUSH,
             null,
             QUESTION_UTTERANCE_ID
@@ -360,12 +442,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         updateMetadata()
-        tts.speak(
-            feedback,
-            TextToSpeech.QUEUE_FLUSH,
-            null,
-            FEEDBACK_UTTERANCE_ID
-        )
+        tts.speak(feedback, TextToSpeech.QUEUE_FLUSH, null, FEEDBACK_UTTERANCE_ID)
     }
 
     private fun moveToNextAfterFeedback() {
@@ -391,18 +468,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         mediaSession.setMetadata(
             MediaMetadataCompat.Builder()
-                .putString(
-                    MediaMetadataCompat.METADATA_KEY_TITLE,
-                    title + " - " + (currentIndex + 1)
-                )
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title + " - " + (currentIndex + 1))
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_ARTIST,
                     "DAW Drive Road Games - Score " + score + "/" + attempted
                 )
-                .putLong(
-                    MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
-                    (currentIndex + 1).toLong()
-                )
+                .putLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, (currentIndex + 1).toLong())
                 .build()
         )
     }
@@ -419,11 +490,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID or
                         PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH
                 )
-                .setState(
-                    state,
-                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
-                    1f
-                )
+                .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1f)
                 .build()
         )
     }
@@ -443,17 +510,27 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             .replace(Regex("\\s+"), " ")
             .trim()
 
-    private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "DAW Drive Road Voice",
-            NotificationManager.IMPORTANCE_LOW
+    private fun createNotificationChannels() {
+        val manager = getSystemService(NotificationManager::class.java)
+
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                "DAW Drive Road Voice",
+                NotificationManager.IMPORTANCE_LOW
+            )
         )
-        getSystemService(NotificationManager::class.java)
-            .createNotificationChannel(channel)
+
+        manager.createNotificationChannel(
+            NotificationChannel(
+                ENABLE_CHANNEL_ID,
+                "DAW Drive setup",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+        )
     }
 
-    private fun buildNotification(): Notification =
+    private fun buildActiveNotification(): Notification =
         Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("DAW Drive Road Voice")
@@ -474,10 +551,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     companion object {
         const val ACTION_START_VOICE = "com.dualactionwindows.dawdrive.START_ROAD_VOICE"
         const val ACTION_STOP_VOICE = "com.dualactionwindows.dawdrive.STOP_ROAD_VOICE"
+        const val EXTRA_RESUME_GAME = "resume_game"
 
         private const val ROOT_ID = "road_games_root"
         private const val CHANNEL_ID = "daw_drive_road_voice"
+        private const val ENABLE_CHANNEL_ID = "daw_drive_enable_voice"
         private const val NOTIFICATION_ID = 4107
+        private const val ENABLE_NOTIFICATION_ID = 4108
 
         private const val QUESTION_UTTERANCE_ID = "road_game_question"
         private const val FEEDBACK_UTTERANCE_ID = "road_game_feedback"
