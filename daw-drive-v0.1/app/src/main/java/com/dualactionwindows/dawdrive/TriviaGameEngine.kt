@@ -221,6 +221,7 @@ class TriviaGameEngine(context: Context) {
 
         val roundFinished = roundAnswered >= ROUND_SIZE
         val roundsCompleted = before.roundsCompleted + if (roundFinished) 1 else 0
+        currentQuestionId = null
 
         prefs.edit()
             .putInt(KEY_XP, newXp)
@@ -233,6 +234,7 @@ class TriviaGameEngine(context: Context) {
             .putInt(KEY_ROUND_CORRECT, roundCorrect)
             .putInt(KEY_ROUND_XP, roundXp)
             .putInt(KEY_ROUND_BEST_STREAK, roundBestStreak)
+            .remove(KEY_CURRENT_QUESTION_ID)
             .apply()
 
         val unlockedNow = evaluateAchievements(
@@ -266,8 +268,23 @@ class TriviaGameEngine(context: Context) {
 
     fun skipCurrent(): SkipResult {
         roundAnswered += 1
-        prefs.edit().putInt(KEY_ROUND_ANSWERED, roundAnswered).apply()
-        return SkipResult(roundAnswered, roundAnswered >= ROUND_SIZE)
+        currentQuestionId = null
+        val finished = roundAnswered >= ROUND_SIZE
+        val currentRounds = prefs.getInt(KEY_ROUNDS_COMPLETED, 0)
+
+        val editor = prefs.edit()
+            .putInt(KEY_ROUND_ANSWERED, roundAnswered)
+            .remove(KEY_CURRENT_QUESTION_ID)
+
+        if (finished) {
+            editor.putInt(KEY_ROUNDS_COMPLETED, currentRounds + 1)
+            val achievements = unlockedAchievements().toMutableSet()
+            achievements += ACH_FIRST_DRIVE
+            editor.putString(KEY_ACHIEVEMENTS, achievements.joinToString(","))
+        }
+
+        editor.apply()
+        return SkipResult(roundAnswered, finished)
     }
 
     fun repeatPrompt(): String =
