@@ -708,6 +708,14 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                .putString(
+                    MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
+                    q?.prompt ?: if (cs) "Připraveno" else "Ready"
+                )
+                .putString(
+                    MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
+                    q?.categoryName ?: "Quick Trivia"
+                )
                 .putLong(
                     MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                     (p.totalAnswered + 1).toLong()
