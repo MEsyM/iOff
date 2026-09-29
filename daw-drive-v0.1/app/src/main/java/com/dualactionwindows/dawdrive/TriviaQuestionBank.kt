@@ -156,7 +156,218 @@ object TriviaQuestionBank {
         q("num008",4,Category.NUMBERS,"What is 7 cubed?","Kolik je 7 na třetí?",listOf("343","three hundred forty three"),listOf("343","tri sta ctyricet tri","tři sta čtyřicet tři"),"Seven cubed is 343.","Sedm na třetí je 343."),
         q("num009",5,Category.NUMBERS,"What is 17 times 19?","Kolik je 17 krát 19?",listOf("323","three hundred twenty three"),listOf("323","tri sta dvacet tri","tři sta dvacet tři"),"Seventeen times nineteen is 323.","Sedmnáct krát devatenáct je 323."),
         q("num010",5,Category.NUMBERS,"What is 15 percent of 360?","Kolik je 15 procent z 360?",listOf("54","fifty four"),listOf("54","padesat ctyri","padesát čtyři"),"Fifteen percent of 360 is 54.","Patnáct procent z 360 je 54.")
+    ) + generatedCapitalQuestions() + generatedElementQuestions() + generatedNumberQuestions()
+
+
+    private data class CapitalFact(
+        val countryEn: String,
+        val countryCs: String,
+        val capital: String,
+        val difficulty: Int
     )
+
+    private fun generatedCapitalQuestions(): List<LocalizedQuestion> {
+        val facts = listOf(
+            CapitalFact("Belgium","Belgie","Brussels",2),
+            CapitalFact("Austria","Rakousko","Vienna",1),
+            CapitalFact("Poland","Polsko","Warsaw",1),
+            CapitalFact("Hungary","Maďarsko","Budapest",1),
+            CapitalFact("Slovakia","Slovensko","Bratislava",1),
+            CapitalFact("Slovenia","Slovinsko","Ljubljana",2),
+            CapitalFact("Croatia","Chorvatsko","Zagreb",2),
+            CapitalFact("Serbia","Srbsko","Belgrade",2),
+            CapitalFact("Romania","Rumunsko","Bucharest",2),
+            CapitalFact("Bulgaria","Bulharsko","Sofia",2),
+            CapitalFact("Greece","Řecko","Athens",1),
+            CapitalFact("Ireland","Irsko","Dublin",1),
+            CapitalFact("Iceland","Island","Reykjavik",2),
+            CapitalFact("Finland","Finsko","Helsinki",2),
+            CapitalFact("Sweden","Švédsko","Stockholm",1),
+            CapitalFact("Denmark","Dánsko","Copenhagen",1),
+            CapitalFact("Switzerland","Švýcarsko","Bern",2),
+            CapitalFact("Ukraine","Ukrajina","Kyiv",1),
+            CapitalFact("Lithuania","Litva","Vilnius",3),
+            CapitalFact("Latvia","Lotyšsko","Riga",2),
+            CapitalFact("Estonia","Estonsko","Tallinn",2),
+            CapitalFact("Turkey","Turecko","Ankara",2),
+            CapitalFact("Japan","Japonsko","Tokyo",1),
+            CapitalFact("China","Čína","Beijing",1),
+            CapitalFact("South Korea","Jižní Korea","Seoul",1),
+            CapitalFact("India","Indie","New Delhi",1),
+            CapitalFact("Thailand","Thajsko","Bangkok",2),
+            CapitalFact("Vietnam","Vietnam","Hanoi",2),
+            CapitalFact("Indonesia","Indonésie","Jakarta",2),
+            CapitalFact("Malaysia","Malajsie","Kuala Lumpur",2),
+            CapitalFact("Philippines","Filipíny","Manila",2),
+            CapitalFact("Singapore","Singapur","Singapore",1),
+            CapitalFact("Pakistan","Pákistán","Islamabad",3),
+            CapitalFact("Bangladesh","Bangladéš","Dhaka",3),
+            CapitalFact("Nepal","Nepál","Kathmandu",3),
+            CapitalFact("Mongolia","Mongolsko","Ulaanbaatar",4),
+            CapitalFact("Iran","Írán","Tehran",2),
+            CapitalFact("Iraq","Irák","Baghdad",2),
+            CapitalFact("Saudi Arabia","Saúdská Arábie","Riyadh",2),
+            CapitalFact("United Arab Emirates","Spojené arabské emiráty","Abu Dhabi",2),
+            CapitalFact("Egypt","Egypt","Cairo",1),
+            CapitalFact("Morocco","Maroko","Rabat",3),
+            CapitalFact("Algeria","Alžírsko","Algiers",3),
+            CapitalFact("Tunisia","Tunisko","Tunis",2),
+            CapitalFact("Kenya","Keňa","Nairobi",2),
+            CapitalFact("Nigeria","Nigérie","Abuja",3),
+            CapitalFact("Ghana","Ghana","Accra",3),
+            CapitalFact("South Africa","Jihoafrická republika","Pretoria",3),
+            CapitalFact("Argentina","Argentina","Buenos Aires",1),
+            CapitalFact("Brazil","Brazílie","Brasilia",2),
+            CapitalFact("Chile","Chile","Santiago",2),
+            CapitalFact("Peru","Peru","Lima",2),
+            CapitalFact("Colombia","Kolumbie","Bogota",2),
+            CapitalFact("Mexico","Mexiko","Mexico City",1),
+            CapitalFact("Cuba","Kuba","Havana",2),
+            CapitalFact("United States","Spojené státy","Washington",1),
+            CapitalFact("Jamaica","Jamajka","Kingston",3),
+            CapitalFact("Panama","Panama","Panama City",2),
+            CapitalFact("Costa Rica","Kostarika","San Jose",3),
+            CapitalFact("Uruguay","Uruguay","Montevideo",3)
+        )
+
+        return facts.mapIndexed { index, fact ->
+            LocalizedQuestion(
+                id = "cap" + (index + 1).toString().padStart(3, '0'),
+                difficulty = fact.difficulty,
+                category = Category.GEOGRAPHY,
+                promptEn = "What is the capital of " + fact.countryEn + "?",
+                promptCs = "Jaké je hlavní město země " + fact.countryCs + "?",
+                answersEn = listOf(fact.capital.lowercase()),
+                answersCs = listOf(fact.capital.lowercase()),
+                explanationEn = fact.capital + " is the capital of " + fact.countryEn + ".",
+                explanationCs = fact.capital + " je hlavní město země " + fact.countryCs + "."
+            )
+        }
+    }
+
+    private data class ElementFact(
+        val nameEn: String,
+        val nameCs: String,
+        val symbol: String,
+        val difficulty: Int
+    )
+
+    private fun generatedElementQuestions(): List<LocalizedQuestion> {
+        val facts = listOf(
+            ElementFact("hydrogen","vodík","H",1),
+            ElementFact("helium","helium","He",1),
+            ElementFact("lithium","lithium","Li",2),
+            ElementFact("beryllium","beryllium","Be",3),
+            ElementFact("boron","bor","B",2),
+            ElementFact("carbon","uhlík","C",1),
+            ElementFact("nitrogen","dusík","N",1),
+            ElementFact("oxygen","kyslík","O",1),
+            ElementFact("fluorine","fluor","F",2),
+            ElementFact("neon","neon","Ne",2),
+            ElementFact("sodium","sodík","Na",2),
+            ElementFact("magnesium","hořčík","Mg",2),
+            ElementFact("aluminium","hliník","Al",2),
+            ElementFact("silicon","křemík","Si",3),
+            ElementFact("phosphorus","fosfor","P",2),
+            ElementFact("sulfur","síra","S",2),
+            ElementFact("chlorine","chlor","Cl",2),
+            ElementFact("argon","argon","Ar",3),
+            ElementFact("potassium","draslík","K",2),
+            ElementFact("calcium","vápník","Ca",2),
+            ElementFact("iron","železo","Fe",1),
+            ElementFact("cobalt","kobalt","Co",3),
+            ElementFact("nickel","nikl","Ni",3),
+            ElementFact("copper","měď","Cu",2),
+            ElementFact("zinc","zinek","Zn",2),
+            ElementFact("silver","stříbro","Ag",2),
+            ElementFact("tin","cín","Sn",3),
+            ElementFact("iodine","jód","I",2),
+            ElementFact("tungsten","wolfram","W",4),
+            ElementFact("platinum","platina","Pt",3),
+            ElementFact("gold","zlato","Au",1),
+            ElementFact("mercury","rtuť","Hg",3),
+            ElementFact("lead","olovo","Pb",3),
+            ElementFact("uranium","uran","U",2),
+            ElementFact("plutonium","plutonium","Pu",3)
+        )
+
+        return facts.mapIndexed { index, fact ->
+            LocalizedQuestion(
+                id = "elm" + (index + 1).toString().padStart(3, '0'),
+                difficulty = fact.difficulty,
+                category = Category.SCIENCE,
+                promptEn = "What is the chemical symbol for " + fact.nameEn + "?",
+                promptCs = "Jaká je chemická značka prvku " + fact.nameCs + "?",
+                answersEn = listOf(fact.symbol.lowercase()),
+                answersCs = listOf(fact.symbol.lowercase()),
+                explanationEn = fact.nameEn.replaceFirstChar { it.uppercase() } +
+                    " has the symbol " + fact.symbol + ".",
+                explanationCs = fact.nameCs.replaceFirstChar { it.uppercase() } +
+                    " má značku " + fact.symbol + "."
+            )
+        }
+    }
+
+    private fun generatedNumberQuestions(): List<LocalizedQuestion> {
+        val result = mutableListOf<LocalizedQuestion>()
+
+        for (i in 1..30) {
+            val a = 11 + i
+            val b = 4 + (i % 13)
+            val value = a + b
+            result += LocalizedQuestion(
+                id = "add" + i.toString().padStart(3, '0'),
+                difficulty = if (value < 35) 1 else 2,
+                category = Category.NUMBERS,
+                promptEn = "What is " + a + " plus " + b + "?",
+                promptCs = "Kolik je " + a + " plus " + b + "?",
+                answersEn = listOf(value.toString()),
+                answersCs = listOf(value.toString()),
+                explanationEn = a.toString() + " plus " + b + " is " + value + ".",
+                explanationCs = a.toString() + " plus " + b + " je " + value + "."
+            )
+        }
+
+        for (i in 1..30) {
+            val a = 70 + i * 3
+            val b = 8 + (i % 17)
+            val value = a - b
+            result += LocalizedQuestion(
+                id = "sub" + i.toString().padStart(3, '0'),
+                difficulty = if (a < 120) 2 else 3,
+                category = Category.NUMBERS,
+                promptEn = "What is " + a + " minus " + b + "?",
+                promptCs = "Kolik je " + a + " minus " + b + "?",
+                answersEn = listOf(value.toString()),
+                answersCs = listOf(value.toString()),
+                explanationEn = a.toString() + " minus " + b + " is " + value + ".",
+                explanationCs = a.toString() + " minus " + b + " je " + value + "."
+            )
+        }
+
+        for (i in 1..30) {
+            val a = 6 + (i % 13)
+            val b = 4 + ((i * 3) % 12)
+            val value = a * b
+            result += LocalizedQuestion(
+                id = "mul" + i.toString().padStart(3, '0'),
+                difficulty = when {
+                    value < 60 -> 2
+                    value < 140 -> 3
+                    else -> 4
+                },
+                category = Category.NUMBERS,
+                promptEn = "What is " + a + " times " + b + "?",
+                promptCs = "Kolik je " + a + " krát " + b + "?",
+                answersEn = listOf(value.toString()),
+                answersCs = listOf(value.toString()),
+                explanationEn = a.toString() + " times " + b + " is " + value + ".",
+                explanationCs = a.toString() + " krát " + b + " je " + value + "."
+            )
+        }
+
+        return result
+    }
 
     private fun q(
         id: String,
