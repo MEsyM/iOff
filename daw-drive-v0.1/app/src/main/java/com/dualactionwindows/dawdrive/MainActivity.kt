@@ -10,6 +10,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import com.dualactionwindows.dawdrive.ui.DawDriveApp
 
@@ -37,8 +41,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        val triviaEngine = TriviaGameEngine(this)
+
         setContent {
+            var profile by remember {
+                mutableStateOf(triviaEngine.profile())
+            }
+
             DawDriveApp(
+                profile = profile,
+                achievementTitles = profile.achievements
+                    .map { triviaEngine.achievementTitle(it) }
+                    .sorted(),
                 onVideoClick = {
                     val targetDisplayId = display?.displayId ?: Display.DEFAULT_DISPLAY
                     val options = ActivityOptions.makeBasic().apply {
@@ -58,6 +72,13 @@ class MainActivity : ComponentActivity() {
                         Intent(this, RoadGameMediaService::class.java)
                             .setAction(RoadGameMediaService.ACTION_STOP_VOICE)
                     )
+                },
+                onLanguageChange = { language ->
+                    triviaEngine.setLanguage(language)
+                    profile = triviaEngine.profile()
+                },
+                onRefreshProfile = {
+                    profile = triviaEngine.profile()
                 }
             )
         }
