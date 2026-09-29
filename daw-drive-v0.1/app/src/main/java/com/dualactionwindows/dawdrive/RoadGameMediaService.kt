@@ -156,6 +156,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     score = 0
                     attempted = 0
 
+                    if (currentPack == "trivia") {
+                        triviaEngine.startOrResumeRound()
+                    }
+
                     if (ensureRoadVoiceForPlayback()) {
                         speakCurrent()
                     }
@@ -272,6 +276,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         FEEDBACK_UTTERANCE_ID -> {
                             mainHandler.post { moveToNextAfterFeedback() }
                         }
+
+                        ROUND_SUMMARY_UTTERANCE_ID -> {
+                            mainHandler.postDelayed({ startNextTriviaRound() }, 700)
+                        }
                     }
                 }
             })
@@ -295,7 +303,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         result.sendResult(
             mutableListOf(
-                mediaItem("trivia", "Quick Trivia", "Play to start hands-free"),
+                mediaItem("trivia", "Quick Trivia Career", "Levels, XP, streaks and adaptive difficulty"),
                 mediaItem("words", "Word Challenge", "Play to start hands-free"),
                 mediaItem("math", "Mental Math", "Play to start hands-free")
             )
@@ -392,8 +400,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun speakCurrent() {
-        val items = packs[currentPack].orEmpty()
-        if (items.isEmpty() || !ttsReady) {
+        if (!ttsReady) {
             setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
             return
         }
@@ -404,8 +411,21 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         awaitingAnswer = true
         retryCount = 0
 
+        val prompt = if (currentPack == "trivia") {
+            val question = triviaEngine.currentQuestion() ?: triviaEngine.startOrResumeRound()
+            val profile = triviaEngine.profile()
+            "Level " + profile.level + ". " + question.category + ". " + question.prompt + " Answer now."
+        } else {
+            val items = packs[currentPack].orEmpty()
+            if (items.isEmpty()) {
+                setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+                return
+            }
+            items[currentIndex].prompt + " Answer now."
+        }
+
         tts.speak(
-            items[currentIndex].prompt + " Answer now.",
+            prompt,
             TextToSpeech.QUEUE_FLUSH,
             null,
             QUESTION_UTTERANCE_ID
@@ -413,10 +433,56 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun evaluateAnswer(rawAnswer: String) {
-        val challenge = packs[currentPack].orEmpty().getOrNull(currentIndex) ?: return
-
         stopListening()
         awaitingAnswer = false
+
+        if (currentPack == "trivia") {
+            val result = triviaEngine.answer(rawAnswer)
+
+            val feedback = buildString {
+                if (result.correct) {
+                    append("Correct. ")
+                    if (result.streak >= 3) {
+                        append(result.streak)
+                        append(" answer streak. ")
+                    }
+                    append("Plus ")
+                    append(result.xpEarned)
+                    append(" XP. ")
+                } else {
+                    append("Not quite. The answer is ")
+                    append(result.expected)
+                    append(". ")
+                    append(result.explanation)
+                    append(" ")
+                }
+
+                if (result.promoted) {
+                    append("Level up. You are now level ")
+                    append(result.level)
+                    append(". ")
+                }
+
+                if (result.roundFinished) {
+                    append(triviaEngine.roundSummary())
+                } else {
+                    append("Question ")
+                    append(result.roundAnswered + 1)
+                    append(" of 10 is next.")
+                }
+            }
+
+            updateMetadata()
+            tts.speak(
+                feedback,
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID else FEEDBACK_UTTERANCE_ID
+            )
+            return
+        }
+
+        val challenge = packs[currentPack].orEmpty().getOrNull(currentIndex) ?: return
         attempted += 1
 
         val normalized = normalize(rawAnswer)
@@ -442,14 +508,31 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         updateMetadata()
-        tts.speak(feedback, TextToSpeech.QUEUE_FLUSH, null, FEEDBACK_UTTERANCE_ID)
+        tts.speak(
+            feedback,
+            TextToSpeech.QUEUE_FLUSH,
+            null,
+            FEEDBACK_UTTERANCE_ID
+        )
     }
 
     private fun moveToNextAfterFeedback() {
+        if (currentPack == "trivia") {
+            triviaEngine.nextQuestion()
+            speakCurrent()
+            return
+        }
+
         val items = packs[currentPack].orEmpty()
         if (items.isEmpty()) return
 
         currentIndex = (currentIndex + 1) % items.size
+        speakCurrent()
+    }
+
+    private fun startNextTriviaRound() {
+        triviaEngine.resetRound()
+        triviaEngine.startOrResumeRound()
         speakCurrent()
     }
 
@@ -466,14 +549,27 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             else -> "Quick Trivia"
         }
 
+        val displayTitle: String
+        val displayArtist: String
+        val trackNumber: Long
+
+        if (currentPack == "trivia") {
+            val profile = triviaEngine.profile()
+            displayTitle = "Quick Trivia - Level " + profile.level
+            displayArtist = "XP " + profile.xp + " - Streak " + profile.currentStreak +
+                " - Best " + profile.bestStreak
+            trackNumber = profile.totalAnswered.toLong() + 1L
+        } else {
+            displayTitle = title + " - " + (currentIndex + 1)
+            displayArtist = "DAW Drive Road Games - Score " + score + "/" + attempted
+            trackNumber = (currentIndex + 1).toLong()
+        }
+
         mediaSession.setMetadata(
             MediaMetadataCompat.Builder()
-                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title + " - " + (currentIndex + 1))
-                .putString(
-                    MediaMetadataCompat.METADATA_KEY_ARTIST,
-                    "DAW Drive Road Games - Score " + score + "/" + attempted
-                )
-                .putLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, (currentIndex + 1).toLong())
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, displayTitle)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, displayArtist)
+                .putLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, trackNumber)
                 .build()
         )
     }
