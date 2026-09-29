@@ -18,6 +18,18 @@
         android:theme="@style/Theme.DAWDrive"
         android:usesCleartextTraffic="true">
 
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
+        <service
+            android:name=".RoadGameMediaService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".VideoActivity"
             android:exported="false"
