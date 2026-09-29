@@ -32,7 +32,7 @@ private enum class DawModule(
     val title: String,
     val subtitle: String
 ) {
-    Games("Road Games", "Hands-free voice games"),
+    Games("Quick Trivia", "Career mode with levels, XP and memory"),
     Video("Video", "Web browser"),
     Erp("DAW ERP", "Deals, contacts and next actions"),
     Tools("Tools", "Vehicle and utility tools")
@@ -97,7 +97,7 @@ private fun LauncherScreen(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "v0.9 Auto Road Voice",
+                text = "v0.10 Quick Trivia Career",
                 color = Color(0xFF9AA4B2),
                 fontSize = 14.sp
             )
