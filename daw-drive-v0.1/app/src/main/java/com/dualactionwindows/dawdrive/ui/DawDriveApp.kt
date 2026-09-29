@@ -1,7 +1,10 @@
 package com.dualactionwindows.dawdrive.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,12 +28,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dualactionwindows.dawdrive.TriviaGameEngine
 import com.dualactionwindows.dawdrive.TriviaQuestionBank
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.max
 
 private enum class DawModule(
     val title: String,
@@ -45,6 +55,7 @@ private enum class DawModule(
 @Composable
 fun DawDriveApp(
     profile: TriviaGameEngine.Profile,
+    dashboard: TriviaGameEngine.DashboardData,
     achievementTitles: List<String>,
     onVideoClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
@@ -75,6 +86,7 @@ fun DawDriveApp(
 
                 selectedModule == DawModule.Games -> TriviaProfileScreen(
                     profile = profile,
+                    dashboard = dashboard,
                     achievementTitles = achievementTitles,
                     onStart = onRoadVoiceStart,
                     onStop = onRoadVoiceStop,
@@ -108,7 +120,7 @@ private fun LauncherScreen(
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "v0.11 Quick Trivia",
+            text = "v0.12 Quick Trivia Stats",
             color = Color(0xFF9AA4B2),
             fontSize = 14.sp
         )
@@ -192,6 +204,7 @@ private fun LauncherTile(
 @Composable
 private fun TriviaProfileScreen(
     profile: TriviaGameEngine.Profile,
+    dashboard: TriviaGameEngine.DashboardData,
     achievementTitles: List<String>,
     onStart: () -> Unit,
     onStop: () -> Unit,
@@ -207,7 +220,7 @@ private fun TriviaProfileScreen(
             .fillMaxSize()
             .verticalScroll(scroll)
             .padding(28.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -222,11 +235,7 @@ private fun TriviaProfileScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = if (cs) {
-                        "Hands-free kariéra pro Android Auto"
-                    } else {
-                        "Hands-free career for Android Auto"
-                    },
+                    text = if (cs) "Career dashboard" else "Career dashboard",
                     color = Color(0xFFAFB7C2),
                     fontSize = 16.sp
                 )
@@ -239,7 +248,6 @@ private fun TriviaProfileScreen(
                 ) {
                     onLanguageChange(TriviaGameEngine.Language.EN)
                 }
-
                 SmallActionButton(
                     text = "CZ",
                     active = profile.language == TriviaGameEngine.Language.CS
@@ -249,57 +257,47 @@ private fun TriviaProfileScreen(
             }
         }
 
-        val careerLines = mutableListOf(
-            "Level " + profile.level + " • " + localizedLevelName(profile.level, cs),
-            profile.xp.toString() + " XP",
-            (if (cs) "Úspěšnost " else "Accuracy ") + profile.accuracy + "%",
-            (if (cs) "Nejlepší série " else "Best streak ") + profile.bestStreak,
-            (if (cs) "Dokončená kola " else "Rounds completed ") + profile.roundsCompleted
-        )
-        profile.xpForNextLevel?.let {
-            careerLines[1] = careerLines[1] +
-                if (cs) " • další level při " + it + " XP"
-                else " • next level at " + it + " XP"
+        KpiStrip(profile, cs)
+
+        DashboardCard(
+            title = if (cs) "Vývoj XP" else "XP progression",
+            subtitle = if (cs) "Kumulativní XP po dokončených kolech" else "Cumulative XP after completed rounds"
+        ) {
+            XpProgressChart(
+                points = dashboard.xpProgression,
+                cs = cs
+            )
         }
 
-        StatCard(
-            title = if (cs) "Kariéra" else "Career",
-            lines = careerLines
-        )
+        DashboardCard(
+            title = if (cs) "Přesnost podle kategorií" else "Accuracy by category",
+            subtitle = if (cs) "Jen kategorie, které už mají odpovědi" else "Only categories with recorded answers"
+        ) {
+            CategoryAccuracyChart(
+                stats = dashboard.categoryStats,
+                cs = cs
+            )
+        }
 
-        StatCard(
-            title = if (cs) "Hlasové příkazy" else "Voice commands",
-            lines = if (cs) {
-                listOf(
-                    "„zopakuj“ • zopakuje otázku",
-                    "„přeskoč“ • další otázka",
-                    "„skóre“ • aktuální statistika",
-                    "„úroveň“ • level a XP",
-                    "„zastav hru“ • uloží a pozastaví"
-                )
-            } else {
-                listOf(
-                    "repeat • repeat question",
-                    "skip • next question",
-                    "score • current stats",
-                    "level • level and XP",
-                    "stop game • save and pause"
-                )
-            }
-        )
+        DashboardCard(
+            title = if (cs) "Historie kol" else "Round history",
+            subtitle = if (cs) "Posledních až 8 dokončených kol" else "Up to 8 most recent completed rounds"
+        ) {
+            RoundHistoryList(
+                rounds = dashboard.rounds.takeLast(8).reversed(),
+                cs = cs
+            )
+        }
 
-        Text(
-            text = if (cs) "Skill podle kategorií" else "Category skill",
-            color = Color.White,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        profile.categoryStats
-            .sortedByDescending { it.rating }
-            .forEach { stat ->
-                CategoryRow(stat, cs)
-            }
+        DashboardCard(
+            title = if (cs) "Nejčastěji chybované otázky" else "Most missed questions",
+            subtitle = if (cs) "Otázky, které potřebují nejvíc opakování" else "Questions that need the most reinforcement"
+        ) {
+            MissedQuestionsList(
+                questions = dashboard.missedQuestions,
+                cs = cs
+            )
+        }
 
         StatCard(
             title = if (cs) "Achievementy" else "Achievements",
@@ -313,38 +311,54 @@ private fun TriviaProfileScreen(
             }
         )
 
-        Text(
-            text = if (cs) {
-                "Běžné použití: Android Auto → DAW Drive → Quick Trivia → Play. Telefonní setup je potřeba jen jednou kvůli mikrofonu."
+        StatCard(
+            title = if (cs) "Hlasové příkazy" else "Voice commands",
+            lines = if (cs) {
+                listOf(
+                    "zopakuj • zopakuje otázku",
+                    "přeskoč • další otázka",
+                    "skóre • aktuální statistika",
+                    "úroveň • level a XP",
+                    "zastav hru • uloží a pozastaví"
+                )
             } else {
-                "Normal use: Android Auto → DAW Drive → Quick Trivia → Play. Phone setup is only needed once for microphone permission."
-            },
-            color = Color(0xFFAFB7C2),
-            fontSize = 15.sp
+                listOf(
+                    "repeat • repeat question",
+                    "skip • next question",
+                    "score • current stats",
+                    "level • level and XP",
+                    "stop game • save and pause"
+                )
+            }
         )
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        Text(
+            text = if (cs) {
+                "Historické grafy se začnou plnit od prvního kola dokončeného ve v0.12."
+            } else {
+                "Historical charts start filling from the first round completed in v0.12."
+            },
+            color = Color(0xFF8C96A4),
+            fontSize = 13.sp
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(
                 onClick = onStart,
                 shape = RoundedCornerShape(18.dp)
             ) {
                 Text(if (cs) "Jednorázový setup" else "One-time setup")
             }
-
             SmallActionButton(
                 text = if (cs) "Obnovit" else "Refresh",
                 active = false,
                 onClick = onRefresh
             )
-
             SmallActionButton(
                 text = "Stop",
                 active = false,
                 onClick = onStop
             )
-
             SmallActionButton(
                 text = if (cs) "Zpět" else "Back",
                 active = false,
@@ -357,37 +371,372 @@ private fun TriviaProfileScreen(
 }
 
 @Composable
-private fun CategoryRow(
-    stat: TriviaGameEngine.CategoryStat,
+private fun KpiStrip(
+    profile: TriviaGameEngine.Profile,
     cs: Boolean
 ) {
-    Surface(
-        color = Color(0xFF141820),
-        shape = RoundedCornerShape(14.dp),
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+        KpiCard(
+            modifier = Modifier.weight(1f),
+            label = "XP",
+            value = profile.xp.toString()
+        )
+        KpiCard(
+            modifier = Modifier.weight(1f),
+            label = if (cs) "Úspěšnost" else "Accuracy",
+            value = profile.accuracy.toString() + "%"
+        )
+        KpiCard(
+            modifier = Modifier.weight(1f),
+            label = if (cs) "Nejlepší série" else "Best streak",
+            value = profile.bestStreak.toString()
+        )
+        KpiCard(
+            modifier = Modifier.weight(1f),
+            label = if (cs) "Kola" else "Rounds",
+            value = profile.roundsCompleted.toString()
+        )
+    }
+}
+
+@Composable
+private fun KpiCard(
+    modifier: Modifier,
+    label: String,
+    value: String
+) {
+    Surface(
+        modifier = modifier,
+        color = Color(0xFF171B22),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = localizedCategory(stat.category, cs),
+                text = value,
                 color = Color.White,
-                fontWeight = FontWeight.Medium
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold
             )
             Text(
-                text = if (stat.answered == 0) {
-                    if (cs) "nové • skill " + stat.rating
-                    else "new • skill " + stat.rating
-                } else {
-                    stat.accuracy.toString() + "% • skill " + stat.rating
-                },
-                color = Color(0xFFAFB7C2)
+                text = label,
+                color = Color(0xFF99A3B0),
+                fontSize = 13.sp
             )
         }
     }
+}
+
+@Composable
+private fun DashboardCard(
+    title: String,
+    subtitle: String,
+    content: @Composable () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color(0xFF11151B),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 21.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = subtitle,
+                color = Color(0xFF8F99A8),
+                fontSize = 13.sp
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+private fun XpProgressChart(
+    points: List<Pair<Int, Int>>,
+    cs: Boolean
+) {
+    if (points.isEmpty()) {
+        EmptyDataText(
+            if (cs) "Zatím není dokončené kolo s historickým záznamem."
+            else "No completed round with historical data yet."
+        )
+        return
+    }
+
+    val visible = points.takeLast(20)
+    val maxXp = max(visible.maxOf { it.second }, 1)
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+    ) {
+        val left = 14f
+        val right = size.width - 14f
+        val top = 12f
+        val bottom = size.height - 16f
+        val width = right - left
+        val height = bottom - top
+
+        for (i in 0..4) {
+            val y = top + height * i / 4f
+            drawLine(
+                color = Color(0xFF252B35),
+                start = Offset(left, y),
+                end = Offset(right, y),
+                strokeWidth = 1f
+            )
+        }
+
+        val path = Path()
+        visible.forEachIndexed { index, point ->
+            val x = if (visible.size == 1) {
+                left + width / 2f
+            } else {
+                left + width * index / (visible.size - 1).toFloat()
+            }
+            val y = bottom - (point.second.toFloat() / maxXp.toFloat()) * height
+
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+
+            drawCircle(
+                color = Color(0xFFE6EDF5),
+                radius = 4.5f,
+                center = Offset(x, y)
+            )
+        }
+
+        drawPath(
+            path = path,
+            color = Color(0xFF9FB4CC),
+            style = Stroke(width = 4f)
+        )
+    }
+
+    val first = visible.first()
+    val last = visible.last()
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = (if (cs) "Kolo " else "Round ") + first.first + " • " + first.second + " XP",
+            color = Color(0xFF8F99A8),
+            fontSize = 12.sp
+        )
+        Text(
+            text = (if (cs) "Kolo " else "Round ") + last.first + " • " + last.second + " XP",
+            color = Color.White,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
+private fun CategoryAccuracyChart(
+    stats: List<TriviaGameEngine.CategoryStat>,
+    cs: Boolean
+) {
+    val active = stats
+        .filter { it.answered > 0 }
+        .sortedByDescending { it.accuracy }
+
+    if (active.isEmpty()) {
+        EmptyDataText(
+            if (cs) "Zatím nejsou odpovědi pro porovnání kategorií."
+            else "No category answers recorded yet."
+        )
+        return
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        active.forEach { stat ->
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = localizedCategory(stat.category, cs),
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = stat.accuracy.toString() + "% • " +
+                            stat.correct + "/" + stat.answered,
+                        color = Color(0xFF9DA8B5),
+                        fontSize = 13.sp
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(9.dp)
+                        .background(
+                            color = Color(0xFF252B35),
+                            shape = RoundedCornerShape(5.dp)
+                        )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(stat.accuracy.coerceIn(0, 100) / 100f)
+                            .height(9.dp)
+                            .background(
+                                color = Color(0xFF9FB4CC),
+                                shape = RoundedCornerShape(5.dp)
+                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoundHistoryList(
+    rounds: List<TriviaGameEngine.RoundHistoryEntry>,
+    cs: Boolean
+) {
+    if (rounds.isEmpty()) {
+        EmptyDataText(
+            if (cs) "Historie kol se začne ukládat po dokončení dalšího kola."
+            else "Round history will appear after the next completed round."
+        )
+        return
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        rounds.forEach { round ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xFF171B22),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = (if (cs) "Kolo " else "Round ") + round.roundNumber,
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = formatRoundDate(round.completedAt, cs),
+                            color = Color(0xFF86909D),
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = round.correct.toString() + "/" + round.answered +
+                                " • " + round.accuracy + "%",
+                            color = Color.White
+                        )
+                        Text(
+                            text = "+" + round.xpEarned + " XP • " +
+                                (if (cs) "série " else "streak ") + round.bestStreak,
+                            color = Color(0xFF9DA8B5),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MissedQuestionsList(
+    questions: List<TriviaGameEngine.MissedQuestionStat>,
+    cs: Boolean
+) {
+    if (questions.isEmpty()) {
+        EmptyDataText(
+            if (cs) "Zatím nemáš žádné chybované otázky."
+            else "No missed questions yet."
+        )
+        return
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        questions.forEachIndexed { index, item ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xFF171B22),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = (index + 1).toString(),
+                        color = Color(0xFF7F8A98),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = item.prompt,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = localizedCategory(item.category, cs) + " • " +
+                                (if (cs) "chyby " else "misses ") + item.wrongCount +
+                                " • " + item.accuracy + "%",
+                            color = Color(0xFF929DAA),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyDataText(text: String) {
+    Text(
+        text = text,
+        color = Color(0xFF7F8996),
+        fontSize = 14.sp,
+        modifier = Modifier.padding(vertical = 18.dp)
+    )
 }
 
 @Composable
@@ -440,28 +789,13 @@ private fun SmallActionButton(
     }
 }
 
-private fun localizedLevelName(level: Int, cs: Boolean): String {
-    return if (cs) {
-        when (level) {
-            1 -> "Nováček"
-            2 -> "Průzkumník"
-            3 -> "Vyzyvatel"
-            4 -> "Expert"
-            5 -> "Mistr"
-            6 -> "Elita"
-            else -> "Legenda"
-        }
-    } else {
-        when (level) {
-            1 -> "Rookie"
-            2 -> "Explorer"
-            3 -> "Challenger"
-            4 -> "Expert"
-            5 -> "Master"
-            6 -> "Elite"
-            else -> "Legend"
-        }
-    }
+private fun formatRoundDate(
+    timestamp: Long,
+    cs: Boolean
+): String {
+    val locale = if (cs) Locale("cs", "CZ") else Locale.US
+    val pattern = if (cs) "d. M. HH:mm" else "MMM d, HH:mm"
+    return SimpleDateFormat(pattern, locale).format(Date(timestamp))
 }
 
 private fun localizedCategory(
