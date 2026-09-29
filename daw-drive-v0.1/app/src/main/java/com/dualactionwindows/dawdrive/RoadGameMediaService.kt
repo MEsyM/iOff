@@ -697,10 +697,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         val artist = if (cs) {
-            p.xp + " XP • série " + p.currentStreak +
+            p.xp.toString() + " XP • série " + p.currentStreak +
                 (q?.let { " • " + it.categoryName } ?: "")
         } else {
-            p.xp + " XP • streak " + p.currentStreak +
+            p.xp.toString() + " XP • streak " + p.currentStreak +
                 (q?.let { " • " + it.categoryName } ?: "")
         }
 
