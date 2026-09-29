@@ -1,5 +1,6 @@
 package com.dualactionwindows.dawdrive
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,7 +12,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            DawDriveApp()
+            DawDriveApp(
+                onVideoClick = {
+                    startActivity(Intent(this, VideoActivity::class.java))
+                }
+            )
         }
     }
 }
