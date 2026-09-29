@@ -32,7 +32,7 @@ private enum class DawModule(
     val title: String,
     val subtitle: String
 ) {
-    Games("Games", "Parked games and entertainment"),
+    Games("Road Games", "Hands-free voice games"),
     Video("Video", "Web browser"),
     Erp("DAW ERP", "Deals, contacts and next actions"),
     Tools("Tools", "Vehicle and utility tools")
@@ -40,7 +40,9 @@ private enum class DawModule(
 
 @Composable
 fun DawDriveApp(
-    onVideoClick: () -> Unit
+    onVideoClick: () -> Unit,
+    onRoadVoiceStart: () -> Unit,
+    onRoadVoiceStop: () -> Unit
 ) {
     var selectedModule by remember { mutableStateOf<DawModule?>(null) }
 
@@ -56,12 +58,17 @@ fun DawDriveApp(
             if (selectedModule == null) {
                 LauncherScreen(
                     onModuleSelected = { module ->
-                        if (module == DawModule.Video) {
-                            onVideoClick()
-                        } else {
-                            selectedModule = module
+                        when (module) {
+                            DawModule.Video -> onVideoClick()
+                            else -> selectedModule = module
                         }
                     }
+                )
+            } else if (selectedModule == DawModule.Games) {
+                RoadVoiceScreen(
+                    onStart = onRoadVoiceStart,
+                    onStop = onRoadVoiceStop,
+                    onBack = { selectedModule = null }
                 )
             } else {
                 ModulePlaceholder(
@@ -90,7 +97,7 @@ private fun LauncherScreen(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "v0.4 stable video",
+                text = "v0.8 Road Voice",
                 color = Color(0xFF9AA4B2),
                 fontSize = 14.sp
             )
@@ -168,6 +175,61 @@ private fun LauncherTile(
                 color = Color(0xFFAFB7C2),
                 fontSize = 15.sp
             )
+        }
+    }
+}
+
+@Composable
+private fun RoadVoiceScreen(
+    onStart: () -> Unit,
+    onStop: () -> Unit,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(28.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Road Voice",
+            color = Color.White,
+            fontSize = 40.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Start once on the phone before driving. Then open DAW Drive in Android Auto Media.",
+            color = Color(0xFFAFB7C2),
+            fontSize = 18.sp
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Button(
+                onClick = onStart,
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Text("Start Road Voice", fontSize = 18.sp)
+            }
+            Button(
+                onClick = onStop,
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2A303A)
+                )
+            ) {
+                Text("Stop", fontSize = 18.sp)
+            }
+            Button(
+                onClick = onBack,
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2A303A)
+                )
+            ) {
+                Text("Back", fontSize = 18.sp)
+            }
         }
     }
 }
