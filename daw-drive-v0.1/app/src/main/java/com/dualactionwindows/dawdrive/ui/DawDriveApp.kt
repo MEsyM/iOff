@@ -97,7 +97,7 @@ private fun LauncherScreen(
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "v0.8 Road Voice",
+                text = "v0.9 Auto Road Voice",
                 color = Color(0xFF9AA4B2),
                 fontSize = 14.sp
             )
@@ -200,7 +200,7 @@ private fun RoadVoiceScreen(
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "Start once on the phone before driving. Then open DAW Drive in Android Auto Media.",
+            text = "Normal use: Android Auto > DAW Drive > choose a game > Play. Phone setup is needed only once for microphone permission.",
             color = Color(0xFFAFB7C2),
             fontSize = 18.sp
         )
@@ -210,7 +210,7 @@ private fun RoadVoiceScreen(
                 onClick = onStart,
                 shape = RoundedCornerShape(18.dp)
             ) {
-                Text("Start Road Voice", fontSize = 18.sp)
+                Text("One-time setup", fontSize = 18.sp)
             }
             Button(
                 onClick = onStop,
