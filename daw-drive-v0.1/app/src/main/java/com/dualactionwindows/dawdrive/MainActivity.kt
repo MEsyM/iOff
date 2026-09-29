@@ -15,9 +15,22 @@ import com.dualactionwindows.dawdrive.ui.DawDriveApp
 
 class MainActivity : ComponentActivity() {
 
-    private val requestMicPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted) startRoadVoiceService()
+    private var resumeGameAfterPermission = false
+
+    private val requestRoadVoicePermissions =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+            val micGranted =
+                grants[Manifest.permission.RECORD_AUDIO] == true ||
+                    ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+
+            if (micGranted) {
+                startRoadVoiceService(resumeGameAfterPermission)
+            }
+
+            resumeGameAfterPermission = false
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,16 +51,7 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 onRoadVoiceStart = {
-                    if (
-                        ContextCompat.checkSelfPermission(
-                            this,
-                            Manifest.permission.RECORD_AUDIO
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        startRoadVoiceService()
-                    } else {
-                        requestMicPermission.launch(Manifest.permission.RECORD_AUDIO)
-                    }
+                    ensureRoadVoiceSetup(resumeGame = false)
                 },
                 onRoadVoiceStop = {
                     startService(
@@ -57,13 +61,66 @@ class MainActivity : ComponentActivity() {
                 }
             )
         }
+
+        handleRoadVoiceIntent(intent)
     }
 
-    private fun startRoadVoiceService() {
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleRoadVoiceIntent(intent)
+    }
+
+    private fun handleRoadVoiceIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_ENABLE_ROAD_VOICE, false) == true) {
+            ensureRoadVoiceSetup(
+                resumeGame = intent.getBooleanExtra(EXTRA_RESUME_GAME, false)
+            )
+            intent.removeExtra(EXTRA_ENABLE_ROAD_VOICE)
+        }
+    }
+
+    private fun ensureRoadVoiceSetup(resumeGame: Boolean) {
+        val missing = buildList {
+            if (
+                ContextCompat.checkSelfPermission(
+                    this@MainActivity,
+                    Manifest.permission.RECORD_AUDIO
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                add(Manifest.permission.RECORD_AUDIO)
+            }
+
+            if (
+                ContextCompat.checkSelfPermission(
+                    this@MainActivity,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+
+        if (missing.isEmpty()) {
+            startRoadVoiceService(resumeGame)
+        } else {
+            resumeGameAfterPermission = resumeGame
+            requestRoadVoicePermissions.launch(missing.toTypedArray())
+        }
+    }
+
+    private fun startRoadVoiceService(resumeGame: Boolean) {
         ContextCompat.startForegroundService(
             this,
             Intent(this, RoadGameMediaService::class.java)
                 .setAction(RoadGameMediaService.ACTION_START_VOICE)
+                .putExtra(RoadGameMediaService.EXTRA_RESUME_GAME, resumeGame)
         )
+    }
+
+    companion object {
+        const val EXTRA_ENABLE_ROAD_VOICE = "enable_road_voice"
+        const val EXTRA_RESUME_GAME = "resume_game"
+        const val EXTRA_NEEDS_MIC_PERMISSION = "needs_mic_permission"
     }
 }
