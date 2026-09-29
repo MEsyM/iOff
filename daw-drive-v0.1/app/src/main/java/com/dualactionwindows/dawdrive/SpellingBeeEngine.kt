@@ -232,10 +232,73 @@ class SpellingBeeEngine(context: Context) {
             Normalizer.Form.NFD
         ).replace(Regex("\\p{M}+"), "")
 
-        return withoutMarks
-            .replace("double ", "")
-            .replace(Regex("[^a-z]"), "")
+        val clean = withoutMarks
+            .replace(Regex("[^a-z\\s]"), " ")
+            .replace(Regex("\\s+"), " ")
             .trim()
+
+        val direct = clean.replace(" ", "")
+        if (clean.split(" ").all { it.length == 1 }) {
+            return direct
+        }
+
+        val tokens = clean.split(" ")
+        val mapped = mutableListOf<String>()
+        var i = 0
+
+        while (i < tokens.size) {
+            if (i + 1 < tokens.size && tokens[i] == "double") {
+                val letter = letterName(tokens[i + 1])
+                if (letter != null) {
+                    mapped += letter
+                    mapped += letter
+                    i += 2
+                    continue
+                }
+            }
+
+            val letter = letterName(tokens[i])
+            if (letter != null) {
+                mapped += letter
+            } else if (tokens[i].length == 1) {
+                mapped += tokens[i]
+            } else {
+                return direct
+            }
+            i += 1
+        }
+
+        return mapped.joinToString("")
+    }
+
+    private fun letterName(token: String): String? = when (token) {
+        "a", "ay", "ey" -> "a"
+        "b", "bee" -> "b"
+        "c", "see", "sea" -> "c"
+        "d", "dee" -> "d"
+        "e", "ee" -> "e"
+        "f", "ef", "eff" -> "f"
+        "g", "gee" -> "g"
+        "h", "aitch" -> "h"
+        "i", "eye" -> "i"
+        "j", "jay" -> "j"
+        "k", "kay" -> "k"
+        "l", "el" -> "l"
+        "m", "em" -> "m"
+        "n", "en" -> "n"
+        "o", "oh" -> "o"
+        "p", "pee" -> "p"
+        "q", "cue", "queue" -> "q"
+        "r", "are" -> "r"
+        "s", "ess" -> "s"
+        "t", "tee", "tea" -> "t"
+        "u", "you" -> "u"
+        "v", "vee" -> "v"
+        "w", "doubleyou", "doubleu" -> "w"
+        "x", "ex" -> "x"
+        "y", "why" -> "y"
+        "z", "zee", "zed" -> "z"
+        else -> null
     }
 
     private fun levelForXp(xp: Int): Int = when {
