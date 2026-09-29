@@ -1,5 +1,8 @@
 package com.dualactionwindows.dawdrive.ui
 
+import android.annotation.SuppressLint
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,13 +30,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+
+private const val VIDEO_URL = "https://vidplay.top"
 
 private enum class DawModule(
     val title: String,
     val subtitle: String
 ) {
     Games("Games", "Parked games and entertainment"),
-    Video("Video", "Media player"),
+    Video("Video", "Web browser"),
     Erp("DAW ERP", "Deals, contacts and next actions"),
     Tools("Tools", "Vehicle and utility tools")
 }
@@ -41,9 +47,18 @@ private enum class DawModule(
 @Composable
 fun DawDriveApp() {
     var selectedModule by remember { mutableStateOf<DawModule?>(null) }
+    var videoWebView by remember { mutableStateOf<WebView?>(null) }
 
     BackHandler(enabled = selectedModule != null) {
-        selectedModule = null
+        if (
+            selectedModule == DawModule.Video &&
+            videoWebView?.canGoBack() == true
+        ) {
+            videoWebView?.goBack()
+        } else {
+            selectedModule = null
+            videoWebView = null
+        }
     }
 
     MaterialTheme {
@@ -51,12 +66,17 @@ fun DawDriveApp() {
             modifier = Modifier.fillMaxSize(),
             color = Color(0xFF080A0D)
         ) {
-            if (selectedModule == null) {
-                LauncherScreen(onModuleSelected = { selectedModule = it })
-            } else {
-                ModulePlaceholder(
+            when (selectedModule) {
+                null -> LauncherScreen(onModuleSelected = { selectedModule = it })
+                DawModule.Video -> VideoBrowser(
+                    onWebViewReady = { videoWebView = it }
+                )
+                else -> ModulePlaceholder(
                     module = selectedModule!!,
-                    onBack = { selectedModule = null }
+                    onBack = {
+                        selectedModule = null
+                        videoWebView = null
+                    }
                 )
             }
         }
@@ -84,7 +104,7 @@ private fun LauncherScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "v0.2 launcher",
+                    text = "v0.3 video browser",
                     color = Color(0xFF9AA4B2),
                     fontSize = 14.sp
                 )
@@ -174,6 +194,40 @@ private fun LauncherTile(
             )
         }
     }
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+private fun VideoBrowser(
+    onWebViewReady: (WebView) -> Unit
+) {
+    AndroidView(
+        modifier = Modifier.fillMaxSize(),
+        factory = { context ->
+            WebView(context).apply {
+                setBackgroundColor(android.graphics.Color.BLACK)
+
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.databaseEnabled = true
+                settings.loadsImagesAutomatically = true
+                settings.useWideViewPort = true
+                settings.loadWithOverviewMode = true
+                settings.mediaPlaybackRequiresUserGesture = false
+                settings.setSupportZoom(true)
+                settings.builtInZoomControls = true
+                settings.displayZoomControls = false
+
+                webViewClient = WebViewClient()
+
+                loadUrl(VIDEO_URL)
+                onWebViewReady(this)
+            }
+        },
+        update = { webView ->
+            onWebViewReady(webView)
+        }
+    )
 }
 
 @Composable
