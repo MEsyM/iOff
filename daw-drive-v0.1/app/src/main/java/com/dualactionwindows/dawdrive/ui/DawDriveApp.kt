@@ -58,6 +58,7 @@ fun DawDriveApp(
     dashboard: TriviaGameEngine.DashboardData,
     achievementTitles: List<String>,
     onVideoClick: () -> Unit,
+    onCarPreviewClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
     onRoadVoiceStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
@@ -88,6 +89,7 @@ fun DawDriveApp(
                     profile = profile,
                     dashboard = dashboard,
                     achievementTitles = achievementTitles,
+                    onCarPreview = onCarPreviewClick,
                     onStart = onRoadVoiceStart,
                     onStop = onRoadVoiceStop,
                     onLanguageChange = onLanguageChange,
@@ -206,6 +208,7 @@ private fun TriviaProfileScreen(
     profile: TriviaGameEngine.Profile,
     dashboard: TriviaGameEngine.DashboardData,
     achievementTitles: List<String>,
+    onCarPreview: () -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
@@ -343,6 +346,12 @@ private fun TriviaProfileScreen(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = onCarPreview,
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Text(if (cs) "Car Preview" else "Car Preview")
+            }
             Button(
                 onClick = onStart,
                 shape = RoundedCornerShape(18.dp)
