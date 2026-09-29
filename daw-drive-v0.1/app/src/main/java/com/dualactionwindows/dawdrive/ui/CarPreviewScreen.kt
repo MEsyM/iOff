@@ -29,14 +29,19 @@ fun CarPreviewScreen(
     title: String,
     subtitle: String,
     question: String,
+    selectedGame: String,
     isPlaying: Boolean,
     connected: Boolean,
+    onSelectTrivia: () -> Unit,
+    onSelectSpelling: () -> Unit,
     onPlayPause: () -> Unit,
     onRepeat: () -> Unit,
     onNext: () -> Unit,
     onStop: () -> Unit,
     onClose: () -> Unit
 ) {
+    val spelling = selectedGame == "spelling"
+
     MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -53,17 +58,33 @@ fun CarPreviewScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "DAW DRIVE",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "DAW DRIVE",
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "PHONE CAR PREVIEW",
+                                color = Color(0xFF8E98A5),
+                                fontSize = 11.sp
+                            )
+                        }
+
+                        PreviewButton(
+                            text = "Quick Trivia",
+                            primary = !spelling,
+                            onClick = onSelectTrivia
                         )
-                        Text(
-                            text = "PHONE CAR PREVIEW",
-                            color = Color(0xFF8E98A5),
-                            fontSize = 11.sp
+                        PreviewButton(
+                            text = "Spelling Bee",
+                            primary = spelling,
+                            onClick = onSelectSpelling
                         )
                     }
 
@@ -124,13 +145,13 @@ fun CarPreviewScreen(
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = "Q",
+                                    text = if (spelling) "ABC" else "Q",
                                     color = Color.White,
-                                    fontSize = 82.sp,
+                                    fontSize = if (spelling) 56.sp else 82.sp,
                                     fontWeight = FontWeight.Black
                                 )
                                 Text(
-                                    text = "QUICK TRIVIA",
+                                    text = if (spelling) "SPELLING BEE" else "QUICK TRIVIA",
                                     color = Color(0xFF9AA5B3),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold
