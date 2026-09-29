@@ -224,7 +224,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             override fun onDone(utteranceId: String?) {
                 when (utteranceId) {
                     SESSION_INTRO_UTTERANCE_ID -> {
-                        mainHandler.post { speakCurrentQuestion() }
+                        mainHandler.post {
+                            if (activeGame == ActiveGame.SPELLING) speakCurrentSpelling()
+                            else speakCurrentQuestion()
+                        }
                     }
 
                     QUESTION_UTTERANCE_ID -> {
@@ -237,11 +240,17 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     }
 
                     FEEDBACK_UTTERANCE_ID -> {
-                        mainHandler.post { moveToNextQuestion() }
+                        mainHandler.post {
+                            if (activeGame == ActiveGame.SPELLING) moveToNextSpellingWord()
+                            else moveToNextQuestion()
+                        }
                     }
 
                     ROUND_SUMMARY_UTTERANCE_ID -> {
-                        mainHandler.postDelayed({ startNextRound() }, 700)
+                        mainHandler.postDelayed({
+                            if (activeGame == ActiveGame.SPELLING) startNextSpellingRound()
+                            else startNextRound()
+                        }, 700)
                     }
 
                     COMMAND_UTTERANCE_ID -> {
@@ -342,6 +351,52 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         speak(text, QUESTION_UTTERANCE_ID)
     }
 
+    private fun startOrResumeSpelling() {
+        if (!ensureRoadVoiceForPlayback()) return
+
+        spellingEngine.startOrResume()
+        applyVoiceLanguage()
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        updateMetadata()
+
+        if (!sessionStarted) {
+            sessionStarted = true
+            val p = spellingEngine.profile()
+            speakSystem(
+                en = "Welcome to Spelling Bee. Level " + p.level +
+                    ". Ten words. Listen, then spell each word aloud.",
+                cs = "Vítej ve Spelling Bee. Level " + p.level +
+                    ". Deset slov. Poslechni si slovo a potom ho nahlas vyhláskuj.",
+                utteranceId = SESSION_INTRO_UTTERANCE_ID
+            )
+        } else {
+            speakCurrentSpelling()
+        }
+    }
+
+    private fun speakCurrentSpelling() {
+        if (!ttsReady) return
+
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+
+        val word = spellingEngine.currentWord() ?: spellingEngine.startOrResume()
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+        updateMetadata()
+
+        val definition = if (cs) word.definitionCs else word.definitionEn
+        val text = if (cs) {
+            "Slovo je " + word.word + ". Význam: " + definition +
+                ". Vyhláskuj ho anglicky."
+        } else {
+            "Your word is " + word.word + ". Definition: " + definition +
+                ". Spell it now."
+        }
+
+        speak(text, QUESTION_UTTERANCE_ID)
+    }
+
     private fun startListeningForAnswer() {
         if (!voiceModeEnabled || !awaitingAnswer || listening) return
 
@@ -399,6 +454,49 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         speak(
             text,
+            if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID
+            else FEEDBACK_UTTERANCE_ID
+        )
+    }
+
+    private fun evaluateSpellingCandidates(candidates: List<String>) {
+        if (!awaitingAnswer) return
+
+        stopListening()
+        awaitingAnswer = false
+
+        val result = spellingEngine.evaluate(candidates)
+        updateMetadata()
+
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+        val feedback = buildString {
+            if (result.correct) {
+                append(if (cs) "Správně." else "Correct.")
+                if (result.streak >= 3) {
+                    append(if (cs) " Série " else " Streak ")
+                    append(result.streak)
+                    append(".")
+                }
+            } else {
+                append(if (cs) "Ne. Správně se píše " else "Not quite. The correct spelling is ")
+                append(result.expected.toCharArray().joinToString(" "))
+                append(".")
+            }
+
+            if (result.promoted) {
+                append(if (cs) " Postupuješ na level " else " Level up. You are now level ")
+                append(result.level)
+                append(".")
+            }
+
+            if (result.roundFinished) {
+                append(" ")
+                append(spellingEngine.roundSummary(triviaEngine.language()))
+            }
+        }
+
+        speak(
+            feedback,
             if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID
             else FEEDBACK_UTTERANCE_ID
         )
@@ -496,6 +594,21 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             summary.bestStreak + ". " + adjustment
     }
 
+    private fun moveToNextSpellingWord() {
+        spellingEngine.nextWord()
+        speakCurrentSpelling()
+    }
+
+    private fun startNextSpellingRound() {
+        spellingEngine.resetRound()
+        spellingEngine.startOrResume()
+        speakSystem(
+            en = "Next Spelling Bee round.",
+            cs = "Další kolo Spelling Bee.",
+            utteranceId = SESSION_INTRO_UTTERANCE_ID
+        )
+    }
+
     private fun moveToNextQuestion() {
         triviaEngine.nextQuestion()
         speakCurrentQuestion()
@@ -517,7 +630,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         stopListening()
         awaitingAnswer = true
         retryCount = 0
-        speakCurrentQuestion()
+        if (activeGame == ActiveGame.SPELLING) speakCurrentSpelling()
+        else speakCurrentQuestion()
     }
 
     private fun skipCurrentQuestion() {
@@ -526,18 +640,34 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         stopListening()
         awaitingAnswer = false
 
-        val skip = triviaEngine.skipCurrent()
-        if (skip.roundFinished) {
-            speak(
-                localizedRoundSummary(),
-                ROUND_SUMMARY_UTTERANCE_ID
-            )
+        if (activeGame == ActiveGame.SPELLING) {
+            val finished = spellingEngine.skipCurrent()
+            if (finished) {
+                speak(
+                    spellingEngine.roundSummary(triviaEngine.language()),
+                    ROUND_SUMMARY_UTTERANCE_ID
+                )
+            } else {
+                speakSystem(
+                    en = "Skipped.",
+                    cs = "Přeskakuji.",
+                    utteranceId = FEEDBACK_UTTERANCE_ID
+                )
+            }
         } else {
-            speakSystem(
-                en = "Skipped.",
-                cs = "Přeskakuji.",
-                utteranceId = FEEDBACK_UTTERANCE_ID
-            )
+            val skip = triviaEngine.skipCurrent()
+            if (skip.roundFinished) {
+                speak(
+                    localizedRoundSummary(),
+                    ROUND_SUMMARY_UTTERANCE_ID
+                )
+            } else {
+                speakSystem(
+                    en = "Skipped.",
+                    cs = "Přeskakuji.",
+                    utteranceId = FEEDBACK_UTTERANCE_ID
+                )
+            }
         }
     }
 
@@ -545,17 +675,29 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         awaitingAnswer = false
         stopListening()
 
-        val skip = triviaEngine.skipCurrent()
         val text = if (triviaEngine.language() == TriviaGameEngine.Language.CS) {
             "Neslyšel jsem odpověď. Přeskakuji."
         } else {
             "I didn't catch an answer. Skipping this one."
         }
 
-        if (skip.roundFinished) {
-            speak(text + " " + localizedRoundSummary(), ROUND_SUMMARY_UTTERANCE_ID)
+        if (activeGame == ActiveGame.SPELLING) {
+            val finished = spellingEngine.skipCurrent()
+            if (finished) {
+                speak(
+                    text + " " + spellingEngine.roundSummary(triviaEngine.language()),
+                    ROUND_SUMMARY_UTTERANCE_ID
+                )
+            } else {
+                speak(text, FEEDBACK_UTTERANCE_ID)
+            }
         } else {
-            speak(text, FEEDBACK_UTTERANCE_ID)
+            val skip = triviaEngine.skipCurrent()
+            if (skip.roundFinished) {
+                speak(text + " " + localizedRoundSummary(), ROUND_SUMMARY_UTTERANCE_ID)
+            } else {
+                speak(text, FEEDBACK_UTTERANCE_ID)
+            }
         }
     }
 
@@ -727,23 +869,48 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun updateMetadata() {
+        val language = triviaEngine.language()
+        val cs = language == TriviaGameEngine.Language.CS
+
+        if (activeGame == ActiveGame.SPELLING) {
+            val p = spellingEngine.profile()
+            val word = spellingEngine.currentWord()
+            mediaSession.setMetadata(
+                MediaMetadataCompat.Builder()
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_TITLE,
+                        "Spelling Bee • Level " + p.level
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_ARTIST,
+                        p.xp.toString() + " XP • " +
+                            (if (cs) "série " else "streak ") + p.streak
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
+                        word?.let {
+                            if (cs) "Vyhláskuj: " + it.word else "Spell: " + it.word
+                        } ?: if (cs) "Připraveno" else "Ready"
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
+                        "Spelling Bee"
+                    )
+                    .putLong(
+                        MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
+                        (p.totalAnswered + 1).toLong()
+                    )
+                    .build()
+            )
+            return
+        }
+
         val p = triviaEngine.profile()
         val q = triviaEngine.currentQuestion()
-        val cs = p.language == TriviaGameEngine.Language.CS
-
-        val title = if (cs) {
-            "Quick Trivia • Level " + p.level
-        } else {
-            "Quick Trivia • Level " + p.level
-        }
-
-        val artist = if (cs) {
-            p.xp.toString() + " XP • série " + p.currentStreak +
-                (q?.let { " • " + it.categoryName } ?: "")
-        } else {
-            p.xp.toString() + " XP • streak " + p.currentStreak +
-                (q?.let { " • " + it.categoryName } ?: "")
-        }
+        val title = "Quick Trivia • Level " + p.level
+        val artist = p.xp.toString() + " XP • " +
+            (if (cs) "série " else "streak ") + p.currentStreak +
+            (q?.let { " • " + it.categoryName } ?: "")
 
         mediaSession.setMetadata(
             MediaMetadataCompat.Builder()
