@@ -49,6 +49,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var currentIndex = 0
     private var score = 0
     private var attempted = 0
+    private lateinit var triviaEngine: TriviaGameEngine
 
     private val packs = mapOf(
         "trivia" to listOf(
@@ -77,6 +78,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         super.onCreate()
 
         createNotificationChannels()
+        triviaEngine = TriviaGameEngine(this)
         tts = TextToSpeech(this, this)
 
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
@@ -657,6 +659,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         private const val QUESTION_UTTERANCE_ID = "road_game_question"
         private const val FEEDBACK_UTTERANCE_ID = "road_game_feedback"
+        private const val ROUND_SUMMARY_UTTERANCE_ID = "road_game_round_summary"
         private const val SYSTEM_UTTERANCE_ID = "road_game_system"
     }
 }
