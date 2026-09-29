@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.net.Uri
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -36,7 +37,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private lateinit var spellingEngine: SpellingBeeEngine
 
     private enum class ActiveGame { TRIVIA, SPELLING }
+    private enum class ArtworkState { IDLE, LISTENING, CORRECT, WRONG }
+
     private var activeGame = ActiveGame.TRIVIA
+    private var artworkState = ArtworkState.IDLE
 
     private var speechRecognizer: SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -267,8 +271,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         clientPackageName: String,
         clientUid: Int,
         rootHints: Bundle?
-    ): BrowserRoot =
-        BrowserRoot(ROOT_ID, null)
+    ): BrowserRoot {
+        val extras = Bundle().apply {
+            putInt(CONTENT_STYLE_PLAYABLE_KEY, CONTENT_STYLE_GRID)
+            putInt(CONTENT_STYLE_BROWSABLE_KEY, CONTENT_STYLE_GRID)
+        }
+        return BrowserRoot(ROOT_ID, extras)
+    }
 
     override fun onLoadChildren(
         parentId: String,
@@ -294,8 +303,18 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         result.sendResult(
             mutableListOf(
-                mediaItem(MEDIA_ID_TRIVIA, "Quick Trivia Career", triviaSubtitle),
-                mediaItem(MEDIA_ID_SPELLING, "Spelling Bee", spellingSubtitle)
+                mediaItem(
+                    MEDIA_ID_TRIVIA,
+                    "Quick Trivia",
+                    triviaSubtitle,
+                    R.drawable.trivia_idle
+                ),
+                mediaItem(
+                    MEDIA_ID_SPELLING,
+                    "Spelling Bee",
+                    spellingSubtitle,
+                    R.drawable.spelling_idle
+                )
             )
         )
     }
@@ -431,6 +450,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             )
         }
 
+        artworkState = ArtworkState.LISTENING
+        updateMetadata()
         listening = true
         recognizer.startListening(intent)
     }
@@ -448,6 +469,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         val result = triviaEngine.answerCandidates(candidates, responseMs)
+        artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
         updateMetadata()
 
         val text = buildFeedback(result)
@@ -466,6 +488,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         awaitingAnswer = false
 
         val result = spellingEngine.evaluate(candidates)
+        artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
         updateMetadata()
 
         val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
@@ -595,11 +618,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun moveToNextSpellingWord() {
+        artworkState = ArtworkState.IDLE
         spellingEngine.nextWord()
         speakCurrentSpelling()
     }
 
     private fun startNextSpellingRound() {
+        artworkState = ArtworkState.IDLE
         spellingEngine.resetRound()
         spellingEngine.startOrResume()
         speakSystem(
@@ -610,11 +635,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun moveToNextQuestion() {
+        artworkState = ArtworkState.IDLE
         triviaEngine.nextQuestion()
         speakCurrentQuestion()
     }
 
     private fun startNextRound() {
+        artworkState = ArtworkState.IDLE
         triviaEngine.resetRound()
         triviaEngine.startOrResumeRound()
 
@@ -630,6 +657,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         stopListening()
         awaitingAnswer = true
         retryCount = 0
+        artworkState = ArtworkState.IDLE
         if (activeGame == ActiveGame.SPELLING) speakCurrentSpelling()
         else speakCurrentQuestion()
     }
@@ -755,6 +783,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun pauseGame() {
+        artworkState = ArtworkState.IDLE
+        updateMetadata()
         mainHandler.removeCallbacksAndMessages(null)
         stopListening()
         awaitingAnswer = false
@@ -867,6 +897,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private fun updateMetadata() {
         val language = triviaEngine.language()
         val cs = language == TriviaGameEngine.Language.CS
+        val artUri = artworkUri(activeGame, artworkState).toString()
 
         if (activeGame == ActiveGame.SPELLING) {
             val p = spellingEngine.profile()
@@ -892,6 +923,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
                         "Spelling Bee"
                     )
+                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                         (p.totalAnswered + 1).toLong()
@@ -920,6 +953,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
                     q?.categoryName ?: "Quick Trivia"
                 )
+                .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
+                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
                 .putLong(
                     MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                     (p.totalAnswered + 1).toLong()
@@ -928,15 +963,40 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         )
     }
 
+    private fun artworkUri(game: ActiveGame, state: ArtworkState): Uri {
+        val resId = when (game) {
+            ActiveGame.TRIVIA -> when (state) {
+                ArtworkState.IDLE -> R.drawable.trivia_idle
+                ArtworkState.LISTENING -> R.drawable.trivia_listening
+                ArtworkState.CORRECT -> R.drawable.trivia_correct
+                ArtworkState.WRONG -> R.drawable.trivia_wrong
+            }
+            ActiveGame.SPELLING -> when (state) {
+                ArtworkState.IDLE -> R.drawable.spelling_idle
+                ArtworkState.LISTENING -> R.drawable.spelling_listening
+                ArtworkState.CORRECT -> R.drawable.spelling_correct
+                ArtworkState.WRONG -> R.drawable.spelling_wrong
+            }
+        }
+        return Uri.parse("android.resource://" + packageName + "/" + resId)
+    }
+
     private fun mediaItem(
         id: String,
         title: String,
-        subtitle: String
+        subtitle: String,
+        artworkResId: Int
     ): MediaBrowserCompat.MediaItem {
+        val itemExtras = Bundle().apply {
+            putInt(CONTENT_STYLE_SINGLE_ITEM_KEY, CONTENT_STYLE_GRID)
+        }
+
         val description = MediaDescriptionCompat.Builder()
             .setMediaId(id)
             .setTitle(title)
             .setSubtitle(subtitle)
+            .setIconUri(Uri.parse("android.resource://" + packageName + "/" + artworkResId))
+            .setExtras(itemExtras)
             .build()
 
         return MediaBrowserCompat.MediaItem(
@@ -1069,6 +1129,14 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val ROOT_ID = "road_games_root"
         private const val MEDIA_ID_TRIVIA = "trivia_career"
         private const val MEDIA_ID_SPELLING = "spelling_bee"
+
+        private const val CONTENT_STYLE_BROWSABLE_KEY =
+            "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT"
+        private const val CONTENT_STYLE_PLAYABLE_KEY =
+            "android.media.browse.CONTENT_STYLE_PLAYABLE_HINT"
+        private const val CONTENT_STYLE_SINGLE_ITEM_KEY =
+            "android.media.browse.CONTENT_STYLE_SINGLE_ITEM_HINT"
+        private const val CONTENT_STYLE_GRID = 2
 
         private const val CHANNEL_ID = "daw_drive_road_voice"
         private const val ENABLE_CHANNEL_ID = "daw_drive_enable_voice"
