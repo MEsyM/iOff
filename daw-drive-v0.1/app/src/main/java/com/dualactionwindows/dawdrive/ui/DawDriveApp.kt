@@ -279,11 +279,11 @@ private fun TriviaProfileScreen(
                 )
             } else {
                 listOf(
-                    ""repeat" • repeat question",
-                    ""skip" • next question",
-                    ""score" • current stats",
-                    ""level" • level and XP",
-                    ""stop game" • save and pause"
+                    "repeat • repeat question",
+                    "skip • next question",
+                    "score • current stats",
+                    "level • level and XP",
+                    "stop game • save and pause"
                 )
             }
         )
