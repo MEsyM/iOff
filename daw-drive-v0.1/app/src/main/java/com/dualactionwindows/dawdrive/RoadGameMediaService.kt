@@ -33,6 +33,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private lateinit var mediaSession: MediaSessionCompat
     private lateinit var tts: TextToSpeech
     private lateinit var triviaEngine: TriviaGameEngine
+    private lateinit var spellingEngine: SpellingBeeEngine
+
+    private enum class ActiveGame { TRIVIA, SPELLING }
+    private var activeGame = ActiveGame.TRIVIA
 
     private var speechRecognizer: SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -50,6 +54,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         createNotificationChannels()
         triviaEngine = TriviaGameEngine(this)
+        spellingEngine = SpellingBeeEngine(this)
         tts = TextToSpeech(this, this)
 
         createSpeechRecognizer()
@@ -57,7 +62,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         mediaSession = MediaSessionCompat(this, "DAWDriveQuickTrivia").apply {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
-                    startOrResumeTrivia()
+                    startOrResumeActiveGame()
                 }
 
                 override fun onPause() {
@@ -65,7 +70,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 }
 
                 override fun onStop() {
-                    stopGame()
+                    shutdownService()
                 }
 
                 override fun onSkipToNext() {
@@ -77,15 +82,24 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 }
 
                 override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
-                    if (mediaId == MEDIA_ID_TRIVIA) {
-                        startOrResumeTrivia()
+                    when (mediaId) {
+                        MEDIA_ID_SPELLING -> {
+                            activeGame = ActiveGame.SPELLING
+                            sessionStarted = false
+                            startOrResumeSpelling()
+                        }
+                        else -> {
+                            activeGame = ActiveGame.TRIVIA
+                            sessionStarted = false
+                            startOrResumeTrivia()
+                        }
                     }
                 }
 
                 override fun onPlayFromSearch(query: String?, extras: Bundle?) {
                     val spoken = query.orEmpty().trim()
                     if (spoken.isBlank()) {
-                        startOrResumeTrivia()
+                        startOrResumeActiveGame()
                         return
                     }
 
@@ -94,9 +108,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     }
 
                     if (awaitingAnswer) {
-                        evaluateSpeechCandidates(listOf(spoken))
+                        if (activeGame == ActiveGame.SPELLING) {
+                            evaluateSpellingCandidates(listOf(spoken))
+                        } else {
+                            evaluateSpeechCandidates(listOf(spoken))
+                        }
                     } else {
-                        startOrResumeTrivia()
+                        startOrResumeActiveGame()
                     }
                 }
             })
@@ -186,14 +204,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             }
 
             ACTION_STOP_VOICE -> {
-                voiceModeEnabled = false
-                stopListening()
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
+                shutdownService()
             }
         }
 
-        return Service.START_STICKY
+        return Service.START_NOT_STICKY
     }
 
     override fun onInit(status: Int) {
@@ -256,21 +271,32 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         val p = triviaEngine.profile()
-        val subtitle = if (p.language == TriviaGameEngine.Language.CS) {
+        val spelling = spellingEngine.profile()
+        val triviaSubtitle = if (p.language == TriviaGameEngine.Language.CS) {
             "Level " + p.level + " • " + p.xp + " XP • hlasová kariéra"
         } else {
             "Level " + p.level + " • " + p.xp + " XP • voice career"
         }
+        val spellingSubtitle = if (p.language == TriviaGameEngine.Language.CS) {
+            "Level " + spelling.level + " • " + spelling.xp + " XP • hláskování"
+        } else {
+            "Level " + spelling.level + " • " + spelling.xp + " XP • spelling"
+        }
 
         result.sendResult(
             mutableListOf(
-                mediaItem(
-                    MEDIA_ID_TRIVIA,
-                    "Quick Trivia Career",
-                    subtitle
-                )
+                mediaItem(MEDIA_ID_TRIVIA, "Quick Trivia Career", triviaSubtitle),
+                mediaItem(MEDIA_ID_SPELLING, "Spelling Bee", spellingSubtitle)
             )
         )
+    }
+
+    private fun startOrResumeActiveGame() {
+        if (activeGame == ActiveGame.SPELLING) {
+            startOrResumeSpelling()
+        } else {
+            startOrResumeTrivia()
+        }
     }
 
     private fun startOrResumeTrivia() {
@@ -591,18 +617,33 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun pauseGame() {
+        mainHandler.removeCallbacksAndMessages(null)
         stopListening()
         awaitingAnswer = false
         tts.stop()
         setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
     }
 
-    private fun stopGame() {
+    private fun shutdownService() {
+        mainHandler.removeCallbacksAndMessages(null)
         stopListening()
         awaitingAnswer = false
         sessionStarted = false
-        tts.stop()
-        setPlaybackState(PlaybackStateCompat.STATE_STOPPED)
+        voiceModeEnabled = false
+        if (::tts.isInitialized) {
+            tts.stop()
+        }
+        if (::mediaSession.isInitialized) {
+            setPlaybackState(PlaybackStateCompat.STATE_STOPPED)
+            mediaSession.isActive = false
+        }
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        shutdownService()
+        super.onTaskRemoved(rootIntent)
     }
 
     private fun ensureRoadVoiceForPlayback(): Boolean {
@@ -845,6 +886,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     override fun onDestroy() {
+        mainHandler.removeCallbacksAndMessages(null)
         stopListening()
         speechRecognizer?.destroy()
         speechRecognizer = null
@@ -863,6 +905,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         private const val ROOT_ID = "road_games_root"
         private const val MEDIA_ID_TRIVIA = "trivia_career"
+        private const val MEDIA_ID_SPELLING = "spelling_bee"
 
         private const val CHANNEL_ID = "daw_drive_road_voice"
         private const val ENABLE_CHANNEL_ID = "daw_drive_enable_voice"
