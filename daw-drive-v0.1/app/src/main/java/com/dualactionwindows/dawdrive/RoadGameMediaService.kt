@@ -12,6 +12,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -24,18 +25,15 @@ import android.support.v4.media.MediaDescriptionCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import java.text.Normalizer
 import java.util.Locale
 
 class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitListener {
 
-    data class Challenge(
-        val prompt: String,
-        val acceptedAnswers: List<String> = emptyList(),
-        val validator: ((String) -> Boolean)? = null
-    )
-
     private lateinit var mediaSession: MediaSessionCompat
     private lateinit var tts: TextToSpeech
+    private lateinit var triviaEngine: TriviaGameEngine
+
     private var speechRecognizer: SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -44,35 +42,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var awaitingAnswer = false
     private var listening = false
     private var retryCount = 0
-
-    private var currentPack = "trivia"
-    private var currentIndex = 0
-    private var score = 0
-    private var attempted = 0
-    private lateinit var triviaEngine: TriviaGameEngine
-
-    private val packs = mapOf(
-        "trivia" to listOf(
-            Challenge("Quick trivia. What is the capital city of Australia?", listOf("canberra")),
-            Challenge("Which planet is known as the Red Planet?", listOf("mars")),
-            Challenge("How many sides does a hexagon have?", listOf("6", "six")),
-            Challenge("What is the largest ocean on Earth?", listOf("pacific", "pacific ocean")),
-            Challenge("Which element has the chemical symbol O?", listOf("oxygen"))
-        ),
-        "words" to listOf(
-            Challenge("Word challenge. Name three animals beginning with the letter B.", validator = startsWithCountValidator('b', 3)),
-            Challenge("Name three countries beginning with the letter S.", validator = startsWithCountValidator('s', 3)),
-            Challenge("Name four foods beginning with the letter C.", validator = startsWithCountValidator('c', 4)),
-            Challenge("Name three professions beginning with the letter D.", validator = startsWithCountValidator('d', 3))
-        ),
-        "math" to listOf(
-            Challenge("Mental math. What is 17 plus 28?", listOf("45", "forty five", "forty-five")),
-            Challenge("What is 12 times 8?", listOf("96", "ninety six", "ninety-six")),
-            Challenge("What is 150 minus 67?", listOf("83", "eighty three", "eighty-three")),
-            Challenge("What is half of 246?", listOf("123", "one hundred twenty three", "one hundred and twenty three")),
-            Challenge("What is 25 percent of 200?", listOf("50", "fifty"))
-        )
-    )
+    private var sessionStarted = false
+    private var questionListeningStartedAt = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -81,112 +52,51 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         triviaEngine = TriviaGameEngine(this)
         tts = TextToSpeech(this, this)
 
-        if (SpeechRecognizer.isRecognitionAvailable(this)) {
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
-                setRecognitionListener(object : RecognitionListener {
-                    override fun onReadyForSpeech(params: Bundle?) = Unit
-                    override fun onBeginningOfSpeech() = Unit
-                    override fun onRmsChanged(rmsdB: Float) = Unit
-                    override fun onBufferReceived(buffer: ByteArray?) = Unit
-                    override fun onEndOfSpeech() = Unit
+        createSpeechRecognizer()
 
-                    override fun onError(error: Int) {
-                        listening = false
-                        if (!voiceModeEnabled || !awaitingAnswer) return
-
-                        if (retryCount < 1) {
-                            retryCount += 1
-                            mainHandler.postDelayed({ startListeningForAnswer() }, 700)
-                        } else {
-                            retryCount = 0
-                            speakSystemMessage("I didn't catch that. Tap next to skip or play to repeat.")
-                        }
-                    }
-
-                    override fun onResults(results: Bundle?) {
-                        listening = false
-                        retryCount = 0
-
-                        val best = results
-                            ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                            .orEmpty()
-                            .firstOrNull()
-                            .orEmpty()
-                            .trim()
-
-                        if (best.isBlank()) {
-                            startListeningForAnswer()
-                        } else {
-                            evaluateAnswer(best)
-                        }
-                    }
-
-                    override fun onPartialResults(partialResults: Bundle?) = Unit
-                    override fun onEvent(eventType: Int, params: Bundle?) = Unit
-                })
-            }
-        }
-
-        mediaSession = MediaSessionCompat(this, "DAWDriveRoadGames").apply {
+        mediaSession = MediaSessionCompat(this, "DAWDriveQuickTrivia").apply {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
-                    if (ensureRoadVoiceForPlayback()) {
-                        speakCurrent()
-                    }
+                    startOrResumeTrivia()
                 }
 
                 override fun onPause() {
-                    stopListening()
-                    awaitingAnswer = false
-                    tts.stop()
-                    setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+                    pauseGame()
                 }
 
                 override fun onStop() {
-                    stopListening()
-                    awaitingAnswer = false
-                    tts.stop()
-                    setPlaybackState(PlaybackStateCompat.STATE_STOPPED)
+                    stopGame()
                 }
 
-                override fun onSkipToNext() = move(1)
-                override fun onSkipToPrevious() = move(-1)
+                override fun onSkipToNext() {
+                    skipCurrentQuestion()
+                }
+
+                override fun onSkipToPrevious() {
+                    repeatCurrentQuestion()
+                }
 
                 override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
-                    selectPack(mediaId)
-                    currentIndex = 0
-                    score = 0
-                    attempted = 0
-
-                    if (currentPack == "trivia") {
-                        triviaEngine.startOrResumeRound()
-                    }
-
-                    if (ensureRoadVoiceForPlayback()) {
-                        speakCurrent()
+                    if (mediaId == MEDIA_ID_TRIVIA) {
+                        startOrResumeTrivia()
                     }
                 }
 
                 override fun onPlayFromSearch(query: String?, extras: Bundle?) {
-                    val raw = query.orEmpty().trim()
-                    val normalized = normalize(raw)
-
-                    if (awaitingAnswer && normalized.isNotBlank()) {
-                        evaluateAnswer(raw)
+                    val spoken = query.orEmpty().trim()
+                    if (spoken.isBlank()) {
+                        startOrResumeTrivia()
                         return
                     }
 
-                    currentPack = when {
-                        "math" in normalized || "number" in normalized -> "math"
-                        "word" in normalized || "letter" in normalized -> "words"
-                        else -> "trivia"
+                    if (handleVoiceCommand(spoken)) {
+                        return
                     }
-                    currentIndex = 0
-                    score = 0
-                    attempted = 0
 
-                    if (ensureRoadVoiceForPlayback()) {
-                        speakCurrent()
+                    if (awaitingAnswer) {
+                        evaluateSpeechCandidates(listOf(spoken))
+                    } else {
+                        startOrResumeTrivia()
                     }
                 }
             })
@@ -203,14 +113,75 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         updateMetadata()
     }
 
+    private fun createSpeechRecognizer() {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            speechRecognizer = null
+            return
+        }
+
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+            setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) = Unit
+                override fun onBeginningOfSpeech() = Unit
+                override fun onRmsChanged(rmsdB: Float) = Unit
+                override fun onBufferReceived(buffer: ByteArray?) = Unit
+                override fun onEndOfSpeech() = Unit
+
+                override fun onError(error: Int) {
+                    listening = false
+                    if (!voiceModeEnabled || !awaitingAnswer) return
+
+                    if (retryCount < 1) {
+                        retryCount += 1
+                        mainHandler.postDelayed({ startListeningForAnswer() }, 650)
+                    } else {
+                        retryCount = 0
+                        autoSkipAfterSilence()
+                    }
+                }
+
+                override fun onResults(results: Bundle?) {
+                    listening = false
+                    retryCount = 0
+
+                    val candidates = results
+                        ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        .orEmpty()
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() }
+
+                    if (candidates.isEmpty()) {
+                        startListeningForAnswer()
+                        return
+                    }
+
+                    val commandCandidate = candidates.firstOrNull { handleVoiceCommand(it, dryRun = true) }
+                    if (commandCandidate != null) {
+                        handleVoiceCommand(commandCandidate)
+                        return
+                    }
+
+                    evaluateSpeechCandidates(candidates)
+                }
+
+                override fun onPartialResults(partialResults: Bundle?) = Unit
+                override fun onEvent(eventType: Int, params: Bundle?) = Unit
+            })
+        }
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START_VOICE -> {
                 activateRoadVoiceForeground()
+
                 if (intent.getBooleanExtra(EXTRA_RESUME_GAME, false)) {
-                    mainHandler.postDelayed({ speakCurrent() }, 250)
+                    mainHandler.postDelayed({ startOrResumeTrivia() }, 250)
                 } else {
-                    speakSystemMessage("Road Voice is ready.")
+                    speakSystem(
+                        en = "Road Voice is ready.",
+                        cs = "Road Voice je připraven."
+                    )
                 }
             }
 
@@ -221,78 +192,59 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 stopSelf()
             }
         }
+
         return Service.START_STICKY
     }
 
-    private fun ensureRoadVoiceForPlayback(): Boolean {
-        if (voiceModeEnabled) return true
-
-        if (
-            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            showEnableRoadVoiceNotification(needsPermission = true)
-            speakSystemMessage("Road Voice needs one-time microphone permission. Tap the phone notification to enable it.")
-            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
-            return false
-        }
-
-        return try {
-            activateRoadVoiceForeground()
-            true
-        } catch (_: ForegroundServiceStartNotAllowedException) {
-            showEnableRoadVoiceNotification(needsPermission = false)
-            speakSystemMessage("Tap the Road Voice notification once to enable hands-free mode.")
-            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
-            false
-        } catch (_: SecurityException) {
-            showEnableRoadVoiceNotification(needsPermission = false)
-            speakSystemMessage("Tap the Road Voice notification once to enable hands-free mode.")
-            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
-            false
-        }
-    }
-
-    private fun activateRoadVoiceForeground() {
-        startForeground(NOTIFICATION_ID, buildActiveNotification())
-        voiceModeEnabled = true
-        getSystemService(NotificationManager::class.java).cancel(ENABLE_NOTIFICATION_ID)
-    }
-
     override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            tts.language = Locale.US
-            ttsReady = true
-            tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) = Unit
-                override fun onError(utteranceId: String?) = Unit
+        if (status != TextToSpeech.SUCCESS) return
 
-                override fun onDone(utteranceId: String?) {
-                    when (utteranceId) {
-                        QUESTION_UTTERANCE_ID -> {
-                            if (voiceModeEnabled && awaitingAnswer) {
-                                mainHandler.post { startListeningForAnswer() }
+        ttsReady = true
+        applyVoiceLanguage()
+
+        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) = Unit
+            override fun onError(utteranceId: String?) = Unit
+
+            override fun onDone(utteranceId: String?) {
+                when (utteranceId) {
+                    SESSION_INTRO_UTTERANCE_ID -> {
+                        mainHandler.post { speakCurrentQuestion() }
+                    }
+
+                    QUESTION_UTTERANCE_ID -> {
+                        if (voiceModeEnabled && awaitingAnswer) {
+                            mainHandler.post {
+                                questionListeningStartedAt = SystemClock.elapsedRealtime()
+                                startListeningForAnswer()
                             }
                         }
+                    }
 
-                        FEEDBACK_UTTERANCE_ID -> {
-                            mainHandler.post { moveToNextAfterFeedback() }
-                        }
+                    FEEDBACK_UTTERANCE_ID -> {
+                        mainHandler.post { moveToNextQuestion() }
+                    }
 
-                        ROUND_SUMMARY_UTTERANCE_ID -> {
-                            mainHandler.postDelayed({ startNextTriviaRound() }, 700)
+                    ROUND_SUMMARY_UTTERANCE_ID -> {
+                        mainHandler.postDelayed({ startNextRound() }, 700)
+                    }
+
+                    COMMAND_UTTERANCE_ID -> {
+                        if (awaitingAnswer && voiceModeEnabled) {
+                            mainHandler.postDelayed({ startListeningForAnswer() }, 250)
                         }
                     }
                 }
-            })
-        }
+            }
+        })
     }
 
     override fun onGetRoot(
         clientPackageName: String,
         clientUid: Int,
         rootHints: Bundle?
-    ): BrowserRoot = BrowserRoot(ROOT_ID, null)
+    ): BrowserRoot =
+        BrowserRoot(ROOT_ID, null)
 
     override fun onLoadChildren(
         parentId: String,
@@ -303,41 +255,397 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             return
         }
 
+        val p = triviaEngine.profile()
+        val subtitle = if (p.language == TriviaGameEngine.Language.CS) {
+            "Level " + p.level + " • " + p.xp + " XP • hlasová kariéra"
+        } else {
+            "Level " + p.level + " • " + p.xp + " XP • voice career"
+        }
+
         result.sendResult(
             mutableListOf(
-                mediaItem("trivia", "Quick Trivia Career", "Levels, XP, streaks and adaptive difficulty"),
-                mediaItem("words", "Word Challenge", "Play to start hands-free"),
-                mediaItem("math", "Mental Math", "Play to start hands-free")
+                mediaItem(
+                    MEDIA_ID_TRIVIA,
+                    "Quick Trivia Career",
+                    subtitle
+                )
             )
         )
+    }
+
+    private fun startOrResumeTrivia() {
+        if (!ensureRoadVoiceForPlayback()) return
+
+        triviaEngine.startOrResumeRound()
+        applyVoiceLanguage()
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        updateMetadata()
+
+        if (!sessionStarted) {
+            sessionStarted = true
+            speakSessionIntro()
+        } else {
+            speakCurrentQuestion()
+        }
+    }
+
+    private fun speakSessionIntro() {
+        val p = triviaEngine.profile()
+        val text = if (p.language == TriviaGameEngine.Language.CS) {
+            "Vítej zpět. Level " + p.level + ", " + p.xp +
+                " XP. Deset otázek. Jdeme na to."
+        } else {
+            "Welcome back. Level " + p.level + ", " + p.xp +
+                " XP. Ten questions. Let's go."
+        }
+
+        speak(text, SESSION_INTRO_UTTERANCE_ID)
+    }
+
+    private fun speakCurrentQuestion() {
+        if (!ttsReady) return
+
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+
+        val q = triviaEngine.currentQuestion() ?: triviaEngine.startOrResumeRound()
+        updateMetadata()
+
+        val text = q.categoryName + ". " + q.prompt
+        speak(text, QUESTION_UTTERANCE_ID)
     }
 
     private fun startListeningForAnswer() {
         if (!voiceModeEnabled || !awaitingAnswer || listening) return
 
-        val recognizer = speechRecognizer ?: run {
-            speakSystemMessage("Speech recognition is not available on this phone.")
+        val recognizer = speechRecognizer
+        if (recognizer == null) {
+            speakSystem(
+                en = "Speech recognition is not available. Game paused.",
+                cs = "Rozpoznávání řeči není dostupné. Hra je pozastavena."
+            )
+            pauseGame()
             return
         }
 
+        val locale = triviaEngine.language().locale
+
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.US.toLanguageTag())
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1200L)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 800L)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+            putExtra(
+                RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
+                1200L
+            )
+            putExtra(
+                RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS,
+                800L
+            )
         }
 
         listening = true
         recognizer.startListening(intent)
     }
 
-    private fun stopListening() {
-        if (listening) {
-            speechRecognizer?.cancel()
-            listening = false
+    private fun evaluateSpeechCandidates(candidates: List<String>) {
+        if (!awaitingAnswer) return
+
+        stopListening()
+        awaitingAnswer = false
+
+        val responseMs = if (questionListeningStartedAt > 0L) {
+            maxOf(0L, SystemClock.elapsedRealtime() - questionListeningStartedAt)
+        } else {
+            0L
         }
+
+        val result = triviaEngine.answerCandidates(candidates, responseMs)
+        updateMetadata()
+
+        val text = buildFeedback(result)
+
+        speak(
+            text,
+            if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID
+            else FEEDBACK_UTTERANCE_ID
+        )
+    }
+
+    private fun buildFeedback(result: TriviaGameEngine.AnswerResult): String {
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+        val parts = mutableListOf<String>()
+
+        if (result.correct) {
+            parts += if (cs) {
+                when {
+                    result.streak >= 10 -> "Správně. Deset v řadě!"
+                    result.streak >= 5 -> "Správně. Série " + result.streak + "."
+                    result.streak >= 3 -> "Správně. " + result.streak + " v řadě."
+                    else -> listOf("Správně.", "Přesně.", "Jo, to sedí.")[result.roundAnswered % 3]
+                }
+            } else {
+                when {
+                    result.streak >= 10 -> "Correct. Ten in a row!"
+                    result.streak >= 5 -> "Correct. " + result.streak + " answer streak."
+                    result.streak >= 3 -> "Correct. " + result.streak + " in a row."
+                    else -> listOf("Correct.", "That's right.", "Exactly.")[result.roundAnswered % 3]
+                }
+            }
+        } else {
+            parts += if (cs) {
+                "Ne tak docela. Správná odpověď je " + result.expected + "."
+            } else {
+                "Not quite. The answer is " + result.expected + "."
+            }
+
+            parts += result.explanation
+        }
+
+        if (result.promoted) {
+            parts += if (cs) {
+                "Postupuješ na level " + result.level + ", " + result.levelName + "."
+            } else {
+                "Level up. You are now level " + result.level + ", " + result.levelName + "."
+            }
+        }
+
+        result.newlyUnlockedAchievements.forEach { achievement ->
+            parts += if (cs) {
+                "Achievement odemčen: " + triviaEngine.achievementTitle(achievement) + "."
+            } else {
+                "Achievement unlocked: " + triviaEngine.achievementTitle(achievement) + "."
+            }
+        }
+
+        if (result.roundFinished) {
+            parts += localizedRoundSummary()
+        }
+
+        return parts.joinToString(" ")
+    }
+
+    private fun localizedRoundSummary(): String {
+        val summary = triviaEngine.roundSummary()
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+
+        if (cs) {
+            val intro = when {
+                summary.perfect -> "Perfektní kolo. Deset z deseti!"
+                summary.accuracy >= 90 -> "Skvělé kolo."
+                else -> "Kolo dokončeno."
+            }
+
+            val adjustment = when (summary.nextRoundAdjustment) {
+                "harder" -> "Další kolo bude o něco těžší."
+                "easier" -> "Další kolo trochu přizpůsobím."
+                else -> "Obtížnost zůstává podobná."
+            }
+
+            return intro + " " + summary.correct + " z " + summary.answered +
+                " správně. Získal jsi " + summary.xpEarned + " XP. Nejlepší série " +
+                summary.bestStreak + ". " + adjustment
+        }
+
+        val intro = when {
+            summary.perfect -> "Perfect round. Ten out of ten!"
+            summary.accuracy >= 90 -> "Great round."
+            else -> "Round complete."
+        }
+
+        val adjustment = when (summary.nextRoundAdjustment) {
+            "harder" -> "The next round will be slightly harder."
+            "easier" -> "I'll adjust the next round."
+            else -> "Difficulty stays about the same."
+        }
+
+        return intro + " " + summary.correct + " out of " + summary.answered +
+            " correct. You earned " + summary.xpEarned + " XP. Best streak " +
+            summary.bestStreak + ". " + adjustment
+    }
+
+    private fun moveToNextQuestion() {
+        triviaEngine.nextQuestion()
+        speakCurrentQuestion()
+    }
+
+    private fun startNextRound() {
+        triviaEngine.resetRound()
+        triviaEngine.startOrResumeRound()
+
+        speakSystem(
+            en = "Next round. Let's go.",
+            cs = "Další kolo. Jdeme na to.",
+            utteranceId = SESSION_INTRO_UTTERANCE_ID
+        )
+    }
+
+    private fun repeatCurrentQuestion() {
+        if (!ensureRoadVoiceForPlayback()) return
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+        speakCurrentQuestion()
+    }
+
+    private fun skipCurrentQuestion() {
+        if (!ensureRoadVoiceForPlayback()) return
+
+        stopListening()
+        awaitingAnswer = false
+
+        val skip = triviaEngine.skipCurrent()
+        if (skip.roundFinished) {
+            speak(
+                localizedRoundSummary(),
+                ROUND_SUMMARY_UTTERANCE_ID
+            )
+        } else {
+            speakSystem(
+                en = "Skipped.",
+                cs = "Přeskakuji.",
+                utteranceId = FEEDBACK_UTTERANCE_ID
+            )
+        }
+    }
+
+    private fun autoSkipAfterSilence() {
+        awaitingAnswer = false
+        stopListening()
+
+        val skip = triviaEngine.skipCurrent()
+        val text = if (triviaEngine.language() == TriviaGameEngine.Language.CS) {
+            "Neslyšel jsem odpověď. Přeskakuji."
+        } else {
+            "I didn't catch an answer. Skipping this one."
+        }
+
+        if (skip.roundFinished) {
+            speak(text + " " + localizedRoundSummary(), ROUND_SUMMARY_UTTERANCE_ID)
+        } else {
+            speak(text, FEEDBACK_UTTERANCE_ID)
+        }
+    }
+
+    private fun handleVoiceCommand(text: String, dryRun: Boolean = false): Boolean {
+        val normalized = normalizeCommand(text)
+
+        val command = when {
+            normalized in setOf("repeat", "repeat question", "again", "zopakuj", "znovu", "opakuj") ->
+                "repeat"
+
+            normalized in setOf("skip", "next", "preskoc", "preskocit", "dalsi") ->
+                "skip"
+
+            normalized in setOf("score", "my score", "skore", "moje skore", "vysledek") ->
+                "score"
+
+            normalized in setOf("level", "my level", "uroven", "moje uroven") ->
+                "level"
+
+            normalized in setOf("stop", "stop game", "pause game", "zastav", "konec", "zastav hru") ->
+                "stop"
+
+            else -> null
+        }
+
+        if (command == null) return false
+        if (dryRun) return true
+
+        when (command) {
+            "repeat" -> repeatCurrentQuestion()
+            "skip" -> skipCurrentQuestion()
+
+            "score" -> {
+                stopListening()
+                speak(
+                    triviaEngine.scoreSummary(),
+                    COMMAND_UTTERANCE_ID
+                )
+            }
+
+            "level" -> {
+                stopListening()
+                speak(
+                    triviaEngine.levelSummary(),
+                    COMMAND_UTTERANCE_ID
+                )
+            }
+
+            "stop" -> {
+                stopGame()
+                speakSystem(
+                    en = "Game paused. Your progress is saved.",
+                    cs = "Hra pozastavena. Postup je uložen."
+                )
+            }
+        }
+
+        return true
+    }
+
+    private fun pauseGame() {
+        stopListening()
+        awaitingAnswer = false
+        tts.stop()
+        setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+    }
+
+    private fun stopGame() {
+        stopListening()
+        awaitingAnswer = false
+        sessionStarted = false
+        tts.stop()
+        setPlaybackState(PlaybackStateCompat.STATE_STOPPED)
+    }
+
+    private fun ensureRoadVoiceForPlayback(): Boolean {
+        if (voiceModeEnabled) return true
+
+        if (
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            showEnableRoadVoiceNotification(needsPermission = true)
+            speakSystem(
+                en = "Road Voice needs one-time microphone permission. Tap the phone notification.",
+                cs = "Road Voice potřebuje jednorázově povolit mikrofon. Klepni na notifikaci v telefonu."
+            )
+            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            return false
+        }
+
+        return try {
+            activateRoadVoiceForeground()
+            true
+        } catch (_: ForegroundServiceStartNotAllowedException) {
+            showEnableRoadVoiceNotification(needsPermission = false)
+            speakSystem(
+                en = "Tap the Road Voice notification once to enable hands-free mode.",
+                cs = "Jednou klepni na notifikaci Road Voice pro aktivaci hands-free režimu."
+            )
+            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            false
+        } catch (_: SecurityException) {
+            showEnableRoadVoiceNotification(needsPermission = false)
+            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            false
+        }
+    }
+
+    private fun activateRoadVoiceForeground() {
+        startForeground(NOTIFICATION_ID, buildActiveNotification())
+        voiceModeEnabled = true
+        getSystemService(NotificationManager::class.java)
+            .cancel(ENABLE_NOTIFICATION_ID)
     }
 
     private fun showEnableRoadVoiceNotification(needsPermission: Boolean) {
@@ -355,14 +663,18 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+
         val notification = Notification.Builder(this, ENABLE_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle("Enable DAW Road Voice")
+            .setContentTitle(if (cs) "Zapnout DAW Road Voice" else "Enable DAW Road Voice")
             .setContentText(
                 if (needsPermission) {
-                    "Tap once to grant microphone access and continue the game"
+                    if (cs) "Klepni pro povolení mikrofonu a pokračování"
+                    else "Tap to grant microphone access and continue"
                 } else {
-                    "Tap once to start hands-free microphone mode"
+                    if (cs) "Klepni jednou pro hands-free režim"
+                    else "Tap once to start hands-free mode"
                 }
             )
             .setContentIntent(pendingIntent)
@@ -373,206 +685,51 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             .notify(ENABLE_NOTIFICATION_ID, notification)
     }
 
-    private fun mediaItem(id: String, title: String, subtitle: String): MediaBrowserCompat.MediaItem {
+    private fun updateMetadata() {
+        val p = triviaEngine.profile()
+        val q = triviaEngine.currentQuestion()
+        val cs = p.language == TriviaGameEngine.Language.CS
+
+        val title = if (cs) {
+            "Quick Trivia • Level " + p.level
+        } else {
+            "Quick Trivia • Level " + p.level
+        }
+
+        val artist = if (cs) {
+            p.xp + " XP • série " + p.currentStreak +
+                (q?.let { " • " + it.categoryName } ?: "")
+        } else {
+            p.xp + " XP • streak " + p.currentStreak +
+                (q?.let { " • " + it.categoryName } ?: "")
+        }
+
+        mediaSession.setMetadata(
+            MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+                .putLong(
+                    MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
+                    (p.totalAnswered + 1).toLong()
+                )
+                .build()
+        )
+    }
+
+    private fun mediaItem(
+        id: String,
+        title: String,
+        subtitle: String
+    ): MediaBrowserCompat.MediaItem {
         val description = MediaDescriptionCompat.Builder()
             .setMediaId(id)
             .setTitle(title)
             .setSubtitle(subtitle)
             .build()
 
-        return MediaBrowserCompat.MediaItem(description, MediaBrowserCompat.MediaItem.FLAG_PLAYABLE)
-    }
-
-    private fun selectPack(mediaId: String?) {
-        currentPack = if (packs.containsKey(mediaId)) mediaId!! else "trivia"
-        awaitingAnswer = false
-    }
-
-    private fun move(delta: Int) {
-        val items = packs[currentPack].orEmpty()
-        if (items.isEmpty()) return
-
-        stopListening()
-        awaitingAnswer = false
-        currentIndex = (currentIndex + delta + items.size) % items.size
-
-        if (ensureRoadVoiceForPlayback()) {
-            speakCurrent()
-        }
-    }
-
-    private fun speakCurrent() {
-        if (!ttsReady) {
-            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
-            return
-        }
-
-        stopListening()
-        updateMetadata()
-        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
-        awaitingAnswer = true
-        retryCount = 0
-
-        val prompt = if (currentPack == "trivia") {
-            val question = triviaEngine.currentQuestion() ?: triviaEngine.startOrResumeRound()
-            val profile = triviaEngine.profile()
-            "Level " + profile.level + ". " + question.category + ". " + question.prompt + " Answer now."
-        } else {
-            val items = packs[currentPack].orEmpty()
-            if (items.isEmpty()) {
-                setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
-                return
-            }
-            items[currentIndex].prompt + " Answer now."
-        }
-
-        tts.speak(
-            prompt,
-            TextToSpeech.QUEUE_FLUSH,
-            null,
-            QUESTION_UTTERANCE_ID
-        )
-    }
-
-    private fun evaluateAnswer(rawAnswer: String) {
-        stopListening()
-        awaitingAnswer = false
-
-        if (currentPack == "trivia") {
-            val result = triviaEngine.answer(rawAnswer)
-
-            val feedback = buildString {
-                if (result.correct) {
-                    append("Correct. ")
-                    if (result.streak >= 3) {
-                        append(result.streak)
-                        append(" answer streak. ")
-                    }
-                    append("Plus ")
-                    append(result.xpEarned)
-                    append(" XP. ")
-                } else {
-                    append("Not quite. The answer is ")
-                    append(result.expected)
-                    append(". ")
-                    append(result.explanation)
-                    append(" ")
-                }
-
-                if (result.promoted) {
-                    append("Level up. You are now level ")
-                    append(result.level)
-                    append(". ")
-                }
-
-                if (result.roundFinished) {
-                    append(triviaEngine.roundSummary())
-                } else {
-                    append("Question ")
-                    append(result.roundAnswered + 1)
-                    append(" of 10 is next.")
-                }
-            }
-
-            updateMetadata()
-            tts.speak(
-                feedback,
-                TextToSpeech.QUEUE_FLUSH,
-                null,
-                if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID else FEEDBACK_UTTERANCE_ID
-            )
-            return
-        }
-
-        val challenge = packs[currentPack].orEmpty().getOrNull(currentIndex) ?: return
-        attempted += 1
-
-        val normalized = normalize(rawAnswer)
-        val correct = challenge.validator?.invoke(normalized)
-            ?: challenge.acceptedAnswers.any {
-                val accepted = normalize(it)
-                normalized == accepted || normalized.contains(accepted)
-            }
-
-        if (correct) score += 1
-
-        val feedback = if (correct) {
-            "Correct. Score " + score + " out of " + attempted + ". Next question."
-        } else {
-            val answerHint = challenge.acceptedAnswers.firstOrNull()
-            if (answerHint != null) {
-                "Not quite. The answer is " + answerHint + ". I heard " + rawAnswer +
-                    ". Score " + score + " out of " + attempted + ". Next question."
-            } else {
-                "I heard " + rawAnswer + ". I couldn't validate that answer. Score " +
-                    score + " out of " + attempted + ". Next question."
-            }
-        }
-
-        updateMetadata()
-        tts.speak(
-            feedback,
-            TextToSpeech.QUEUE_FLUSH,
-            null,
-            FEEDBACK_UTTERANCE_ID
-        )
-    }
-
-    private fun moveToNextAfterFeedback() {
-        if (currentPack == "trivia") {
-            triviaEngine.nextQuestion()
-            speakCurrent()
-            return
-        }
-
-        val items = packs[currentPack].orEmpty()
-        if (items.isEmpty()) return
-
-        currentIndex = (currentIndex + 1) % items.size
-        speakCurrent()
-    }
-
-    private fun startNextTriviaRound() {
-        triviaEngine.resetRound()
-        triviaEngine.startOrResumeRound()
-        speakCurrent()
-    }
-
-    private fun speakSystemMessage(message: String) {
-        if (ttsReady) {
-            tts.speak(message, TextToSpeech.QUEUE_FLUSH, null, SYSTEM_UTTERANCE_ID)
-        }
-    }
-
-    private fun updateMetadata() {
-        val title = when (currentPack) {
-            "words" -> "Word Challenge"
-            "math" -> "Mental Math"
-            else -> "Quick Trivia"
-        }
-
-        val displayTitle: String
-        val displayArtist: String
-        val trackNumber: Long
-
-        if (currentPack == "trivia") {
-            val profile = triviaEngine.profile()
-            displayTitle = "Quick Trivia - Level " + profile.level
-            displayArtist = "XP " + profile.xp + " - Streak " + profile.currentStreak +
-                " - Best " + profile.bestStreak
-            trackNumber = profile.totalAnswered.toLong() + 1L
-        } else {
-            displayTitle = title + " - " + (currentIndex + 1)
-            displayArtist = "DAW Drive Road Games - Score " + score + "/" + attempted
-            trackNumber = (currentIndex + 1).toLong()
-        }
-
-        mediaSession.setMetadata(
-            MediaMetadataCompat.Builder()
-                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, displayTitle)
-                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, displayArtist)
-                .putLong(MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER, trackNumber)
-                .build()
+        return MediaBrowserCompat.MediaItem(
+            description,
+            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
         )
     }
 
@@ -588,25 +745,62 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         PlaybackStateCompat.ACTION_PLAY_FROM_MEDIA_ID or
                         PlaybackStateCompat.ACTION_PLAY_FROM_SEARCH
                 )
-                .setState(state, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1f)
+                .setState(
+                    state,
+                    PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN,
+                    1f
+                )
                 .build()
         )
     }
 
-    private fun startsWithCountValidator(letter: Char, required: Int): (String) -> Boolean = { answer ->
-        answer
-            .split(Regex("[,;\\s]+"))
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .count { it.startsWith(letter, ignoreCase = true) } >= required
+    private fun applyVoiceLanguage() {
+        if (!ttsReady) return
+        tts.language = triviaEngine.language().locale
     }
 
-    private fun normalize(value: String): String =
-        value
-            .lowercase(Locale.US)
-            .replace(Regex("[^a-z0-9\\s-]"), " ")
+    private fun speak(
+        text: String,
+        utteranceId: String
+    ) {
+        if (!ttsReady) return
+        applyVoiceLanguage()
+        tts.speak(
+            text,
+            TextToSpeech.QUEUE_FLUSH,
+            null,
+            utteranceId
+        )
+    }
+
+    private fun speakSystem(
+        en: String,
+        cs: String,
+        utteranceId: String = SYSTEM_UTTERANCE_ID
+    ) {
+        speak(
+            if (triviaEngine.language() == TriviaGameEngine.Language.CS) cs else en,
+            utteranceId
+        )
+    }
+
+    private fun stopListening() {
+        if (listening) {
+            speechRecognizer?.cancel()
+            listening = false
+        }
+    }
+
+    private fun normalizeCommand(value: String): String {
+        val withoutMarks = Normalizer
+            .normalize(value.lowercase(Locale.ROOT), Normalizer.Form.NFD)
+            .replace(Regex("\\p{M}+"), "")
+
+        return withoutMarks
+            .replace(Regex("[^a-z0-9\\s]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
+    }
 
     private fun createNotificationChannels() {
         val manager = getSystemService(NotificationManager::class.java)
@@ -628,13 +822,19 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         )
     }
 
-    private fun buildActiveNotification(): Notification =
-        Notification.Builder(this, CHANNEL_ID)
+    private fun buildActiveNotification(): Notification {
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+
+        return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("DAW Drive Road Voice")
-            .setContentText("Hands-free Road Games microphone is active")
+            .setContentText(
+                if (cs) "Hands-free Quick Trivia je aktivní"
+                else "Hands-free Quick Trivia is active"
+            )
             .setOngoing(true)
             .build()
+    }
 
     override fun onDestroy() {
         stopListening()
@@ -647,19 +847,25 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     companion object {
-        const val ACTION_START_VOICE = "com.dualactionwindows.dawdrive.START_ROAD_VOICE"
-        const val ACTION_STOP_VOICE = "com.dualactionwindows.dawdrive.STOP_ROAD_VOICE"
+        const val ACTION_START_VOICE =
+            "com.dualactionwindows.dawdrive.START_ROAD_VOICE"
+        const val ACTION_STOP_VOICE =
+            "com.dualactionwindows.dawdrive.STOP_ROAD_VOICE"
         const val EXTRA_RESUME_GAME = "resume_game"
 
         private const val ROOT_ID = "road_games_root"
+        private const val MEDIA_ID_TRIVIA = "trivia_career"
+
         private const val CHANNEL_ID = "daw_drive_road_voice"
         private const val ENABLE_CHANNEL_ID = "daw_drive_enable_voice"
         private const val NOTIFICATION_ID = 4107
         private const val ENABLE_NOTIFICATION_ID = 4108
 
-        private const val QUESTION_UTTERANCE_ID = "road_game_question"
-        private const val FEEDBACK_UTTERANCE_ID = "road_game_feedback"
-        private const val ROUND_SUMMARY_UTTERANCE_ID = "road_game_round_summary"
-        private const val SYSTEM_UTTERANCE_ID = "road_game_system"
+        private const val SESSION_INTRO_UTTERANCE_ID = "trivia_session_intro"
+        private const val QUESTION_UTTERANCE_ID = "trivia_question"
+        private const val FEEDBACK_UTTERANCE_ID = "trivia_feedback"
+        private const val ROUND_SUMMARY_UTTERANCE_ID = "trivia_round_summary"
+        private const val COMMAND_UTTERANCE_ID = "trivia_command"
+        private const val SYSTEM_UTTERANCE_ID = "trivia_system"
     }
 }
