@@ -303,6 +303,25 @@ private fun TriviaProfileScreen(
         }
 
         StatCard(
+            title = "Spelling Bee",
+            lines = if (cs) {
+                listOf(
+                    "Nová hands-free hra s 5 úrovněmi obtížnosti.",
+                    "Poslechneš si anglické slovo a jeho význam, potom ho nahlas vyhláskuješ.",
+                    "Má vlastní XP, level, streak a 10 slov v jednom kole.",
+                    "Spustíš ji v Android Auto nebo v Car Preview přepínačem Spelling Bee."
+                )
+            } else {
+                listOf(
+                    "New hands-free game with 5 difficulty levels.",
+                    "Hear an English word and definition, then spell it aloud.",
+                    "Separate XP, level, streak and 10-word rounds.",
+                    "Start it from Android Auto or select Spelling Bee in Car Preview."
+                )
+            }
+        )
+
+        StatCard(
             title = if (cs) "Achievementy" else "Achievements",
             lines = if (achievementTitles.isEmpty()) {
                 listOf(
