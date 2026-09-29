@@ -169,12 +169,24 @@ class TriviaGameEngine(context: Context) {
         return localize(raw)
     }
 
-    fun answer(rawAnswer: String, responseMs: Long): AnswerResult {
+    fun answer(rawAnswer: String, responseMs: Long): AnswerResult =
+        answerCandidates(listOf(rawAnswer), responseMs)
+
+    fun answerCandidates(candidates: List<String>, responseMs: Long): AnswerResult {
         val question = currentQuestion()
             ?: throw IllegalStateException("No active trivia question")
 
         val before = profile()
-        val normalizedActual = normalize(rawAnswer)
+        val usable = candidates.filter { it.isNotBlank() }
+        val matchedCandidate = usable.firstOrNull { candidate ->
+            val normalizedCandidate = normalize(candidate)
+            question.answers.any { accepted ->
+                answerMatches(normalizedCandidate, normalize(accepted))
+            }
+        }
+
+        val chosenAnswer = matchedCandidate ?: usable.firstOrNull().orEmpty()
+        val normalizedActual = normalize(chosenAnswer)
         val correct = question.answers.any { accepted ->
             answerMatches(normalizedActual, normalize(accepted))
         }
