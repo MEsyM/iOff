@@ -46,7 +46,7 @@ private enum class DawModule(
     val title: String,
     val subtitle: String
 ) {
-    Games("Quick Trivia", "Career mode with levels, XP and memory"),
+    Games("Road Games", "Quick Trivia + Spelling Bee"),
     Video("Video", "Web browser"),
     Erp("DAW ERP", "Deals, contacts and next actions"),
     Tools("Tools", "Vehicle and utility tools")
