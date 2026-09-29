@@ -47,9 +47,13 @@ class MainActivity : ComponentActivity() {
             var profile by remember {
                 mutableStateOf(triviaEngine.profile())
             }
+            var dashboard by remember {
+                mutableStateOf(triviaEngine.dashboardData())
+            }
 
             DawDriveApp(
                 profile = profile,
+                dashboard = dashboard,
                 achievementTitles = profile.achievements
                     .map { triviaEngine.achievementTitle(it) }
                     .sorted(),
@@ -76,9 +80,11 @@ class MainActivity : ComponentActivity() {
                 onLanguageChange = { language ->
                     triviaEngine.setLanguage(language)
                     profile = triviaEngine.profile()
+                    dashboard = triviaEngine.dashboardData()
                 },
                 onRefreshProfile = {
                     profile = triviaEngine.profile()
+                    dashboard = triviaEngine.dashboardData()
                 }
             )
         }
