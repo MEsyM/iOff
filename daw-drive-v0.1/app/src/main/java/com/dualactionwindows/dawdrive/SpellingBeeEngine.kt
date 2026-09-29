@@ -194,6 +194,16 @@ class SpellingBeeEngine(context: Context) {
         )
     }
 
+    fun skipCurrent(): Boolean {
+        roundAnswered += 1
+        currentWordId = null
+        prefs.edit()
+            .putInt(KEY_ROUND_ANSWERED, roundAnswered)
+            .remove(KEY_CURRENT_WORD)
+            .apply()
+        return roundAnswered >= ROUND_SIZE
+    }
+
     fun roundSummary(language: TriviaGameEngine.Language): String {
         val accuracy = if (roundAnswered == 0) 0 else roundCorrect * 100 / roundAnswered
         return if (language == TriviaGameEngine.Language.CS) {
