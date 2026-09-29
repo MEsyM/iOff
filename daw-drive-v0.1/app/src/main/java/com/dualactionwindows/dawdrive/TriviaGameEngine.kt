@@ -92,6 +92,33 @@ class TriviaGameEngine(context: Context) {
         val nextRoundAdjustment: String
     )
 
+    data class RoundHistoryEntry(
+        val roundNumber: Int,
+        val correct: Int,
+        val answered: Int,
+        val accuracy: Int,
+        val xpEarned: Int,
+        val totalXp: Int,
+        val bestStreak: Int,
+        val completedAt: Long
+    )
+
+    data class MissedQuestionStat(
+        val id: String,
+        val prompt: String,
+        val category: TriviaQuestionBank.Category,
+        val wrongCount: Int,
+        val seenCount: Int,
+        val accuracy: Int
+    )
+
+    data class DashboardData(
+        val rounds: List<RoundHistoryEntry>,
+        val xpProgression: List<Pair<Int, Int>>,
+        val categoryStats: List<CategoryStat>,
+        val missedQuestions: List<MissedQuestionStat>
+    )
+
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val recentIds = ArrayDeque<String>().apply {
         prefs.getString(KEY_RECENT_IDS, "")
@@ -221,6 +248,16 @@ class TriviaGameEngine(context: Context) {
 
         val roundFinished = roundAnswered >= ROUND_SIZE
         val roundsCompleted = before.roundsCompleted + if (roundFinished) 1 else 0
+        if (roundFinished) {
+            appendRoundHistory(
+                roundNumber = roundsCompleted,
+                correct = roundCorrect,
+                answered = roundAnswered,
+                xpEarned = roundXp,
+                totalXp = newXp,
+                bestStreak = roundBestStreak
+            )
+        }
         currentQuestionId = null
 
         prefs.edit()
@@ -277,7 +314,16 @@ class TriviaGameEngine(context: Context) {
             .remove(KEY_CURRENT_QUESTION_ID)
 
         if (finished) {
-            editor.putInt(KEY_ROUNDS_COMPLETED, currentRounds + 1)
+            val completedRound = currentRounds + 1
+            editor.putInt(KEY_ROUNDS_COMPLETED, completedRound)
+            appendRoundHistory(
+                roundNumber = completedRound,
+                correct = roundCorrect,
+                answered = roundAnswered,
+                xpEarned = roundXp,
+                totalXp = prefs.getInt(KEY_XP, 0),
+                bestStreak = roundBestStreak
+            )
             val achievements = unlockedAchievements().toMutableSet()
             achievements += ACH_FIRST_DRIVE
             editor.putString(KEY_ACHIEVEMENTS, achievements.joinToString(","))
@@ -372,6 +418,88 @@ class TriviaGameEngine(context: Context) {
             averageResponseMs = if (answered == 0) 0L else totalResponse / answered
         )
     }
+
+    fun dashboardData(): DashboardData {
+        val rounds = loadRoundHistory()
+        val xpProgression = rounds.map { it.roundNumber to it.totalXp }
+        val missed = TriviaQuestionBank.questions
+            .mapNotNull { raw ->
+                val wrong = qWrong(raw.id)
+                val seen = qSeen(raw.id)
+                if (wrong <= 0 || seen <= 0) return@mapNotNull null
+                val q = localize(raw)
+                MissedQuestionStat(
+                    id = raw.id,
+                    prompt = q.prompt,
+                    category = raw.category,
+                    wrongCount = wrong,
+                    seenCount = seen,
+                    accuracy = percent(qCorrect(raw.id), seen)
+                )
+            }
+            .sortedWith(
+                compareByDescending<MissedQuestionStat> { it.wrongCount }
+                    .thenBy { it.accuracy }
+                    .thenByDescending { it.seenCount }
+            )
+            .take(8)
+
+        return DashboardData(
+            rounds = rounds,
+            xpProgression = xpProgression,
+            categoryStats = TriviaQuestionBank.Category.entries.map { categoryStat(it) },
+            missedQuestions = missed
+        )
+    }
+
+    private fun appendRoundHistory(
+        roundNumber: Int,
+        correct: Int,
+        answered: Int,
+        xpEarned: Int,
+        totalXp: Int,
+        bestStreak: Int
+    ) {
+        val entry = listOf(
+            roundNumber,
+            correct,
+            answered,
+            percent(correct, answered),
+            xpEarned,
+            totalXp,
+            bestStreak,
+            System.currentTimeMillis()
+        ).joinToString("|")
+
+        val existing = prefs.getString(KEY_ROUND_HISTORY, "")
+            ?.split(";")
+            ?.filter { it.isNotBlank() }
+            .orEmpty()
+
+        val updated = (existing + entry).takeLast(MAX_ROUND_HISTORY)
+        prefs.edit().putString(KEY_ROUND_HISTORY, updated.joinToString(";")).apply()
+    }
+
+    private fun loadRoundHistory(): List<RoundHistoryEntry> =
+        prefs.getString(KEY_ROUND_HISTORY, "")
+            ?.split(";")
+            ?.mapNotNull { encoded ->
+                val parts = encoded.split("|")
+                if (parts.size != 8) return@mapNotNull null
+                val values = parts.map { it.toLongOrNull() }
+                if (values.any { it == null }) return@mapNotNull null
+                RoundHistoryEntry(
+                    roundNumber = values[0]!!.toInt(),
+                    correct = values[1]!!.toInt(),
+                    answered = values[2]!!.toInt(),
+                    accuracy = values[3]!!.toInt(),
+                    xpEarned = values[4]!!.toInt(),
+                    totalXp = values[5]!!.toInt(),
+                    bestStreak = values[6]!!.toInt(),
+                    completedAt = values[7]!!
+                )
+            }
+            .orEmpty()
 
     fun achievementTitle(id: String): String {
         val cs = language() == Language.CS
@@ -743,10 +871,12 @@ class TriviaGameEngine(context: Context) {
         private const val KEY_RECENT_IDS = "recent_ids"
         private const val KEY_CURRENT_QUESTION_ID = "current_question_id"
         private const val KEY_LAST_CATEGORY = "last_category"
+        private const val KEY_ROUND_HISTORY = "round_history"
 
         private const val ROUND_SIZE = 10
         private const val RECENT_WINDOW = 8
         private const val RECENT_RESULT_WINDOW = 20
+        private const val MAX_ROUND_HISTORY = 30
 
         private const val WRONG_ANSWER_XP = 2
         private const val PERFECT_ROUND_BONUS = 50
