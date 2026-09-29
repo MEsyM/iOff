@@ -1,8 +1,5 @@
 package com.dualactionwindows.dawdrive.ui
 
-import android.annotation.SuppressLint
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,9 +27,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-
-private const val VIDEO_URL = "https://vidplay.top"
 
 private enum class DawModule(
     val title: String,
@@ -45,20 +39,13 @@ private enum class DawModule(
 }
 
 @Composable
-fun DawDriveApp() {
+fun DawDriveApp(
+    onVideoClick: () -> Unit
+) {
     var selectedModule by remember { mutableStateOf<DawModule?>(null) }
-    var videoWebView by remember { mutableStateOf<WebView?>(null) }
 
     BackHandler(enabled = selectedModule != null) {
-        if (
-            selectedModule == DawModule.Video &&
-            videoWebView?.canGoBack() == true
-        ) {
-            videoWebView?.goBack()
-        } else {
-            selectedModule = null
-            videoWebView = null
-        }
+        selectedModule = null
     }
 
     MaterialTheme {
@@ -66,17 +53,20 @@ fun DawDriveApp() {
             modifier = Modifier.fillMaxSize(),
             color = Color(0xFF080A0D)
         ) {
-            when (selectedModule) {
-                null -> LauncherScreen(onModuleSelected = { selectedModule = it })
-                DawModule.Video -> VideoBrowser(
-                    onWebViewReady = { videoWebView = it }
-                )
-                else -> ModulePlaceholder(
-                    module = selectedModule!!,
-                    onBack = {
-                        selectedModule = null
-                        videoWebView = null
+            if (selectedModule == null) {
+                LauncherScreen(
+                    onModuleSelected = { module ->
+                        if (module == DawModule.Video) {
+                            onVideoClick()
+                        } else {
+                            selectedModule = module
+                        }
                     }
+                )
+            } else {
+                ModulePlaceholder(
+                    module = selectedModule!!,
+                    onBack = { selectedModule = null }
                 )
             }
         }
@@ -92,23 +82,18 @@ private fun LauncherScreen(
             .fillMaxSize()
             .padding(horizontal = 28.dp, vertical = 20.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "DAW DRIVE",
-                    color = Color.White,
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "v0.3 video browser",
-                    color = Color(0xFF9AA4B2),
-                    fontSize = 14.sp
-                )
-            }
+        Column {
+            Text(
+                text = "DAW DRIVE",
+                color = Color.White,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "v0.4 stable video",
+                color = Color(0xFF9AA4B2),
+                fontSize = 14.sp
+            )
         }
 
         Spacer(modifier = Modifier.height(18.dp))
@@ -122,16 +107,12 @@ private fun LauncherScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 LauncherTile(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
                     module = DawModule.Games,
                     onClick = { onModuleSelected(DawModule.Games) }
                 )
                 LauncherTile(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
                     module = DawModule.Video,
                     onClick = { onModuleSelected(DawModule.Video) }
                 )
@@ -142,16 +123,12 @@ private fun LauncherScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 LauncherTile(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
                     module = DawModule.Erp,
                     onClick = { onModuleSelected(DawModule.Erp) }
                 )
                 LauncherTile(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
                     module = DawModule.Tools,
                     onClick = { onModuleSelected(DawModule.Tools) }
                 )
@@ -173,8 +150,7 @@ private fun LauncherTile(
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFF171B22),
             contentColor = Color.White
-        ),
-        contentPadding = ButtonDefaults.ContentPadding
+        )
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -194,40 +170,6 @@ private fun LauncherTile(
             )
         }
     }
-}
-
-@SuppressLint("SetJavaScriptEnabled")
-@Composable
-private fun VideoBrowser(
-    onWebViewReady: (WebView) -> Unit
-) {
-    AndroidView(
-        modifier = Modifier.fillMaxSize(),
-        factory = { context ->
-            WebView(context).apply {
-                setBackgroundColor(android.graphics.Color.BLACK)
-
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.databaseEnabled = true
-                settings.loadsImagesAutomatically = true
-                settings.useWideViewPort = true
-                settings.loadWithOverviewMode = true
-                settings.mediaPlaybackRequiresUserGesture = false
-                settings.setSupportZoom(true)
-                settings.builtInZoomControls = true
-                settings.displayZoomControls = false
-
-                webViewClient = WebViewClient()
-
-                loadUrl(VIDEO_URL)
-                onWebViewReady(this)
-            }
-        },
-        update = { webView ->
-            onWebViewReady(webView)
-        }
-    )
 }
 
 @Composable
