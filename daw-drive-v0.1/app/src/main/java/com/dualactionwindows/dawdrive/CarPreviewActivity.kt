@@ -29,6 +29,7 @@ class CarPreviewActivity : ComponentActivity() {
     private var question by mutableStateOf("Press Play to start")
     private var isPlaying by mutableStateOf(false)
     private var connected by mutableStateOf(false)
+    private var pendingAfterPermission: (() -> Unit)? = null
 
     private val controllerCallback = object : MediaControllerCompat.Callback() {
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
@@ -48,7 +49,16 @@ class CarPreviewActivity : ComponentActivity() {
 
     private val requestPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-            startRoadVoice()
+            if (
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.RECORD_AUDIO
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                startRoadVoice()
+                pendingAfterPermission?.invoke()
+            }
+            pendingAfterPermission = null
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,18 +101,21 @@ class CarPreviewActivity : ComponentActivity() {
                 isPlaying = isPlaying,
                 connected = connected,
                 onPlayPause = {
-                    ensurePermissions()
-                    val transport = controller?.transportControls
-                    if (isPlaying) transport?.pause()
-                    else transport?.playFromMediaId(MEDIA_ID_TRIVIA, null)
+                    runWithPermissions {
+                        val transport = controller?.transportControls
+                        if (isPlaying) transport?.pause()
+                        else transport?.playFromMediaId(MEDIA_ID_TRIVIA, null)
+                    }
                 },
                 onRepeat = {
-                    ensurePermissions()
-                    controller?.transportControls?.skipToPrevious()
+                    runWithPermissions {
+                        controller?.transportControls?.skipToPrevious()
+                    }
                 },
                 onNext = {
-                    ensurePermissions()
-                    controller?.transportControls?.skipToNext()
+                    runWithPermissions {
+                        controller?.transportControls?.skipToNext()
+                    }
                 },
                 onStop = {
                     controller?.transportControls?.stop()
@@ -127,7 +140,7 @@ class CarPreviewActivity : ComponentActivity() {
         super.onStop()
     }
 
-    private fun ensurePermissions() {
+    private fun runWithPermissions(action: () -> Unit) {
         val missing = buildList {
             if (
                 ContextCompat.checkSelfPermission(
@@ -150,7 +163,9 @@ class CarPreviewActivity : ComponentActivity() {
 
         if (missing.isEmpty()) {
             startRoadVoice()
+            action()
         } else {
+            pendingAfterPermission = action
             requestPermissions.launch(missing.toTypedArray())
         }
     }
