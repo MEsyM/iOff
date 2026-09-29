@@ -68,6 +68,11 @@ class MainActivity : ComponentActivity() {
                         options.toBundle()
                     )
                 },
+                onCarPreviewClick = {
+                    startActivity(
+                        Intent(this, CarPreviewActivity::class.java)
+                    )
+                },
                 onRoadVoiceStart = {
                     ensureRoadVoiceSetup(resumeGame = false)
                 },
