@@ -208,6 +208,26 @@ class KidsTriviaEngine(context: Context) {
         return roundAnswered >= ROUND_SIZE
     }
 
+    fun scoreSummary(language: TriviaGameEngine.Language): String {
+        val p = profile()
+        return if (language == TriviaGameEngine.Language.CS) {
+            "Trivia Kids. " + p.totalCorrect + " správně z " + p.totalAnswered +
+                ". Úspěšnost " + p.accuracy + " procent. Série " + p.streak + "."
+        } else {
+            "Kids Trivia. " + p.totalCorrect + " correct out of " + p.totalAnswered +
+                ". Accuracy " + p.accuracy + " percent. Streak " + p.streak + "."
+        }
+    }
+
+    fun levelSummary(language: TriviaGameEngine.Language): String {
+        val p = profile()
+        return if (language == TriviaGameEngine.Language.CS) {
+            "Trivia Kids level " + p.level + ". Máš " + p.xp + " XP."
+        } else {
+            "Kids Trivia level " + p.level + ". You have " + p.xp + " XP."
+        }
+    }
+
     fun roundSummary(language: TriviaGameEngine.Language): String {
         val accuracy = if (roundAnswered == 0) 0 else roundCorrect * 100 / roundAnswered
         return if (language == TriviaGameEngine.Language.CS) {
