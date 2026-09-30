@@ -59,6 +59,7 @@ fun DawDriveApp(
     achievementTitles: List<String>,
     onVideoClick: () -> Unit,
     onCarPreviewClick: () -> Unit,
+    onDebugLogsClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
     onRoadVoiceStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
@@ -90,6 +91,7 @@ fun DawDriveApp(
                     dashboard = dashboard,
                     achievementTitles = achievementTitles,
                     onCarPreview = onCarPreviewClick,
+                    onDebugLogs = onDebugLogsClick,
                     onStart = onRoadVoiceStart,
                     onStop = onRoadVoiceStop,
                     onLanguageChange = onLanguageChange,
@@ -209,6 +211,7 @@ private fun TriviaProfileScreen(
     dashboard: TriviaGameEngine.DashboardData,
     achievementTitles: List<String>,
     onCarPreview: () -> Unit,
+    onDebugLogs: () -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
@@ -378,6 +381,11 @@ private fun TriviaProfileScreen(
                 Text(if (cs) "Jednorázový setup" else "One-time setup")
             }
             SmallActionButton(
+                text = if (cs) "Debug logy" else "Debug Logs",
+                active = false,
+                onClick = onDebugLogs
+            )
+                        SmallActionButton(
                 text = if (cs) "Obnovit" else "Refresh",
                 active = false,
                 onClick = onRefresh
