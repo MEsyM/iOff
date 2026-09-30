@@ -43,6 +43,12 @@ class FamilySetupActivity : ComponentActivity() {
                     while (size < 4) add("")
                 }
             }
+            val difficulties = remember {
+                mutableStateListOf<FamilyGameEngine.Difficulty>().apply {
+                    addAll(engine.playerDifficulties())
+                    while (size < 6) add(FamilyGameEngine.Difficulty.NORMAL)
+                }
+            }
             var mode by remember { mutableStateOf(engine.mode()) }
             var saved by remember { mutableStateOf(false) }
 
@@ -57,7 +63,7 @@ class FamilySetupActivity : ComponentActivity() {
                     ) {
                         Text("Family Game", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Bold)
                         Text(
-                            "Nastav 2 až 6 hráčů. Jméno funguje zároveň jako hlasový buzzer v Battle.",
+                            "Nastav 2 až 6 hráčů. Každý má vlastní obtížnost. Jméno funguje zároveň jako hlasový buzzer v Battle.",
                             color = Color(0xFFADB6C3),
                             fontSize = 16.sp
                         )
@@ -89,23 +95,56 @@ class FamilySetupActivity : ComponentActivity() {
                         )
 
                         repeat(6) { index ->
-                            OutlinedTextField(
-                                value = names.getOrElse(index) { "" },
-                                onValueChange = { value ->
-                                    while (names.size <= index) names.add("")
-                                    names[index] = value
-                                    saved = false
-                                },
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                label = { Text("Hráč " + (index + 1)) },
-                                singleLine = true
-                            )
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = names.getOrElse(index) { "" },
+                                    onValueChange = { value ->
+                                        while (names.size <= index) names.add("")
+                                        names[index] = value
+                                        saved = false
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    label = { Text("Hráč " + (index + 1)) },
+                                    singleLine = true
+                                )
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    FamilyGameEngine.Difficulty.entries.forEach { difficulty ->
+                                        Button(
+                                            onClick = {
+                                                while (difficulties.size <= index) {
+                                                    difficulties.add(FamilyGameEngine.Difficulty.NORMAL)
+                                                }
+                                                difficulties[index] = difficulty
+                                                saved = false
+                                            },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = if (difficulties.getOrNull(index) == difficulty) {
+                                                    Color(0xFF334A3A)
+                                                } else {
+                                                    Color(0xFF1A1F26)
+                                                }
+                                            ),
+                                            shape = RoundedCornerShape(12.dp),
+                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                                horizontal = 10.dp,
+                                                vertical = 6.dp
+                                            )
+                                        ) {
+                                            Text(difficulty.labelCs(), fontSize = 12.sp)
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Button(
                                 onClick = {
-                                    engine.savePlayers(names.toList())
+                                    engine.savePlayers(names.toList(), difficulties.toList())
                                     engine.setMode(mode)
                                     saved = true
                                 },
@@ -118,7 +157,7 @@ class FamilySetupActivity : ComponentActivity() {
                         }
 
                         Text(
-                            "Tip pro Battle: po otázce řekni pouze své jméno. Po potvrzení jména řekni odpověď. Je to spolehlivější než rozpoznávání, kdo z kabiny fyzicky mluví.",
+                            "Round respektuje obtížnost každého hráče zvlášť. Battle má jednu společnou otázku, proto vybírá obtížnost kolem mediánu celé rodiny. Tip: po otázce řekni pouze své jméno a až po potvrzení odpověď.",
                             color = Color(0xFF7F8A99),
                             fontSize = 13.sp
                         )
