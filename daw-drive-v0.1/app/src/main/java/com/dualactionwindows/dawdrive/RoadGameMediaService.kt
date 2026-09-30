@@ -40,8 +40,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private lateinit var triviaEngine: TriviaGameEngine
     private lateinit var spellingEngine: SpellingBeeEngine
     private lateinit var guessWhoEngine: GuessWhoEngine
+    private lateinit var kidsTriviaEngine: KidsTriviaEngine
 
-    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO }
+    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO, KIDS_TRIVIA }
     private enum class ArtworkState { IDLE, LISTENING, CORRECT, WRONG }
 
     private var activeGame = ActiveGame.TRIVIA
@@ -120,6 +121,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         triviaEngine = TriviaGameEngine(this)
         spellingEngine = SpellingBeeEngine(this)
         guessWhoEngine = GuessWhoEngine(this)
+        kidsTriviaEngine = KidsTriviaEngine(this)
         tts = TextToSpeech(this, this)
 
         createSpeechRecognizer()
@@ -164,6 +166,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             sessionStarted = false
                             startOrResumeGuessWho()
                         }
+                        MEDIA_ID_KIDS_TRIVIA -> {
+                            activeGame = ActiveGame.KIDS_TRIVIA
+                            sessionStarted = false
+                            startOrResumeKidsTrivia()
+                        }
                         else -> {
                             activeGame = ActiveGame.TRIVIA
                             sessionStarted = false
@@ -188,6 +195,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         when (activeGame) {
                             ActiveGame.SPELLING -> evaluateSpellingCandidates(listOf(spoken))
                             ActiveGame.GUESS_WHO -> evaluateGuessWhoCandidates(listOf(spoken))
+                            ActiveGame.KIDS_TRIVIA -> evaluateKidsTriviaCandidates(listOf(spoken))
                             ActiveGame.TRIVIA -> evaluateSpeechCandidates(listOf(spoken))
                         }
                     } else {
@@ -276,6 +284,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     when (activeGame) {
                         ActiveGame.SPELLING -> evaluateSpellingCandidates(candidates)
                         ActiveGame.GUESS_WHO -> evaluateGuessWhoCandidates(candidates)
+                        ActiveGame.KIDS_TRIVIA -> evaluateKidsTriviaCandidates(candidates)
                         ActiveGame.TRIVIA -> evaluateSpeechCandidates(candidates)
                     }
                 }
@@ -363,6 +372,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             when (activeGame) {
                                 ActiveGame.SPELLING -> speakCurrentSpelling()
                                 ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
+                                ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
                                 ActiveGame.TRIVIA -> speakCurrentQuestion()
                             }
                         }
@@ -389,6 +399,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             when (activeGame) {
                                 ActiveGame.SPELLING -> moveToNextSpellingWord()
                                 ActiveGame.GUESS_WHO -> moveToNextGuessWhoPerson()
+                                ActiveGame.KIDS_TRIVIA -> moveToNextKidsQuestion()
                                 ActiveGame.TRIVIA -> moveToNextQuestion()
                             }
                         }
@@ -399,6 +410,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             when (activeGame) {
                                 ActiveGame.SPELLING -> startNextSpellingRound()
                                 ActiveGame.GUESS_WHO -> startNextGuessWhoRound()
+                                ActiveGame.KIDS_TRIVIA -> startNextKidsRound()
                                 ActiveGame.TRIVIA -> startNextRound()
                             }
                         }, 700)
@@ -438,6 +450,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val p = triviaEngine.profile()
         val spelling = spellingEngine.profile()
         val guessWho = guessWhoEngine.profile()
+        val kids = kidsTriviaEngine.profile()
         val triviaSubtitle = if (p.language == TriviaGameEngine.Language.CS) {
             "Level " + p.level + " • " + p.xp + " XP • hlasová kariéra"
         } else {
@@ -452,6 +465,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             "Level " + guessWho.level + " • " + guessWho.xp + " XP • osobnosti"
         } else {
             "Level " + guessWho.level + " • " + guessWho.xp + " XP • personalities"
+        }
+        val kidsSubtitle = if (p.language == TriviaGameEngine.Language.CS) {
+            "6–12 let • Level " + kids.level + " • " + kids.xp + " XP"
+        } else {
+            "Ages 6–12 • Level " + kids.level + " • " + kids.xp + " XP"
         }
 
         result.sendResult(
@@ -473,6 +491,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "Guess Who",
                     guessWhoSubtitle,
                     R.drawable.guesswho_idle
+                ),
+                mediaItem(
+                    MEDIA_ID_KIDS_TRIVIA,
+                    "Trivia Kids 6–12",
+                    kidsSubtitle,
+                    R.drawable.kids_idle
                 )
             )
         )
@@ -482,6 +506,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         when (activeGame) {
             ActiveGame.SPELLING -> startOrResumeSpelling()
             ActiveGame.GUESS_WHO -> startOrResumeGuessWho()
+            ActiveGame.KIDS_TRIVIA -> startOrResumeKidsTrivia()
             ActiveGame.TRIVIA -> startOrResumeTrivia()
         }
     }
@@ -583,6 +608,48 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         speak(text, QUESTION_UTTERANCE_ID)
+    }
+
+    private fun startOrResumeKidsTrivia() {
+        if (!ensurePlaybackForeground()) return
+        if (!ttsReady) {
+            pendingStartAfterTts = true
+            setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            return
+        }
+
+        kidsTriviaEngine.startOrResume(triviaEngine.language())
+        applyVoiceLanguage()
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        updateMetadata()
+
+        if (!sessionStarted) {
+            sessionStarted = true
+            val p = kidsTriviaEngine.profile()
+            speakSystem(
+                en = "Welcome to Trivia Kids. Level " + p.level +
+                    ". Ten fun questions for ages six to twelve. Let's go.",
+                cs = "Vítej v Trivia Kids. Level " + p.level +
+                    ". Deset zábavných otázek pro děti od šesti do dvanácti let. Jdeme na to.",
+                utteranceId = SESSION_INTRO_UTTERANCE_ID
+            )
+        } else {
+            speakCurrentKidsQuestion()
+        }
+    }
+
+    private fun speakCurrentKidsQuestion() {
+        if (!ttsReady) return
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+        artworkState = ArtworkState.IDLE
+
+        val q = kidsTriviaEngine.currentQuestion(triviaEngine.language())
+            ?: kidsTriviaEngine.startOrResume(triviaEngine.language())
+        updateMetadata()
+
+        speak(q.categoryName + ". " + q.prompt, QUESTION_UTTERANCE_ID)
     }
 
     private fun startOrResumeGuessWho() {
@@ -752,6 +819,50 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             feedback,
             if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID
             else FEEDBACK_UTTERANCE_ID
+        )
+    }
+
+    private fun evaluateKidsTriviaCandidates(candidates: List<String>) {
+        if (!awaitingAnswer) return
+        stopListening()
+        awaitingAnswer = false
+
+        val result = kidsTriviaEngine.answerCandidates(
+            candidates,
+            triviaEngine.language()
+        )
+        artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
+        updateMetadata()
+
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+        val feedback = buildString {
+            if (result.correct) {
+                append(if (cs) "Správně!" else "Correct!")
+                if (result.streak >= 3) {
+                    append(if (cs) " Série " else " Streak ")
+                    append(result.streak)
+                    append(".")
+                }
+            } else {
+                append(if (cs) "Nevadí. Správná odpověď je " else "Not quite. The answer is ")
+                append(result.expected)
+                append(". ")
+                append(result.explanation)
+            }
+            if (result.promoted) {
+                append(if (cs) " Postupuješ na level " else " Level up. You are now level ")
+                append(result.level)
+                append(".")
+            }
+            if (result.roundFinished) {
+                append(" ")
+                append(kidsTriviaEngine.roundSummary(triviaEngine.language()))
+            }
+        }
+
+        speak(
+            feedback,
+            if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID else FEEDBACK_UTTERANCE_ID
         )
     }
 
@@ -985,6 +1096,23 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         )
     }
 
+    private fun moveToNextKidsQuestion() {
+        artworkState = ArtworkState.IDLE
+        kidsTriviaEngine.nextQuestion(triviaEngine.language())
+        speakCurrentKidsQuestion()
+    }
+
+    private fun startNextKidsRound() {
+        artworkState = ArtworkState.IDLE
+        kidsTriviaEngine.resetRound()
+        kidsTriviaEngine.startOrResume(triviaEngine.language())
+        speakSystem(
+            en = "Next Kids Trivia round. Let's go.",
+            cs = "Další kolo Trivia Kids. Jdeme na to.",
+            utteranceId = SESSION_INTRO_UTTERANCE_ID
+        )
+    }
+
     private fun moveToNextSpellingWord() {
         artworkState = ArtworkState.IDLE
         spellingEngine.nextWord()
@@ -1029,6 +1157,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         when (activeGame) {
             ActiveGame.SPELLING -> speakCurrentSpelling()
             ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
+            ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
             ActiveGame.TRIVIA -> speakCurrentQuestion()
         }
     }
@@ -1045,6 +1174,22 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 if (finished) {
                     speak(
                         spellingEngine.roundSummary(triviaEngine.language()),
+                        ROUND_SUMMARY_UTTERANCE_ID
+                    )
+                } else {
+                    speakSystem(
+                        en = "Skipped.",
+                        cs = "Přeskakuji.",
+                        utteranceId = FEEDBACK_UTTERANCE_ID
+                    )
+                }
+            }
+
+            ActiveGame.KIDS_TRIVIA -> {
+                val finished = kidsTriviaEngine.skipCurrent()
+                if (finished) {
+                    speak(
+                        kidsTriviaEngine.roundSummary(triviaEngine.language()),
                         ROUND_SUMMARY_UTTERANCE_ID
                     )
                 } else {
@@ -1118,6 +1263,15 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
             ActiveGame.GUESS_WHO -> {
                 nextGuessWhoHint(auto = true)
+            }
+
+            ActiveGame.KIDS_TRIVIA -> {
+                val finished = kidsTriviaEngine.skipCurrent()
+                if (finished) {
+                    speak(text + " " + kidsTriviaEngine.roundSummary(triviaEngine.language()), ROUND_SUMMARY_UTTERANCE_ID)
+                } else {
+                    speak(text, FEEDBACK_UTTERANCE_ID)
+                }
             }
 
             ActiveGame.TRIVIA -> {
@@ -1333,6 +1487,31 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val cs = language == TriviaGameEngine.Language.CS
         val artUri = artworkUri(activeGame, artworkState).toString()
 
+        if (activeGame == ActiveGame.KIDS_TRIVIA) {
+            val p = kidsTriviaEngine.profile()
+            val q = kidsTriviaEngine.currentQuestion(language)
+            mediaSession.setMetadata(
+                MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, "Trivia Kids 6–12 • Level " + p.level)
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_ARTIST,
+                        p.xp.toString() + " XP • " + (if (cs) "série " else "streak ") + p.streak
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
+                        q?.prompt ?: if (cs) "Připraveno" else "Ready"
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
+                        q?.categoryName ?: "Trivia Kids"
+                    )
+                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .build()
+            )
+            return
+        }
+
         if (activeGame == ActiveGame.GUESS_WHO) {
             val p = guessWhoEngine.profile()
             val hintNumber = guessWhoEngine.currentHintNumber()
@@ -1450,6 +1629,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 ArtworkState.LISTENING -> R.drawable.guesswho_listening
                 ArtworkState.CORRECT -> R.drawable.guesswho_correct
                 ArtworkState.WRONG -> R.drawable.guesswho_wrong
+            }
+            ActiveGame.KIDS_TRIVIA -> when (state) {
+                ArtworkState.IDLE -> R.drawable.kids_idle
+                ArtworkState.LISTENING -> R.drawable.kids_listening
+                ArtworkState.CORRECT -> R.drawable.kids_correct
+                ArtworkState.WRONG -> R.drawable.kids_wrong
             }
         }
         return Uri.parse("android.resource://" + packageName + "/" + resId)
@@ -1708,6 +1893,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val MEDIA_ID_TRIVIA = "trivia_career"
         private const val MEDIA_ID_SPELLING = "spelling_bee"
         private const val MEDIA_ID_GUESS_WHO = "guess_who"
+        private const val MEDIA_ID_KIDS_TRIVIA = "kids_trivia"
 
         private const val CONTENT_STYLE_BROWSABLE_KEY =
             "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT"
