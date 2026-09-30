@@ -360,8 +360,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 when (utteranceId) {
                     SESSION_INTRO_UTTERANCE_ID -> {
                         mainHandler.post {
-                            if (activeGame == ActiveGame.SPELLING) speakCurrentSpelling()
-                            else speakCurrentQuestion()
+                            when (activeGame) {
+                                ActiveGame.SPELLING -> speakCurrentSpelling()
+                                ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
+                                ActiveGame.TRIVIA -> speakCurrentQuestion()
+                            }
                         }
                     }
 
@@ -383,15 +386,21 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
                     FEEDBACK_UTTERANCE_ID -> {
                         mainHandler.post {
-                            if (activeGame == ActiveGame.SPELLING) moveToNextSpellingWord()
-                            else moveToNextQuestion()
+                            when (activeGame) {
+                                ActiveGame.SPELLING -> moveToNextSpellingWord()
+                                ActiveGame.GUESS_WHO -> moveToNextGuessWhoPerson()
+                                ActiveGame.TRIVIA -> moveToNextQuestion()
+                            }
                         }
                     }
 
                     ROUND_SUMMARY_UTTERANCE_ID -> {
                         mainHandler.postDelayed({
-                            if (activeGame == ActiveGame.SPELLING) startNextSpellingRound()
-                            else startNextRound()
+                            when (activeGame) {
+                                ActiveGame.SPELLING -> startNextSpellingRound()
+                                ActiveGame.GUESS_WHO -> startNextGuessWhoRound()
+                                ActiveGame.TRIVIA -> startNextRound()
+                            }
                         }, 700)
                     }
 
@@ -576,6 +585,59 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         speak(text, QUESTION_UTTERANCE_ID)
     }
 
+    private fun startOrResumeGuessWho() {
+        if (!ensurePlaybackForeground()) return
+        if (!ttsReady) {
+            pendingStartAfterTts = true
+            setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            return
+        }
+
+        guessWhoEngine.startOrResume()
+        applyVoiceLanguage()
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        updateMetadata()
+
+        if (!sessionStarted) {
+            sessionStarted = true
+            val p = guessWhoEngine.profile()
+            speakSystem(
+                en = "Welcome to Guess Who. Level " + p.level +
+                    ". I will give you up to three clues about a Czech or world personality. Guess the name, or say next hint.",
+                cs = "Vítej v Guess Who. Level " + p.level +
+                    ". Dostaneš až tři nápovědy k české nebo světové osobnosti. Řekni jméno, nebo řekni další nápověda.",
+                utteranceId = SESSION_INTRO_UTTERANCE_ID
+            )
+        } else {
+            speakCurrentGuessWhoHint()
+        }
+    }
+
+    private fun speakCurrentGuessWhoHint() {
+        if (!ttsReady) return
+
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+        artworkState = ArtworkState.IDLE
+
+        guessWhoEngine.startOrResume()
+        val language = triviaEngine.language()
+        val hintNumber = guessWhoEngine.currentHintNumber()
+        val clue = guessWhoEngine.currentClue(language)
+        updateMetadata()
+
+        val text = if (language == TriviaGameEngine.Language.CS) {
+            "Nápověda " + hintNumber + " ze tří. " + clue +
+                " Řekni jméno, nebo další nápověda."
+        } else {
+            "Hint " + hintNumber + " of three. " + clue +
+                " Say the name, or say next hint."
+        }
+
+        speak(text, QUESTION_UTTERANCE_ID)
+    }
+
     private fun startListeningForAnswer() {
         if (!voiceModeEnabled || !awaitingAnswer || listening) return
 
@@ -693,6 +755,127 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         )
     }
 
+    private fun evaluateGuessWhoCandidates(candidates: List<String>) {
+        if (!awaitingAnswer) return
+
+        stopListening()
+        awaitingAnswer = false
+
+        val language = triviaEngine.language()
+        val result = guessWhoEngine.evaluateGuess(candidates, language)
+        val cs = language == TriviaGameEngine.Language.CS
+
+        when (result.outcome) {
+            GuessWhoEngine.GuessOutcome.CORRECT -> {
+                artworkState = ArtworkState.CORRECT
+                updateMetadata()
+
+                val feedback = buildString {
+                    append(if (cs) "Správně. Je to " else "Correct. It is ")
+                    append(result.personName)
+                    append(". +")
+                    append(result.xpEarned)
+                    append(" XP.")
+                    if (result.streak >= 3) {
+                        append(if (cs) " Série " else " Streak ")
+                        append(result.streak)
+                        append(".")
+                    }
+                    if (result.promoted) {
+                        append(if (cs) " Postupuješ na level " else " Level up. You are now level ")
+                        append(result.level)
+                        append(".")
+                    }
+                    if (result.roundFinished) {
+                        append(" ")
+                        append(guessWhoEngine.roundSummary(language))
+                    }
+                }
+
+                speak(
+                    feedback,
+                    if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID
+                    else FEEDBACK_UTTERANCE_ID
+                )
+            }
+
+            GuessWhoEngine.GuessOutcome.WRONG_CONTINUE -> {
+                artworkState = ArtworkState.WRONG
+                updateMetadata()
+                awaitingAnswer = true
+                speakSystem(
+                    en = "Not quite. Guess again, or say next hint.",
+                    cs = "Ne tak docela. Zkus jiné jméno, nebo řekni další nápověda.",
+                    utteranceId = COMMAND_UTTERANCE_ID
+                )
+            }
+
+            GuessWhoEngine.GuessOutcome.REVEALED -> {
+                artworkState = ArtworkState.WRONG
+                updateMetadata()
+
+                val feedback = buildString {
+                    append(if (cs) "Ne. Hledaná osobnost byla " else "No. The person was ")
+                    append(result.personName)
+                    append(".")
+                    if (result.roundFinished) {
+                        append(" ")
+                        append(guessWhoEngine.roundSummary(language))
+                    }
+                }
+
+                speak(
+                    feedback,
+                    if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID
+                    else FEEDBACK_UTTERANCE_ID
+                )
+            }
+        }
+    }
+
+    private fun nextGuessWhoHint(auto: Boolean = false) {
+        if (activeGame != ActiveGame.GUESS_WHO) return
+
+        stopListening()
+        awaitingAnswer = false
+
+        val language = triviaEngine.language()
+        val result = guessWhoEngine.nextHint(language)
+
+        if (result.revealed) {
+            artworkState = ArtworkState.WRONG
+            updateMetadata()
+            val text = if (language == TriviaGameEngine.Language.CS) {
+                (if (auto) "Bez odpovědi. " else "") +
+                    "Už nejsou další nápovědy. Osobnost byla " + result.personName + "." +
+                    if (result.roundFinished) " " + guessWhoEngine.roundSummary(language) else ""
+            } else {
+                (if (auto) "No answer. " else "") +
+                    "There are no more hints. The person was " + result.personName + "." +
+                    if (result.roundFinished) " " + guessWhoEngine.roundSummary(language) else ""
+            }
+            speak(
+                text,
+                if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID
+                else FEEDBACK_UTTERANCE_ID
+            )
+            return
+        }
+
+        artworkState = ArtworkState.IDLE
+        awaitingAnswer = true
+        updateMetadata()
+
+        val text = if (language == TriviaGameEngine.Language.CS) {
+            "Nápověda " + result.hintNumber + " ze tří. " + result.clue +
+                " Řekni jméno, nebo další nápověda."
+        } else {
+            "Hint " + result.hintNumber + " of three. " + result.clue +
+                " Say the name, or say next hint."
+        }
+        speak(text, QUESTION_UTTERANCE_ID)
+    }
+
     private fun buildFeedback(result: TriviaGameEngine.AnswerResult): String {
         val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
         val parts = mutableListOf<String>()
@@ -785,6 +968,23 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             summary.bestStreak + ". " + adjustment
     }
 
+    private fun moveToNextGuessWhoPerson() {
+        artworkState = ArtworkState.IDLE
+        guessWhoEngine.nextPerson()
+        speakCurrentGuessWhoHint()
+    }
+
+    private fun startNextGuessWhoRound() {
+        artworkState = ArtworkState.IDLE
+        guessWhoEngine.resetRound()
+        guessWhoEngine.startOrResume()
+        speakSystem(
+            en = "Next Guess Who round.",
+            cs = "Další kolo Guess Who.",
+            utteranceId = SESSION_INTRO_UTTERANCE_ID
+        )
+    }
+
     private fun moveToNextSpellingWord() {
         artworkState = ArtworkState.IDLE
         spellingEngine.nextWord()
@@ -826,8 +1026,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         awaitingAnswer = true
         retryCount = 0
         artworkState = ArtworkState.IDLE
-        if (activeGame == ActiveGame.SPELLING) speakCurrentSpelling()
-        else speakCurrentQuestion()
+        when (activeGame) {
+            ActiveGame.SPELLING -> speakCurrentSpelling()
+            ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
+            ActiveGame.TRIVIA -> speakCurrentQuestion()
+        }
     }
 
     private fun skipCurrentQuestion() {
@@ -836,33 +1039,56 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         stopListening()
         awaitingAnswer = false
 
-        if (activeGame == ActiveGame.SPELLING) {
-            val finished = spellingEngine.skipCurrent()
-            if (finished) {
+        when (activeGame) {
+            ActiveGame.SPELLING -> {
+                val finished = spellingEngine.skipCurrent()
+                if (finished) {
+                    speak(
+                        spellingEngine.roundSummary(triviaEngine.language()),
+                        ROUND_SUMMARY_UTTERANCE_ID
+                    )
+                } else {
+                    speakSystem(
+                        en = "Skipped.",
+                        cs = "Přeskakuji.",
+                        utteranceId = FEEDBACK_UTTERANCE_ID
+                    )
+                }
+            }
+
+            ActiveGame.GUESS_WHO -> {
+                val result = guessWhoEngine.skipCurrent()
+                artworkState = ArtworkState.WRONG
+                updateMetadata()
+                val language = triviaEngine.language()
+                val text = if (language == TriviaGameEngine.Language.CS) {
+                    "Přeskakuji. Osobnost byla " + result.personName + "." +
+                        if (result.roundFinished) " " + guessWhoEngine.roundSummary(language) else ""
+                } else {
+                    "Skipped. The person was " + result.personName + "." +
+                        if (result.roundFinished) " " + guessWhoEngine.roundSummary(language) else ""
+                }
                 speak(
-                    spellingEngine.roundSummary(triviaEngine.language()),
-                    ROUND_SUMMARY_UTTERANCE_ID
-                )
-            } else {
-                speakSystem(
-                    en = "Skipped.",
-                    cs = "Přeskakuji.",
-                    utteranceId = FEEDBACK_UTTERANCE_ID
+                    text,
+                    if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID
+                    else FEEDBACK_UTTERANCE_ID
                 )
             }
-        } else {
-            val skip = triviaEngine.skipCurrent()
-            if (skip.roundFinished) {
-                speak(
-                    localizedRoundSummary(),
-                    ROUND_SUMMARY_UTTERANCE_ID
-                )
-            } else {
-                speakSystem(
-                    en = "Skipped.",
-                    cs = "Přeskakuji.",
-                    utteranceId = FEEDBACK_UTTERANCE_ID
-                )
+
+            ActiveGame.TRIVIA -> {
+                val skip = triviaEngine.skipCurrent()
+                if (skip.roundFinished) {
+                    speak(
+                        localizedRoundSummary(),
+                        ROUND_SUMMARY_UTTERANCE_ID
+                    )
+                } else {
+                    speakSystem(
+                        en = "Skipped.",
+                        cs = "Přeskakuji.",
+                        utteranceId = FEEDBACK_UTTERANCE_ID
+                    )
+                }
             }
         }
     }
@@ -877,22 +1103,30 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             "I didn't catch an answer. Skipping this one."
         }
 
-        if (activeGame == ActiveGame.SPELLING) {
-            val finished = spellingEngine.skipCurrent()
-            if (finished) {
-                speak(
-                    text + " " + spellingEngine.roundSummary(triviaEngine.language()),
-                    ROUND_SUMMARY_UTTERANCE_ID
-                )
-            } else {
-                speak(text, FEEDBACK_UTTERANCE_ID)
+        when (activeGame) {
+            ActiveGame.SPELLING -> {
+                val finished = spellingEngine.skipCurrent()
+                if (finished) {
+                    speak(
+                        text + " " + spellingEngine.roundSummary(triviaEngine.language()),
+                        ROUND_SUMMARY_UTTERANCE_ID
+                    )
+                } else {
+                    speak(text, FEEDBACK_UTTERANCE_ID)
+                }
             }
-        } else {
-            val skip = triviaEngine.skipCurrent()
-            if (skip.roundFinished) {
-                speak(text + " " + localizedRoundSummary(), ROUND_SUMMARY_UTTERANCE_ID)
-            } else {
-                speak(text, FEEDBACK_UTTERANCE_ID)
+
+            ActiveGame.GUESS_WHO -> {
+                nextGuessWhoHint(auto = true)
+            }
+
+            ActiveGame.TRIVIA -> {
+                val skip = triviaEngine.skipCurrent()
+                if (skip.roundFinished) {
+                    speak(text + " " + localizedRoundSummary(), ROUND_SUMMARY_UTTERANCE_ID)
+                } else {
+                    speak(text, FEEDBACK_UTTERANCE_ID)
+                }
             }
         }
     }
@@ -901,6 +1135,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val normalized = normalizeCommand(text)
 
         val command = when {
+            activeGame == ActiveGame.GUESS_WHO &&
+                normalized in setOf(
+                    "next hint", "hint", "another hint", "give me a hint",
+                    "dalsi napoveda", "napoveda", "dej napovedu", "nevim", "nevím"
+                ) -> "hint"
+
             normalized in setOf("repeat", "repeat question", "again", "zopakuj", "znovu", "opakuj") ->
                 "repeat"
 
@@ -925,21 +1165,28 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         when (command) {
             "repeat" -> repeatCurrentQuestion()
             "skip" -> skipCurrentQuestion()
+            "hint" -> nextGuessWhoHint()
 
             "score" -> {
                 stopListening()
-                speak(
-                    triviaEngine.scoreSummary(),
-                    COMMAND_UTTERANCE_ID
-                )
+                val language = triviaEngine.language()
+                val summary = when (activeGame) {
+                    ActiveGame.SPELLING -> spellingEngine.scoreSummary(language)
+                    ActiveGame.GUESS_WHO -> guessWhoEngine.scoreSummary(language)
+                    ActiveGame.TRIVIA -> triviaEngine.scoreSummary()
+                }
+                speak(summary, COMMAND_UTTERANCE_ID)
             }
 
             "level" -> {
                 stopListening()
-                speak(
-                    triviaEngine.levelSummary(),
-                    COMMAND_UTTERANCE_ID
-                )
+                val language = triviaEngine.language()
+                val summary = when (activeGame) {
+                    ActiveGame.SPELLING -> spellingEngine.levelSummary(language)
+                    ActiveGame.GUESS_WHO -> guessWhoEngine.levelSummary(language)
+                    ActiveGame.TRIVIA -> triviaEngine.levelSummary()
+                }
+                speak(summary, COMMAND_UTTERANCE_ID)
             }
 
             "stop" -> {
