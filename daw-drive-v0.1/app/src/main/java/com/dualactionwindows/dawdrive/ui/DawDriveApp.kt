@@ -416,7 +416,7 @@ private fun TriviaProfileScreen(
                 onClick = onStart,
                 shape = RoundedCornerShape(18.dp)
             ) {
-                Text(if (cs) "Jednorázový setup" else "One-time setup")
+                Text(if (cs) "Nastavit / otevřít hry" else "Setup / Open Games")
             }
             SmallActionButton(
                 text = if (cs) "Debug logy" else "Debug Logs",
