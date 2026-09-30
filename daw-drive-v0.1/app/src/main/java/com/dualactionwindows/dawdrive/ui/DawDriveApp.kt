@@ -46,7 +46,7 @@ private enum class DawModule(
     val title: String,
     val subtitle: String
 ) {
-    Games("Road Games", "Quick Trivia + Spelling Bee"),
+    Games("Road Games", "Quick Trivia + Spelling Bee + Guess Who"),
     Video("Video", "Web browser"),
     Erp("DAW ERP", "Deals, contacts and next actions"),
     Tools("Tools", "Vehicle and utility tools")
@@ -304,6 +304,25 @@ private fun TriviaProfileScreen(
                 cs = cs
             )
         }
+
+        StatCard(
+            title = "Guess Who",
+            lines = if (cs) {
+                listOf(
+                    "Uhodni českou nebo světovou osobnost podle až tří nápověd.",
+                    "Můžeš tipnout jméno kdykoli nebo říct „další nápověda“.",
+                    "1. nápověda = nejvíc XP, 3. nápověda = méně XP.",
+                    "Vlastní level, XP, streak a 10 osobností v jednom kole."
+                )
+            } else {
+                listOf(
+                    "Guess a Czech or world personality from up to three clues.",
+                    "Guess the name at any time or say next hint.",
+                    "First-hint answers earn the most XP.",
+                    "Separate level, XP, streak and 10-person rounds."
+                )
+            }
+        )
 
         StatCard(
             title = "Spelling Bee",
