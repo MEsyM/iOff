@@ -59,6 +59,7 @@ fun DawDriveApp(
     achievementTitles: List<String>,
     onVideoClick: () -> Unit,
     onCarPreviewClick: () -> Unit,
+    onFamilySetupClick: () -> Unit,
     onDebugLogsClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
     onRoadVoiceStop: () -> Unit,
@@ -91,6 +92,7 @@ fun DawDriveApp(
                     dashboard = dashboard,
                     achievementTitles = achievementTitles,
                     onCarPreview = onCarPreviewClick,
+                    onFamilySetup = onFamilySetupClick,
                     onDebugLogs = onDebugLogsClick,
                     onStart = onRoadVoiceStart,
                     onStop = onRoadVoiceStop,
@@ -211,6 +213,7 @@ private fun TriviaProfileScreen(
     dashboard: TriviaGameEngine.DashboardData,
     achievementTitles: List<String>,
     onCarPreview: () -> Unit,
+    onFamilySetup: () -> Unit,
     onDebugLogs: () -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
@@ -303,6 +306,32 @@ private fun TriviaProfileScreen(
                 questions = dashboard.missedQuestions,
                 cs = cs
             )
+        }
+
+        StatCard(
+            title = "Family",
+            lines = if (cs) {
+                listOf(
+                    "Multiplayer pro 2–6 hráčů se jmény uloženými v telefonu.",
+                    "Round: každý hraje vlastní tah, 100 bodů + bonus za sérii.",
+                    "Battle: první řekne svoje jméno jako hlasový buzzer, potom odpovídá.",
+                    "Battle otázky mají 100 / 200 / 300 bodů; chyba body odečte a pustí ostatní."
+                )
+            } else {
+                listOf(
+                    "Multiplayer for 2–6 saved players.",
+                    "Round: rotating turns, 100 points plus personal streak bonuses.",
+                    "Battle: say your player name first to buzz in, then answer.",
+                    "Battle questions are worth 100 / 200 / 300 points; wrong answers lose points and reopen the question."
+                )
+            }
+        )
+
+        Button(
+            onClick = onFamilySetup,
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Text(if (cs) "Nastavit Family hráče / mód" else "Family players / mode")
         }
 
         StatCard(
