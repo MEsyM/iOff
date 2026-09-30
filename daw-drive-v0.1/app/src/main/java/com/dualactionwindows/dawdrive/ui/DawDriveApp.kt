@@ -60,6 +60,7 @@ fun DawDriveApp(
     onVideoClick: () -> Unit,
     onCarPreviewClick: () -> Unit,
     onDebugLogsClick: () -> Unit,
+    onFamilyGameClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
     onRoadVoiceStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
@@ -92,6 +93,7 @@ fun DawDriveApp(
                     achievementTitles = achievementTitles,
                     onCarPreview = onCarPreviewClick,
                     onDebugLogs = onDebugLogsClick,
+                    onFamilyGame = onFamilyGameClick,
                     onStart = onRoadVoiceStart,
                     onStop = onRoadVoiceStop,
                     onLanguageChange = onLanguageChange,
@@ -212,6 +214,7 @@ private fun TriviaProfileScreen(
     achievementTitles: List<String>,
     onCarPreview: () -> Unit,
     onDebugLogs: () -> Unit,
+    onFamilyGame: () -> Unit,
     onStart: () -> Unit,
     onStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
@@ -303,6 +306,33 @@ private fun TriviaProfileScreen(
                 questions = dashboard.missedQuestions,
                 cs = cs
             )
+        }
+
+        StatCard(
+            title = "Family Game",
+            lines = if (cs) {
+                listOf(
+                    "Multiplayer pro 2 až 6 hráčů se jmény a uloženým setupem.",
+                    "Kola: každý dostane vlastní otázku, body rostou se streakem.",
+                    "Battle: otázka pro všechny, hráč buzzne svým jménem a pak odpovídá.",
+                    "Funguje i rychlá varianta „Petr, Napoleon“ a ruční buzz tlačítky."
+                )
+            } else {
+                listOf(
+                    "Multiplayer for 2–6 named players with saved setup.",
+                    "Rounds: each player gets a question and streaks increase points.",
+                    "Battle: question for everyone, say your name to buzz, then answer.",
+                    "Also supports “Petr, Napoleon” in one phrase and manual buzz buttons."
+                )
+            }
+        )
+
+        Button(
+            onClick = onFamilyGame,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Text(if (cs) "Spustit Family Game" else "Start Family Game")
         }
 
         StatCard(
