@@ -548,7 +548,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val definition = if (cs) word.definitionCs else word.definitionEn
         val text = if (cs) {
             "Slovo je " + word.word + ". Význam: " + definition +
-                ". Vyhláskuj ho anglicky."
+                ". Vyhláskuj ho česky, názvy písmen."
         } else {
             "Your word is " + word.word + ". Definition: " + definition +
                 ". Spell it now."
@@ -570,11 +570,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             return
         }
 
-        val locale = if (activeGame == ActiveGame.SPELLING) {
-            Locale.US
-        } else {
-            triviaEngine.language().locale
-        }
+        val locale = triviaEngine.language().locale
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
@@ -637,7 +633,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         stopListening()
         awaitingAnswer = false
 
-        val result = spellingEngine.evaluate(candidates)
+        val result = spellingEngine.evaluate(
+            candidates,
+            triviaEngine.language()
+        )
         artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
         updateMetadata()
 
