@@ -37,6 +37,9 @@ class FamilyGameEngine(context: Context) {
         val id: Int,
         val name: String,
         val difficulty: Difficulty,
+        val adaptiveOffset: Int,
+        val effectiveMinDifficulty: Int,
+        val effectiveMaxDifficulty: Int,
         val score: Int,
         val streak: Int,
         val bestStreak: Int
@@ -126,16 +129,23 @@ class FamilyGameEngine(context: Context) {
     fun players(): List<Player> {
         val difficulties = playerDifficulties()
         return playerNames().mapIndexed { index, name ->
-        Player(
-            id = index,
-            name = name,
-            difficulty = difficulties.getOrNull(index) ?: Difficulty.NORMAL,
-            score = prefs.getInt(scoreKey(index), 0),
-            streak = prefs.getInt(streakKey(index), 0),
-            bestStreak = prefs.getInt(bestStreakKey(index), 0)
-        )
-    }
-    }
+            val difficulty = difficulties.getOrNull(index) ?: Difficulty.NORMAL
+            val offset = prefs.getInt(adaptiveOffsetKey(index), 0)
+                .coerceIn(MIN_ADAPTIVE_OFFSET, MAX_ADAPTIVE_OFFSET)
+            val range = effectiveDifficultyRange(difficulty, offset)
+
+            Player(
+                id = index,
+                name = name,
+                difficulty = difficulty,
+                adaptiveOffset = offset,
+                effectiveMinDifficulty = range.first,
+                effectiveMaxDifficulty = range.last,
+                score = prefs.getInt(scoreKey(index), 0),
+                streak = prefs.getInt(streakKey(index), 0),
+                bestStreak = prefs.getInt(bestStreakKey(index), 0)
+            )
+        }
 
     fun currentPlayer(): Player {
         val all = players()
@@ -169,8 +179,8 @@ class FamilyGameEngine(context: Context) {
             TriviaQuestionBank.questions
         }
         val preferredDifficulty = if (mode() == Mode.ROUND) {
-            val difficulty = currentPlayer().difficulty
-            difficulty.minQuestionDifficulty..difficulty.maxQuestionDifficulty
+            val player = currentPlayer()
+            player.effectiveMinDifficulty..player.effectiveMaxDifficulty
         } else {
             battleDifficultyRange()
         }
@@ -197,18 +207,24 @@ class FamilyGameEngine(context: Context) {
             } else {
                 player.difficulty.labelEn()
             }
-            player.name + ": " + label
+            val adaptive = when {
+                player.adaptiveOffset > 0 -> " +" + player.adaptiveOffset
+                player.adaptiveOffset < 0 -> " " + player.adaptiveOffset
+                else -> ""
+            }
+            player.name + ": " + label + adaptive
         }
 
     private fun battleDifficultyRange(): IntRange {
         val levels = players().map { player ->
-            when (player.difficulty) {
+            val base = when (player.difficulty) {
                 Difficulty.KIDS -> 1
                 Difficulty.EASY -> 2
                 Difficulty.NORMAL -> 3
                 Difficulty.HARD -> 4
                 Difficulty.EXPERT -> 5
             }
+            (base + player.adaptiveOffset).coerceIn(1, 5)
         }
 
         if (levels.isEmpty()) return 2..3
@@ -249,6 +265,7 @@ class FamilyGameEngine(context: Context) {
         val newScore = player.score + delta
 
         persistPlayer(player.id, newScore, newStreak, max(player.bestStreak, newStreak))
+        updateAdaptiveDifficulty(player.id, correct)
         finishQuestion()
         turnIndex = (turnIndex + 1) % players().size
         prefs.edit().putInt(KEY_TURN_INDEX, turnIndex).apply()
@@ -277,6 +294,7 @@ class FamilyGameEngine(context: Context) {
         val delta = if (correct) question.value + streakBonus else -question.value
         val newScore = player.score + delta
         persistPlayer(player.id, newScore, newStreak, max(player.bestStreak, newStreak))
+        updateAdaptiveDifficulty(player.id, correct)
 
         if (correct) {
             finishQuestion()
@@ -344,7 +362,54 @@ class FamilyGameEngine(context: Context) {
         } else {
             players().forEach { player -> editor.putInt(streakKey(player.id), 0) }
         }
+
+        players().forEach { player ->
+            editor.putInt(adaptiveOffsetKey(player.id), 0)
+            editor.putInt(adaptiveCorrectRunKey(player.id), 0)
+            editor.putInt(adaptiveWrongRunKey(player.id), 0)
+        }
         editor.apply()
+    }
+
+    private fun effectiveDifficultyRange(
+        difficulty: Difficulty,
+        adaptiveOffset: Int
+    ): IntRange {
+        val shift = adaptiveOffset.coerceIn(MIN_ADAPTIVE_OFFSET, MAX_ADAPTIVE_OFFSET)
+        val min = (difficulty.minQuestionDifficulty + shift).coerceIn(1, 5)
+        val max = (difficulty.maxQuestionDifficulty + shift).coerceIn(1, 5)
+        return min.coerceAtMost(max)..max.coerceAtLeast(min)
+    }
+
+    private fun updateAdaptiveDifficulty(playerId: Int, correct: Boolean) {
+        var offset = prefs.getInt(adaptiveOffsetKey(playerId), 0)
+            .coerceIn(MIN_ADAPTIVE_OFFSET, MAX_ADAPTIVE_OFFSET)
+        var correctRun = prefs.getInt(adaptiveCorrectRunKey(playerId), 0)
+        var wrongRun = prefs.getInt(adaptiveWrongRunKey(playerId), 0)
+
+        if (correct) {
+            correctRun += 1
+            wrongRun = 0
+
+            if (correctRun >= CORRECTS_TO_LEVEL_UP) {
+                offset = (offset + 1).coerceAtMost(MAX_ADAPTIVE_OFFSET)
+                correctRun = 0
+            }
+        } else {
+            wrongRun += 1
+            correctRun = 0
+
+            if (wrongRun >= WRONGS_TO_LEVEL_DOWN) {
+                offset = (offset - 1).coerceAtLeast(MIN_ADAPTIVE_OFFSET)
+                wrongRun = 0
+            }
+        }
+
+        prefs.edit()
+            .putInt(adaptiveOffsetKey(playerId), offset)
+            .putInt(adaptiveCorrectRunKey(playerId), correctRun)
+            .putInt(adaptiveWrongRunKey(playerId), wrongRun)
+            .apply()
     }
 
     private fun finishQuestion() {
@@ -422,6 +487,9 @@ class FamilyGameEngine(context: Context) {
     private fun scoreKey(id: Int) = "score_" + id
     private fun streakKey(id: Int) = "streak_" + id
     private fun bestStreakKey(id: Int) = "best_streak_" + id
+    private fun adaptiveOffsetKey(id: Int) = "adaptive_offset_" + id
+    private fun adaptiveCorrectRunKey(id: Int) = "adaptive_correct_run_" + id
+    private fun adaptiveWrongRunKey(id: Int) = "adaptive_wrong_run_" + id
     private fun scoreKeys() = (0 until MAX_PLAYERS).map(::scoreKey)
     private fun streakKeys() = (0 until MAX_PLAYERS).map(::streakKey)
     private fun bestStreakKeys() = (0 until MAX_PLAYERS).map(::bestStreakKey)
@@ -445,5 +513,10 @@ class FamilyGameEngine(context: Context) {
         private const val ROUND_STREAK_CAP = 150
         private const val BATTLE_STREAK_BONUS = 20
         private const val BATTLE_STREAK_CAP = 100
+
+        private const val CORRECTS_TO_LEVEL_UP = 3
+        private const val WRONGS_TO_LEVEL_DOWN = 2
+        private const val MIN_ADAPTIVE_OFFSET = -2
+        private const val MAX_ADAPTIVE_OFFSET = 2
     }
 }
