@@ -16,6 +16,8 @@ import android.os.Looper
 import android.os.SystemClock
 import android.net.Uri
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -47,6 +49,43 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var speechRecognizer: SpeechRecognizer? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    private lateinit var audioManager: AudioManager
+    private lateinit var audioFocusRequest: AudioFocusRequest
+    private var hasAudioFocus = false
+    private var pendingSpeech: Pair<String, String>? = null
+
+    private val audioFocusListener = AudioManager.OnAudioFocusChangeListener { change ->
+        DawDebugLog.log(
+            this,
+            "AUDIO_FOCUS_CHANGE",
+            "change=" + audioFocusChangeName(change) +
+                " activeGame=" + activeGame +
+                " ttsReady=" + ttsReady
+        )
+
+        when (change) {
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                hasAudioFocus = true
+                pendingSpeech?.let { pending ->
+                    pendingSpeech = null
+                    performTtsSpeak(pending.first, pending.second)
+                }
+            }
+
+            AudioManager.AUDIOFOCUS_LOSS,
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                hasAudioFocus = false
+                if (::tts.isInitialized) {
+                    tts.stop()
+                }
+            }
+
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                hasAudioFocus = false
+            }
+        }
+    }
+
     private var ttsReady = false
     private var voiceModeEnabled = false
     private var awaitingAnswer = false
@@ -60,7 +99,23 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     override fun onCreate() {
         super.onCreate()
 
+        DawDebugLog.log(this, "SERVICE_CREATE")
         createNotificationChannels()
+
+        audioManager = getSystemService(AudioManager::class.java)
+        val playbackAttributes = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+            .build()
+
+        audioFocusRequest = AudioFocusRequest.Builder(
+            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
+        )
+            .setAudioAttributes(playbackAttributes)
+            .setAcceptsDelayedFocusGain(true)
+            .setOnAudioFocusChangeListener(audioFocusListener, mainHandler)
+            .build()
+
         triviaEngine = TriviaGameEngine(this)
         spellingEngine = SpellingBeeEngine(this)
         tts = TextToSpeech(this, this)
@@ -70,26 +125,32 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         mediaSession = MediaSessionCompat(this, "DAWDriveQuickTrivia").apply {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
+                    DawDebugLog.log(this@RoadGameMediaService, "MEDIA_ON_PLAY", "game=" + activeGame)
                     startOrResumeActiveGame()
                 }
 
                 override fun onPause() {
+                    DawDebugLog.log(this@RoadGameMediaService, "MEDIA_ON_PAUSE", "game=" + activeGame)
                     pauseGame()
                 }
 
                 override fun onStop() {
+                    DawDebugLog.log(this@RoadGameMediaService, "MEDIA_ON_STOP", "game=" + activeGame)
                     shutdownService()
                 }
 
                 override fun onSkipToNext() {
+                    DawDebugLog.log(this@RoadGameMediaService, "MEDIA_NEXT", "game=" + activeGame)
                     skipCurrentQuestion()
                 }
 
                 override fun onSkipToPrevious() {
+                    DawDebugLog.log(this@RoadGameMediaService, "MEDIA_PREVIOUS", "game=" + activeGame)
                     repeatCurrentQuestion()
                 }
 
                 override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
+                    DawDebugLog.log(this@RoadGameMediaService, "MEDIA_PLAY_FROM_ID", "mediaId=" + mediaId)
                     when (mediaId) {
                         MEDIA_ID_SPELLING -> {
                             activeGame = ActiveGame.SPELLING
@@ -105,6 +166,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 }
 
                 override fun onPlayFromSearch(query: String?, extras: Bundle?) {
+                    DawDebugLog.log(this@RoadGameMediaService, "MEDIA_PLAY_FROM_SEARCH", "query=" + query.orEmpty())
                     val spoken = query.orEmpty().trim()
                     if (spoken.isBlank()) {
                         startOrResumeActiveGame()
@@ -131,6 +193,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
                     MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
             )
+            setPlaybackToLocal(AudioManager.STREAM_MUSIC)
             isActive = true
         }
 
@@ -147,13 +210,23 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
             setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) = Unit
-                override fun onBeginningOfSpeech() = Unit
+                override fun onReadyForSpeech(params: Bundle?) {
+                    DawDebugLog.log(this@RoadGameMediaService, "STT_READY", "game=" + activeGame)
+                }
+                override fun onBeginningOfSpeech() {
+                    DawDebugLog.log(this@RoadGameMediaService, "STT_BEGIN", "game=" + activeGame)
+                }
                 override fun onRmsChanged(rmsdB: Float) = Unit
                 override fun onBufferReceived(buffer: ByteArray?) = Unit
                 override fun onEndOfSpeech() = Unit
 
                 override fun onError(error: Int) {
+                    DawDebugLog.log(
+                        this@RoadGameMediaService,
+                        "STT_ERROR",
+                        "code=" + error + " game=" + activeGame +
+                            " awaitingAnswer=" + awaitingAnswer
+                    )
                     listening = false
                     if (!voiceModeEnabled || !awaitingAnswer) return
 
@@ -175,6 +248,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         .orEmpty()
                         .map { it.trim() }
                         .filter { it.isNotBlank() }
+
+                    DawDebugLog.log(
+                        this@RoadGameMediaService,
+                        "STT_RESULTS",
+                        "game=" + activeGame + " candidates=" + candidates.joinToString(" / ")
+                    )
 
                     if (candidates.isEmpty()) {
                         startListeningForAnswer()
@@ -201,6 +280,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        DawDebugLog.log(
+            this,
+            "SERVICE_START_COMMAND",
+            "action=" + intent?.action + " startId=" + startId
+        )
         when (intent?.action) {
             ACTION_START_VOICE -> {
                 activateRoadVoiceForeground()
@@ -224,6 +308,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     override fun onInit(status: Int) {
+        DawDebugLog.log(this, "TTS_INIT", "status=" + status)
         if (status != TextToSpeech.SUCCESS) return
 
         ttsReady = true
@@ -241,10 +326,30 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) = Unit
-            override fun onError(utteranceId: String?) = Unit
+            override fun onStart(utteranceId: String?) {
+                DawDebugLog.log(
+                    this@RoadGameMediaService,
+                    "TTS_START",
+                    "id=" + utteranceId + " game=" + activeGame
+                )
+            }
+
+            override fun onError(utteranceId: String?) {
+                DawDebugLog.log(
+                    this@RoadGameMediaService,
+                    "TTS_ERROR",
+                    "id=" + utteranceId + " game=" + activeGame
+                )
+                abandonAudioFocus("tts_error")
+            }
 
             override fun onDone(utteranceId: String?) {
+                DawDebugLog.log(
+                    this@RoadGameMediaService,
+                    "TTS_DONE",
+                    "id=" + utteranceId + " game=" + activeGame
+                )
+                abandonAudioFocus("tts_done")
                 when (utteranceId) {
                     SESSION_INTRO_UTTERANCE_ID -> {
                         mainHandler.post {
@@ -493,6 +598,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         artworkState = ArtworkState.LISTENING
         updateMetadata()
         listening = true
+        DawDebugLog.log(
+            this,
+            "STT_START",
+            "game=" + activeGame + " locale=" + locale.toLanguageTag()
+        )
         recognizer.startListening(intent)
     }
 
@@ -833,6 +943,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun shutdownService() {
+        DawDebugLog.log(this, "SERVICE_SHUTDOWN", "game=" + activeGame)
         mainHandler.removeCallbacksAndMessages(null)
         stopListening()
         awaitingAnswer = false
@@ -847,6 +958,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             setPlaybackState(PlaybackStateCompat.STATE_STOPPED)
             mediaSession.isActive = false
         }
+        abandonAudioFocus("shutdown")
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -857,6 +969,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun ensurePlaybackForeground(): Boolean {
+        DawDebugLog.log(
+            this,
+            "FOREGROUND_REQUEST",
+            "voiceMode=" + voiceModeEnabled + " game=" + activeGame
+        )
         return try {
             val type = if (voiceModeEnabled) {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
@@ -881,12 +998,15 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         ) != PackageManager.PERMISSION_GRANTED
                 )
             }
+            DawDebugLog.log(this, "FOREGROUND_OK", "voiceMode=" + voiceModeEnabled)
             true
-        } catch (_: ForegroundServiceStartNotAllowedException) {
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            DawDebugLog.log(this, "FOREGROUND_BLOCKED", e.javaClass.simpleName + ": " + e.message)
             setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
             showEnableRoadVoiceNotification(needsPermission = false)
             false
-        } catch (_: SecurityException) {
+        } catch (e: SecurityException) {
+            DawDebugLog.log(this, "FOREGROUND_SECURITY_ERROR", e.message.orEmpty())
             setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
             showEnableRoadVoiceNotification(needsPermission = false)
             false
@@ -1083,14 +1203,110 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         text: String,
         utteranceId: String
     ) {
-        if (!ttsReady) return
+        if (!ttsReady) {
+            DawDebugLog.log(
+                this,
+                "TTS_SKIP_NOT_READY",
+                "id=" + utteranceId + " game=" + activeGame
+            )
+            return
+        }
+
         applyVoiceLanguage()
-        tts.speak(
+        val focusResult = audioManager.requestAudioFocus(audioFocusRequest)
+
+        DawDebugLog.log(
+            this,
+            "AUDIO_FOCUS_REQUEST",
+            "result=" + audioFocusRequestName(focusResult) +
+                " id=" + utteranceId +
+                " game=" + activeGame +
+                " text=" + text.take(120)
+        )
+
+        when (focusResult) {
+            AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> {
+                hasAudioFocus = true
+                pendingSpeech = null
+                performTtsSpeak(text, utteranceId)
+            }
+
+            AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> {
+                hasAudioFocus = false
+                pendingSpeech = text to utteranceId
+                setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            }
+
+            else -> {
+                hasAudioFocus = false
+                pendingSpeech = text to utteranceId
+                setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+                mainHandler.postDelayed({
+                    if (pendingSpeech != null) {
+                        DawDebugLog.log(
+                            this,
+                            "AUDIO_FOCUS_RETRY",
+                            "id=" + utteranceId + " game=" + activeGame
+                        )
+                        val retry = audioManager.requestAudioFocus(audioFocusRequest)
+                        DawDebugLog.log(
+                            this,
+                            "AUDIO_FOCUS_RETRY_RESULT",
+                            "result=" + audioFocusRequestName(retry)
+                        )
+                        if (retry == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                            hasAudioFocus = true
+                            pendingSpeech = null
+                            performTtsSpeak(text, utteranceId)
+                        }
+                    }
+                }, 700)
+            }
+        }
+    }
+
+    private fun performTtsSpeak(text: String, utteranceId: String) {
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        val result = tts.speak(
             text,
             TextToSpeech.QUEUE_FLUSH,
             null,
             utteranceId
         )
+        DawDebugLog.log(
+            this,
+            "TTS_SPEAK_CALL",
+            "id=" + utteranceId +
+                " result=" + result +
+                " focus=" + hasAudioFocus +
+                " game=" + activeGame
+        )
+    }
+
+    private fun abandonAudioFocus(reason: String) {
+        if (!::audioManager.isInitialized || !::audioFocusRequest.isInitialized) return
+        val result = audioManager.abandonAudioFocusRequest(audioFocusRequest)
+        hasAudioFocus = false
+        DawDebugLog.log(
+            this,
+            "AUDIO_FOCUS_ABANDON",
+            "reason=" + reason + " result=" + result
+        )
+    }
+
+    private fun audioFocusRequestName(result: Int): String = when (result) {
+        AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> "GRANTED"
+        AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> "DELAYED"
+        AudioManager.AUDIOFOCUS_REQUEST_FAILED -> "FAILED"
+        else -> result.toString()
+    }
+
+    private fun audioFocusChangeName(change: Int): String = when (change) {
+        AudioManager.AUDIOFOCUS_GAIN -> "GAIN"
+        AudioManager.AUDIOFOCUS_LOSS -> "LOSS"
+        AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> "LOSS_TRANSIENT"
+        AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> "LOSS_CAN_DUCK"
+        else -> change.toString()
     }
 
     private fun speakSystem(
@@ -1162,7 +1378,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     override fun onDestroy() {
+        DawDebugLog.log(this, "SERVICE_DESTROY", "game=" + activeGame)
         mainHandler.removeCallbacksAndMessages(null)
+        abandonAudioFocus("destroy")
         stopListening()
         speechRecognizer?.destroy()
         speechRecognizer = null
