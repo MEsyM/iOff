@@ -36,16 +36,16 @@ jobs:
         run: gradle -p daw-drive-v0.1 assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk DAW-Drive-v0.21.apk
+        run: cp daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk DAW-Drive-v0.22.apk
 
       - name: Verify APK
         run: |
-          ls -lh DAW-Drive-v0.21.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose DAW-Drive-v0.21.apk
+          ls -lh DAW-Drive-v0.22.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose DAW-Drive-v0.22.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DAW-Drive-v0.21-apk
-          path: DAW-Drive-v0.21.apk
+          name: DAW-Drive-v0.22-apk
+          path: DAW-Drive-v0.22.apk
           if-no-files-found: error
