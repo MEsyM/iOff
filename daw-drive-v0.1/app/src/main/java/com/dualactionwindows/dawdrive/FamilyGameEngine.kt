@@ -4,6 +4,7 @@ import android.content.Context
 import java.text.Normalizer
 import java.util.Locale
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 class FamilyGameEngine(context: Context) {
 
@@ -48,10 +49,17 @@ class FamilyGameEngine(context: Context) {
     data class Question(
         val id: String,
         val difficulty: Int,
+        val category: TriviaQuestionBank.Category,
         val categoryName: String,
         val prompt: String,
         val answers: List<String>,
         val explanation: String,
+        val value: Int,
+        val bonusRound: Boolean
+    )
+
+    data class BattleChoice(
+        val category: TriviaQuestionBank.Category,
         val value: Int
     )
 
@@ -65,7 +73,10 @@ class FamilyGameEngine(context: Context) {
         val streak: Int,
         val questionResolved: Boolean,
         val sessionFinished: Boolean,
-        val remainingBuzzers: Int
+        val remainingBuzzers: Int,
+        val stealAttempt: Int,
+        val winnerSelectsNext: Boolean,
+        val bonusRound: Boolean
     )
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -146,6 +157,7 @@ class FamilyGameEngine(context: Context) {
                 bestStreak = prefs.getInt(bestStreakKey(index), 0)
             )
         }
+    }
 
     fun currentPlayer(): Player {
         val all = players()
@@ -156,57 +168,125 @@ class FamilyGameEngine(context: Context) {
 
     fun lockedPlayer(): Player? = lockedPlayerId?.let { id -> players().firstOrNull { it.id == id } }
 
+    fun battleSelector(): Player {
+        val all = players()
+        val id = prefs.getInt(KEY_BATTLE_SELECTOR_ID, all.firstOrNull()?.id ?: 0)
+        return all.firstOrNull { it.id == id } ?: all.first()
+    }
+
+    fun battleNeedsChoice(): Boolean =
+        mode() == Mode.BATTLE && currentQuestionId == null && !isBonusRound()
+
+    fun isBonusRound(): Boolean =
+        mode() == Mode.BATTLE && questionsAnswered >= BATTLE_REGULAR_QUESTIONS
+
+    fun availableBattleChoices(language: TriviaGameEngine.Language): String {
+        val cs = language == TriviaGameEngine.Language.CS
+        val categories = BATTLE_CATEGORIES.joinToString(", ") { categoryName(it, cs) }
+        return categories + ". " + if (cs) "Hodnoty 100, 200 nebo 300." else "Values 100, 200 or 300."
+    }
+
+    fun parseBattleChoice(candidates: List<String>): BattleChoice? {
+        if (!battleNeedsChoice()) return null
+        for (candidate in candidates) {
+            val normalized = normalize(candidate)
+            val category = BATTLE_CATEGORIES.firstOrNull { categoryMatches(normalized, it) } ?: continue
+            val value = when {
+                Regex("(^|\\s)300($|\\s)").containsMatchIn(normalized) ||
+                    "tri sta" in normalized || "three hundred" in normalized -> 300
+                Regex("(^|\\s)200($|\\s)").containsMatchIn(normalized) ||
+                    "dve ste" in normalized || "two hundred" in normalized -> 200
+                Regex("(^|\\s)100($|\\s)").containsMatchIn(normalized) ||
+                    "sto" in normalized || "one hundred" in normalized -> 100
+                else -> null
+            } ?: continue
+            return BattleChoice(category, value)
+        }
+        return null
+    }
+
+    fun chooseBattleQuestion(
+        choice: BattleChoice,
+        language: TriviaGameEngine.Language
+    ): Question {
+        require(mode() == Mode.BATTLE)
+        lockedPlayerId = null
+        excludedBuzzers.clear()
+
+        val recent = recentIds()
+        val basePool = TriviaQuestionBank.questions
+            .filter { it.category == choice.category }
+            .filterNot { it.id in recent }
+            .ifEmpty { TriviaQuestionBank.questions.filter { it.category == choice.category } }
+
+        val target = battleTargetDifficulty(choice.value)
+        val chosen = basePool
+            .minByOrNull { kotlin.math.abs(it.difficulty - target) + if (it.id in recent) 3 else 0 }
+            ?: TriviaQuestionBank.questions.random()
+
+        setCurrentQuestion(chosen.id, choice.value)
+        return localize(chosen, language, choice.value, false)
+    }
+
     fun startOrResume(language: TriviaGameEngine.Language): Question {
         if (questionsAnswered >= sessionSize()) resetSession(keepScores = true)
-        return currentQuestion(language) ?: nextQuestion(language)
+        currentQuestion(language)?.let { return it }
+
+        return if (mode() == Mode.BATTLE) {
+            if (isBonusRound()) nextBonusQuestion(language)
+            else throw IllegalStateException("Battle requires category/value selection")
+        } else {
+            nextQuestion(language)
+        }
     }
 
     fun currentQuestion(language: TriviaGameEngine.Language): Question? {
-        val raw = currentQuestionId?.let { id -> TriviaQuestionBank.questions.firstOrNull { it.id == id } }
-            ?: return null
-        return localize(raw, language)
+        val raw = currentQuestionId?.let { id ->
+            TriviaQuestionBank.questions.firstOrNull { it.id == id }
+        } ?: return null
+        val value = prefs.getInt(KEY_BATTLE_VALUE, valueForDifficulty(raw.difficulty))
+        return localize(raw, language, value, isBonusRound())
     }
 
     fun nextQuestion(language: TriviaGameEngine.Language): Question {
         lockedPlayerId = null
         excludedBuzzers.clear()
 
-        val recent = prefs.getString(KEY_RECENT_IDS, "")
-            ?.split(",")
-            ?.filter { it.isNotBlank() }
-            .orEmpty()
+        if (mode() == Mode.BATTLE) {
+            return if (isBonusRound()) nextBonusQuestion(language)
+            else throw IllegalStateException("Battle requires category/value selection")
+        }
+
+        val player = currentPlayer()
+        val range = player.effectiveMinDifficulty..player.effectiveMaxDifficulty
+        val recent = recentIds()
         val pool = TriviaQuestionBank.questions.filterNot { it.id in recent }.ifEmpty {
             TriviaQuestionBank.questions
         }
-        val preferredDifficulty = if (mode() == Mode.ROUND) {
-            val player = currentPlayer()
-            player.effectiveMinDifficulty..player.effectiveMaxDifficulty
-        } else {
-            battleDifficultyRange()
+        val chosen = pool.filter { it.difficulty in range }.ifEmpty { pool }.random()
+        setCurrentQuestion(chosen.id, valueForDifficulty(chosen.difficulty))
+        return localize(chosen, language, valueForDifficulty(chosen.difficulty), false)
+    }
+
+    private fun nextBonusQuestion(language: TriviaGameEngine.Language): Question {
+        lockedPlayerId = null
+        excludedBuzzers.clear()
+
+        val recent = recentIds()
+        val range = battleDifficultyRange()
+        val pool = TriviaQuestionBank.questions.filterNot { it.id in recent }.ifEmpty {
+            TriviaQuestionBank.questions
         }
-
-        val chosen = pool
-            .filter { it.difficulty in preferredDifficulty }
-            .ifEmpty { pool }
-            .random()
-        currentQuestionId = chosen.id
-
-        val updatedRecent = (recent + chosen.id).takeLast(RECENT_WINDOW)
-        prefs.edit()
-            .putString(KEY_QUESTION_ID, chosen.id)
-            .putString(KEY_RECENT_IDS, updatedRecent.joinToString(","))
-            .apply()
-
-        return localize(chosen, language)
+        val chosen = pool.filter { it.difficulty in range }.ifEmpty { pool }.random()
+        val value = valueForDifficulty(chosen.difficulty) * BONUS_MULTIPLIER
+        setCurrentQuestion(chosen.id, value)
+        return localize(chosen, language, value, true)
     }
 
     fun difficultySummary(language: TriviaGameEngine.Language): String =
         players().joinToString(" • ") { player ->
-            val label = if (language == TriviaGameEngine.Language.CS) {
-                player.difficulty.labelCs()
-            } else {
-                player.difficulty.labelEn()
-            }
+            val label = if (language == TriviaGameEngine.Language.CS) player.difficulty.labelCs()
+            else player.difficulty.labelEn()
             val adaptive = when {
                 player.adaptiveOffset > 0 -> " +" + player.adaptiveOffset
                 player.adaptiveOffset < 0 -> " " + player.adaptiveOffset
@@ -217,32 +297,36 @@ class FamilyGameEngine(context: Context) {
 
     private fun battleDifficultyRange(): IntRange {
         val levels = players().map { player ->
-            val base = when (player.difficulty) {
-                Difficulty.KIDS -> 1
-                Difficulty.EASY -> 2
-                Difficulty.NORMAL -> 3
-                Difficulty.HARD -> 4
-                Difficulty.EXPERT -> 5
-            }
-            (base + player.adaptiveOffset).coerceIn(1, 5)
+            (baseDifficultyLevel(player.difficulty) + player.adaptiveOffset).coerceIn(1, 5)
         }
-
         if (levels.isEmpty()) return 2..3
-
         val sorted = levels.sorted()
-        val median = if (sorted.size % 2 == 1) {
-            sorted[sorted.size / 2]
-        } else {
-            ((sorted[sorted.size / 2 - 1] + sorted[sorted.size / 2]) / 2.0)
-                .toInt()
-                .coerceIn(1, 5)
-        }
-
+        val median = if (sorted.size % 2 == 1) sorted[sorted.size / 2]
+        else ((sorted[sorted.size / 2 - 1] + sorted[sorted.size / 2]) / 2.0).roundToInt()
         return (median - 1).coerceAtLeast(1)..(median + 1).coerceAtMost(5)
     }
 
+    private fun battleTargetDifficulty(value: Int): Int {
+        val levels = players().map { player ->
+            (baseDifficultyLevel(player.difficulty) + player.adaptiveOffset).coerceIn(1, 5)
+        }.sorted()
+        val median = if (levels.isEmpty()) 3 else if (levels.size % 2 == 1) {
+            levels[levels.size / 2]
+        } else {
+            ((levels[levels.size / 2 - 1] + levels[levels.size / 2]) / 2.0).roundToInt()
+        }
+        val shift = when (value) {
+            100 -> -1
+            300 -> 1
+            else -> 0
+        }
+        return (median + shift).coerceIn(1, 5)
+    }
+
     fun buzz(candidates: List<String>): Player? {
-        if (mode() != Mode.BATTLE || lockedPlayerId != null) return lockedPlayer()
+        if (mode() != Mode.BATTLE || lockedPlayerId != null || currentQuestionId == null) {
+            return lockedPlayer()
+        }
         val available = players().filterNot { it.id in excludedBuzzers }
         val found = candidates.asSequence()
             .map(::normalize)
@@ -255,12 +339,13 @@ class FamilyGameEngine(context: Context) {
 
     fun answerRound(candidates: List<String>, language: TriviaGameEngine.Language): AnswerResult {
         val player = currentPlayer()
-        val question = currentQuestion(language) ?: startOrResume(language)
+        val question = currentQuestion(language) ?: nextQuestion(language)
         val correct = answerMatches(candidates, question.answers)
 
-        val oldStreak = player.streak
-        val newStreak = if (correct) oldStreak + 1 else 0
-        val streakBonus = if (correct) ((newStreak - 1).coerceAtLeast(0) * ROUND_STREAK_BONUS).coerceAtMost(ROUND_STREAK_CAP) else 0
+        val newStreak = if (correct) player.streak + 1 else 0
+        val streakBonus = if (correct) {
+            ((newStreak - 1).coerceAtLeast(0) * ROUND_STREAK_BONUS).coerceAtMost(ROUND_STREAK_CAP)
+        } else 0
         val delta = if (correct) ROUND_BASE_POINTS + streakBonus else 0
         val newScore = player.score + delta
 
@@ -280,23 +365,39 @@ class FamilyGameEngine(context: Context) {
             streak = newStreak,
             questionResolved = true,
             sessionFinished = questionsAnswered >= sessionSize(),
-            remainingBuzzers = 0
+            remainingBuzzers = 0,
+            stealAttempt = 0,
+            winnerSelectsNext = false,
+            bonusRound = false
         )
     }
 
     fun answerBattle(candidates: List<String>, language: TriviaGameEngine.Language): AnswerResult {
         val player = lockedPlayer() ?: throw IllegalStateException("No player buzzed in")
-        val question = currentQuestion(language) ?: startOrResume(language)
+        val question = currentQuestion(language) ?: throw IllegalStateException("No active battle question")
         val correct = answerMatches(candidates, question.answers)
+        val attempt = excludedBuzzers.size + 1
 
         val newStreak = if (correct) player.streak + 1 else 0
-        val streakBonus = if (correct) ((newStreak - 1).coerceAtLeast(0) * BATTLE_STREAK_BONUS).coerceAtMost(BATTLE_STREAK_CAP) else 0
-        val delta = if (correct) question.value + streakBonus else -question.value
+        val streakBonus = if (correct) {
+            ((newStreak - 1).coerceAtLeast(0) * BATTLE_STREAK_BONUS).coerceAtMost(BATTLE_STREAK_CAP)
+        } else 0
+
+        val stealFactor = when (attempt) {
+            1 -> 1.0
+            2 -> 0.70
+            else -> 0.50
+        }
+        val earnedValue = (question.value * stealFactor).roundToInt()
+        val delta = if (correct) earnedValue + streakBonus else -question.value
         val newScore = player.score + delta
+
         persistPlayer(player.id, newScore, newStreak, max(player.bestStreak, newStreak))
         updateAdaptiveDifficulty(player.id, correct)
 
+        var resolved = correct
         if (correct) {
+            prefs.edit().putInt(KEY_BATTLE_SELECTOR_ID, player.id).apply()
             finishQuestion()
             lockedPlayerId = null
             excludedBuzzers.clear()
@@ -306,6 +407,7 @@ class FamilyGameEngine(context: Context) {
             if (excludedBuzzers.size >= players().size) {
                 finishQuestion()
                 excludedBuzzers.clear()
+                resolved = true
             }
         }
 
@@ -317,9 +419,12 @@ class FamilyGameEngine(context: Context) {
             pointsDelta = delta,
             newScore = newScore,
             streak = newStreak,
-            questionResolved = correct || currentQuestionId == null,
+            questionResolved = resolved,
             sessionFinished = questionsAnswered >= sessionSize(),
-            remainingBuzzers = (players().size - excludedBuzzers.size).coerceAtLeast(0)
+            remainingBuzzers = (players().size - excludedBuzzers.size).coerceAtLeast(0),
+            stealAttempt = attempt,
+            winnerSelectsNext = correct && !question.bonusRound && questionsAnswered < BATTLE_REGULAR_QUESTIONS,
+            bonusRound = question.bonusRound
         )
     }
 
@@ -339,7 +444,8 @@ class FamilyGameEngine(context: Context) {
         .sortedByDescending { it.score }
         .joinToString(" • ") { it.name + " " + it.score }
 
-    fun sessionSize(): Int = if (mode() == Mode.ROUND) players().size * ROUNDS_PER_PLAYER else BATTLE_QUESTIONS
+    fun sessionSize(): Int =
+        if (mode() == Mode.ROUND) players().size * ROUNDS_PER_PLAYER else BATTLE_TOTAL_QUESTIONS
 
     fun resetSession(keepScores: Boolean = false) {
         currentQuestionId = null
@@ -348,22 +454,25 @@ class FamilyGameEngine(context: Context) {
         lockedPlayerId = null
         excludedBuzzers.clear()
 
+        val allPlayers = players()
         val editor = prefs.edit()
             .remove(KEY_QUESTION_ID)
+            .remove(KEY_BATTLE_VALUE)
             .putInt(KEY_QUESTIONS_ANSWERED, 0)
             .putInt(KEY_TURN_INDEX, 0)
+            .putInt(KEY_BATTLE_SELECTOR_ID, allPlayers.firstOrNull()?.id ?: 0)
 
         if (!keepScores) {
-            players().forEach { player ->
+            allPlayers.forEach { player ->
                 editor.putInt(scoreKey(player.id), 0)
                 editor.putInt(streakKey(player.id), 0)
                 editor.putInt(bestStreakKey(player.id), 0)
             }
         } else {
-            players().forEach { player -> editor.putInt(streakKey(player.id), 0) }
+            allPlayers.forEach { player -> editor.putInt(streakKey(player.id), 0) }
         }
 
-        players().forEach { player ->
+        allPlayers.forEach { player ->
             editor.putInt(adaptiveOffsetKey(player.id), 0)
             editor.putInt(adaptiveCorrectRunKey(player.id), 0)
             editor.putInt(adaptiveWrongRunKey(player.id), 0)
@@ -371,10 +480,7 @@ class FamilyGameEngine(context: Context) {
         editor.apply()
     }
 
-    private fun effectiveDifficultyRange(
-        difficulty: Difficulty,
-        adaptiveOffset: Int
-    ): IntRange {
+    private fun effectiveDifficultyRange(difficulty: Difficulty, adaptiveOffset: Int): IntRange {
         val shift = adaptiveOffset.coerceIn(MIN_ADAPTIVE_OFFSET, MAX_ADAPTIVE_OFFSET)
         val min = (difficulty.minQuestionDifficulty + shift).coerceIn(1, 5)
         val max = (difficulty.maxQuestionDifficulty + shift).coerceIn(1, 5)
@@ -390,7 +496,6 @@ class FamilyGameEngine(context: Context) {
         if (correct) {
             correctRun += 1
             wrongRun = 0
-
             if (correctRun >= CORRECTS_TO_LEVEL_UP) {
                 offset = (offset + 1).coerceAtMost(MAX_ADAPTIVE_OFFSET)
                 correctRun = 0
@@ -398,7 +503,6 @@ class FamilyGameEngine(context: Context) {
         } else {
             wrongRun += 1
             correctRun = 0
-
             if (wrongRun >= WRONGS_TO_LEVEL_DOWN) {
                 offset = (offset - 1).coerceAtLeast(MIN_ADAPTIVE_OFFSET)
                 wrongRun = 0
@@ -417,9 +521,26 @@ class FamilyGameEngine(context: Context) {
         currentQuestionId = null
         prefs.edit()
             .remove(KEY_QUESTION_ID)
+            .remove(KEY_BATTLE_VALUE)
             .putInt(KEY_QUESTIONS_ANSWERED, questionsAnswered)
             .apply()
     }
+
+    private fun setCurrentQuestion(id: String, value: Int) {
+        currentQuestionId = id
+        val updatedRecent = (recentIds() + id).takeLast(RECENT_WINDOW)
+        prefs.edit()
+            .putString(KEY_QUESTION_ID, id)
+            .putInt(KEY_BATTLE_VALUE, value)
+            .putString(KEY_RECENT_IDS, updatedRecent.joinToString(","))
+            .apply()
+    }
+
+    private fun recentIds(): List<String> =
+        prefs.getString(KEY_RECENT_IDS, "")
+            ?.split(",")
+            ?.filter { it.isNotBlank() }
+            .orEmpty()
 
     private fun persistPlayer(id: Int, score: Int, streak: Int, best: Int) {
         prefs.edit()
@@ -429,20 +550,23 @@ class FamilyGameEngine(context: Context) {
             .apply()
     }
 
-    private fun localize(raw: TriviaQuestionBank.LocalizedQuestion, language: TriviaGameEngine.Language): Question {
+    private fun localize(
+        raw: TriviaQuestionBank.LocalizedQuestion,
+        language: TriviaGameEngine.Language,
+        value: Int,
+        bonusRound: Boolean
+    ): Question {
         val cs = language == TriviaGameEngine.Language.CS
         return Question(
             id = raw.id,
             difficulty = raw.difficulty,
+            category = raw.category,
             categoryName = categoryName(raw.category, cs),
             prompt = if (cs) raw.promptCs else raw.promptEn,
             answers = if (cs) raw.answersCs else raw.answersEn,
             explanation = if (cs) raw.explanationCs else raw.explanationEn,
-            value = when (raw.difficulty) {
-                1, 2 -> 100
-                3, 4 -> 200
-                else -> 300
-            }
+            value = value,
+            bonusRound = bonusRound
         )
     }
 
@@ -460,6 +584,23 @@ class FamilyGameEngine(context: Context) {
         TriviaQuestionBank.Category.NUMBERS -> if (cs) "Čísla" else "Numbers"
     }
 
+    private fun categoryMatches(spoken: String, category: TriviaQuestionBank.Category): Boolean {
+        val aliases = when (category) {
+            TriviaQuestionBank.Category.GEOGRAPHY -> listOf("geography", "geografie", "zemepis")
+            TriviaQuestionBank.Category.SCIENCE -> listOf("science", "veda")
+            TriviaQuestionBank.Category.HISTORY -> listOf("history", "historie", "dejepis")
+            TriviaQuestionBank.Category.GENERAL -> listOf("general", "obecne", "vseobecne")
+            TriviaQuestionBank.Category.TECHNOLOGY -> listOf("technology", "technologie")
+            TriviaQuestionBank.Category.NATURE -> listOf("nature", "priroda")
+            TriviaQuestionBank.Category.SPORTS -> listOf("sport", "sports")
+            TriviaQuestionBank.Category.CULTURE -> listOf("culture", "kultura")
+            TriviaQuestionBank.Category.MOVIES -> listOf("movies", "movie", "film", "filmy")
+            TriviaQuestionBank.Category.CARS -> listOf("cars", "car", "auta", "auto")
+            TriviaQuestionBank.Category.NUMBERS -> listOf("numbers", "cisla", "matematika")
+        }
+        return aliases.any { it in spoken }
+    }
+
     private fun answerMatches(candidates: List<String>, answers: List<String>): Boolean {
         val normalizedAnswers = answers.map(::normalize)
         return candidates.any { candidate ->
@@ -474,7 +615,10 @@ class FamilyGameEngine(context: Context) {
         if (spoken == name) return true
         val words = spoken.split(" ")
         if (name in words) return true
-        return spoken == "ja " + name || spoken == "jsem " + name || spoken == "i am " + name || spoken == "im " + name
+        return spoken == "ja " + name ||
+            spoken == "jsem " + name ||
+            spoken == "i am " + name ||
+            spoken == "im " + name
     }
 
     private fun normalize(value: String): String =
@@ -483,6 +627,20 @@ class FamilyGameEngine(context: Context) {
             .replace(Regex("[^a-z0-9\\s]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
+
+    private fun baseDifficultyLevel(difficulty: Difficulty): Int = when (difficulty) {
+        Difficulty.KIDS -> 1
+        Difficulty.EASY -> 2
+        Difficulty.NORMAL -> 3
+        Difficulty.HARD -> 4
+        Difficulty.EXPERT -> 5
+    }
+
+    private fun valueForDifficulty(difficulty: Int): Int = when (difficulty) {
+        1, 2 -> 100
+        3, 4 -> 200
+        else -> 300
+    }
 
     private fun scoreKey(id: Int) = "score_" + id
     private fun streakKey(id: Int) = "streak_" + id
@@ -503,11 +661,17 @@ class FamilyGameEngine(context: Context) {
         private const val KEY_QUESTIONS_ANSWERED = "questions_answered"
         private const val KEY_TURN_INDEX = "turn_index"
         private const val KEY_RECENT_IDS = "recent_ids"
+        private const val KEY_BATTLE_SELECTOR_ID = "battle_selector_id"
+        private const val KEY_BATTLE_VALUE = "battle_value"
+
         private const val PLAYER_SEPARATOR = "|||"
         private const val MAX_PLAYERS = 6
         private const val ROUNDS_PER_PLAYER = 5
-        private const val BATTLE_QUESTIONS = 15
-        private const val RECENT_WINDOW = 30
+        private const val BATTLE_REGULAR_QUESTIONS = 12
+        private const val BATTLE_TOTAL_QUESTIONS = 15
+        private const val BONUS_MULTIPLIER = 2
+        private const val RECENT_WINDOW = 40
+
         private const val ROUND_BASE_POINTS = 100
         private const val ROUND_STREAK_BONUS = 25
         private const val ROUND_STREAK_CAP = 150
@@ -518,5 +682,17 @@ class FamilyGameEngine(context: Context) {
         private const val WRONGS_TO_LEVEL_DOWN = 2
         private const val MIN_ADAPTIVE_OFFSET = -2
         private const val MAX_ADAPTIVE_OFFSET = 2
+
+        private val BATTLE_CATEGORIES = listOf(
+            TriviaQuestionBank.Category.MOVIES,
+            TriviaQuestionBank.Category.SPORTS,
+            TriviaQuestionBank.Category.HISTORY,
+            TriviaQuestionBank.Category.GEOGRAPHY,
+            TriviaQuestionBank.Category.SCIENCE,
+            TriviaQuestionBank.Category.CARS,
+            TriviaQuestionBank.Category.CULTURE,
+            TriviaQuestionBank.Category.NATURE,
+            TriviaQuestionBank.Category.GENERAL
+        )
     }
 }
