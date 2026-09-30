@@ -39,8 +39,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private lateinit var tts: TextToSpeech
     private lateinit var triviaEngine: TriviaGameEngine
     private lateinit var spellingEngine: SpellingBeeEngine
+    private lateinit var guessWhoEngine: GuessWhoEngine
 
-    private enum class ActiveGame { TRIVIA, SPELLING }
+    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO }
     private enum class ArtworkState { IDLE, LISTENING, CORRECT, WRONG }
 
     private var activeGame = ActiveGame.TRIVIA
@@ -118,6 +119,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         triviaEngine = TriviaGameEngine(this)
         spellingEngine = SpellingBeeEngine(this)
+        guessWhoEngine = GuessWhoEngine(this)
         tts = TextToSpeech(this, this)
 
         createSpeechRecognizer()
@@ -157,6 +159,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             sessionStarted = false
                             startOrResumeSpelling()
                         }
+                        MEDIA_ID_GUESS_WHO -> {
+                            activeGame = ActiveGame.GUESS_WHO
+                            sessionStarted = false
+                            startOrResumeGuessWho()
+                        }
                         else -> {
                             activeGame = ActiveGame.TRIVIA
                             sessionStarted = false
@@ -178,10 +185,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     }
 
                     if (awaitingAnswer) {
-                        if (activeGame == ActiveGame.SPELLING) {
-                            evaluateSpellingCandidates(listOf(spoken))
-                        } else {
-                            evaluateSpeechCandidates(listOf(spoken))
+                        when (activeGame) {
+                            ActiveGame.SPELLING -> evaluateSpellingCandidates(listOf(spoken))
+                            ActiveGame.GUESS_WHO -> evaluateGuessWhoCandidates(listOf(spoken))
+                            ActiveGame.TRIVIA -> evaluateSpeechCandidates(listOf(spoken))
                         }
                     } else {
                         startOrResumeActiveGame()
@@ -266,10 +273,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         return
                     }
 
-                    if (activeGame == ActiveGame.SPELLING) {
-                        evaluateSpellingCandidates(candidates)
-                    } else {
-                        evaluateSpeechCandidates(candidates)
+                    when (activeGame) {
+                        ActiveGame.SPELLING -> evaluateSpellingCandidates(candidates)
+                        ActiveGame.GUESS_WHO -> evaluateGuessWhoCandidates(candidates)
+                        ActiveGame.TRIVIA -> evaluateSpeechCandidates(candidates)
                     }
                 }
 
@@ -421,6 +428,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         val p = triviaEngine.profile()
         val spelling = spellingEngine.profile()
+        val guessWho = guessWhoEngine.profile()
         val triviaSubtitle = if (p.language == TriviaGameEngine.Language.CS) {
             "Level " + p.level + " • " + p.xp + " XP • hlasová kariéra"
         } else {
@@ -430,6 +438,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             "Level " + spelling.level + " • " + spelling.xp + " XP • hláskování"
         } else {
             "Level " + spelling.level + " • " + spelling.xp + " XP • spelling"
+        }
+        val guessWhoSubtitle = if (p.language == TriviaGameEngine.Language.CS) {
+            "Level " + guessWho.level + " • " + guessWho.xp + " XP • osobnosti"
+        } else {
+            "Level " + guessWho.level + " • " + guessWho.xp + " XP • personalities"
         }
 
         result.sendResult(
@@ -445,16 +458,22 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "Spelling Bee",
                     spellingSubtitle,
                     R.drawable.spelling_idle
+                ),
+                mediaItem(
+                    MEDIA_ID_GUESS_WHO,
+                    "Guess Who",
+                    guessWhoSubtitle,
+                    R.drawable.guesswho_idle
                 )
             )
         )
     }
 
     private fun startOrResumeActiveGame() {
-        if (activeGame == ActiveGame.SPELLING) {
-            startOrResumeSpelling()
-        } else {
-            startOrResumeTrivia()
+        when (activeGame) {
+            ActiveGame.SPELLING -> startOrResumeSpelling()
+            ActiveGame.GUESS_WHO -> startOrResumeGuessWho()
+            ActiveGame.TRIVIA -> startOrResumeTrivia()
         }
     }
 
