@@ -20,6 +20,7 @@ import com.dualactionwindows.dawdrive.ui.DawDriveApp
 class MainActivity : ComponentActivity() {
 
     private var resumeGameAfterPermission = false
+    private var openGamesAfterPermission = false
 
     private val requestRoadVoicePermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
@@ -32,9 +33,13 @@ class MainActivity : ComponentActivity() {
 
             if (micGranted) {
                 startRoadVoiceService(resumeGameAfterPermission)
+                if (openGamesAfterPermission) {
+                    openCarPreview()
+                }
             }
 
             resumeGameAfterPermission = false
+            openGamesAfterPermission = false
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,9 +74,7 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 onCarPreviewClick = {
-                    startActivity(
-                        Intent(this, CarPreviewActivity::class.java)
-                    )
+                    openCarPreview()
                 },
                 onDebugLogsClick = {
                     startActivity(
@@ -79,7 +82,10 @@ class MainActivity : ComponentActivity() {
                     )
                 },
                 onRoadVoiceStart = {
-                    ensureRoadVoiceSetup(resumeGame = false)
+                    ensureRoadVoiceSetup(
+                        resumeGame = false,
+                        openGamesAfterSetup = true
+                    )
                 },
                 onRoadVoiceStop = {
                     startService(
@@ -111,13 +117,17 @@ class MainActivity : ComponentActivity() {
     private fun handleRoadVoiceIntent(intent: Intent?) {
         if (intent?.getBooleanExtra(EXTRA_ENABLE_ROAD_VOICE, false) == true) {
             ensureRoadVoiceSetup(
-                resumeGame = intent.getBooleanExtra(EXTRA_RESUME_GAME, false)
+                resumeGame = intent.getBooleanExtra(EXTRA_RESUME_GAME, false),
+                openGamesAfterSetup = true
             )
             intent.removeExtra(EXTRA_ENABLE_ROAD_VOICE)
         }
     }
 
-    private fun ensureRoadVoiceSetup(resumeGame: Boolean) {
+    private fun ensureRoadVoiceSetup(
+        resumeGame: Boolean,
+        openGamesAfterSetup: Boolean = false
+    ) {
         val missing = buildList {
             if (
                 ContextCompat.checkSelfPermission(
@@ -140,10 +150,20 @@ class MainActivity : ComponentActivity() {
 
         if (missing.isEmpty()) {
             startRoadVoiceService(resumeGame)
+            if (openGamesAfterSetup) {
+                openCarPreview()
+            }
         } else {
             resumeGameAfterPermission = resumeGame
+            openGamesAfterPermission = openGamesAfterSetup
             requestRoadVoicePermissions.launch(missing.toTypedArray())
         }
+    }
+
+    private fun openCarPreview() {
+        startActivity(
+            Intent(this, CarPreviewActivity::class.java)
+        )
     }
 
     private fun startRoadVoiceService(resumeGame: Boolean) {
