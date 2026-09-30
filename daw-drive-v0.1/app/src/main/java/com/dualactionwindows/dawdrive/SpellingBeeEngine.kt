@@ -207,6 +207,27 @@ class SpellingBeeEngine(context: Context) {
         return roundAnswered >= ROUND_SIZE
     }
 
+    fun scoreSummary(language: TriviaGameEngine.Language): String {
+        val p = profile()
+        val accuracy = if (p.totalAnswered == 0) 0 else p.totalCorrect * 100 / p.totalAnswered
+        return if (language == TriviaGameEngine.Language.CS) {
+            "Spelling Bee. " + p.totalCorrect + " správně z " + p.totalAnswered +
+                ". Úspěšnost " + accuracy + " procent. Aktuální série " + p.streak + "."
+        } else {
+            "Spelling Bee. " + p.totalCorrect + " correct out of " + p.totalAnswered +
+                ". Accuracy " + accuracy + " percent. Current streak " + p.streak + "."
+        }
+    }
+
+    fun levelSummary(language: TriviaGameEngine.Language): String {
+        val p = profile()
+        return if (language == TriviaGameEngine.Language.CS) {
+            "Spelling Bee level " + p.level + ", " + p.xp + " XP."
+        } else {
+            "Spelling Bee level " + p.level + ", with " + p.xp + " XP."
+        }
+    }
+
     fun roundSummary(language: TriviaGameEngine.Language): String {
         val accuracy = if (roundAnswered == 0) 0 else roundCorrect * 100 / roundAnswered
         return if (language == TriviaGameEngine.Language.CS) {
