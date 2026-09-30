@@ -81,6 +81,11 @@ class MainActivity : ComponentActivity() {
                         Intent(this, DebugLogsActivity::class.java)
                     )
                 },
+                onFamilyGameClick = {
+                    startActivity(
+                        Intent(this, FamilyGameActivity::class.java)
+                    )
+                },
                 onRoadVoiceStart = {
                     ensureRoadVoiceSetup(
                         resumeGame = false,
