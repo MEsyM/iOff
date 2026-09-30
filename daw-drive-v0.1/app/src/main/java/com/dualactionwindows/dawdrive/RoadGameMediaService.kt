@@ -689,10 +689,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
         updateMetadata()
 
+        val battle = familyEngine.mode() == FamilyGameEngine.Mode.BATTLE
         if (!sessionStarted) {
             sessionStarted = true
             val players = familyEngine.playerNames().joinToString(", ")
-            val battle = familyEngine.mode() == FamilyGameEngine.Mode.BATTLE
             speakSystem(
                 en = if (battle) {
                     "Welcome to Family Battle two point zero. Players: " + players +
