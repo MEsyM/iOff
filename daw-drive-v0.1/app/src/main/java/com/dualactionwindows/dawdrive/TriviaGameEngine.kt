@@ -120,6 +120,7 @@ class TriviaGameEngine(context: Context) {
     )
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private var sessionStreak = prefs.getInt(KEY_CURRENT_STREAK, 0)
     private val recentIds = ArrayDeque<String>().apply {
         prefs.getString(KEY_RECENT_IDS, "")
             ?.split(",")
@@ -156,7 +157,7 @@ class TriviaGameEngine(context: Context) {
             totalCorrect = totalCorrect,
             accuracy = percent(totalCorrect, totalAnswered),
             bestStreak = prefs.getInt(KEY_BEST_STREAK, 0),
-            currentStreak = prefs.getInt(KEY_CURRENT_STREAK, 0),
+            currentStreak = sessionStreak,
             roundsCompleted = prefs.getInt(KEY_ROUNDS_COMPLETED, 0),
             achievements = unlockedAchievements(),
             language = language(),
@@ -218,7 +219,8 @@ class TriviaGameEngine(context: Context) {
             answerMatches(normalizedActual, normalize(accepted))
         }
 
-        val newStreak = if (correct) before.currentStreak + 1 else 0
+        val newStreak = if (correct) sessionStreak + 1 else 0
+        sessionStreak = newStreak
         val baseXp = if (correct) xpForDifficulty(question.difficulty) else WRONG_ANSWER_XP
         val streakBonus = if (correct) streakBonus(newStreak) else 0
 
@@ -305,12 +307,14 @@ class TriviaGameEngine(context: Context) {
 
     fun skipCurrent(): SkipResult {
         roundAnswered += 1
+        sessionStreak = 0
         currentQuestionId = null
         val finished = roundAnswered >= ROUND_SIZE
         val currentRounds = prefs.getInt(KEY_ROUNDS_COMPLETED, 0)
 
         val editor = prefs.edit()
             .putInt(KEY_ROUND_ANSWERED, roundAnswered)
+            .putInt(KEY_CURRENT_STREAK, 0)
             .remove(KEY_CURRENT_QUESTION_ID)
 
         if (finished) {
