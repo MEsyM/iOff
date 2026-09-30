@@ -34,7 +34,8 @@ class CarPreviewActivity : ComponentActivity() {
 
     private enum class Game(val mediaId: String) {
         TRIVIA(MEDIA_ID_TRIVIA),
-        SPELLING(MEDIA_ID_SPELLING)
+        SPELLING(MEDIA_ID_SPELLING),
+        GUESS_WHO(MEDIA_ID_GUESS_WHO)
     }
 
     private val controllerCallback = object : MediaControllerCompat.Callback() {
@@ -104,7 +105,11 @@ class CarPreviewActivity : ComponentActivity() {
                 title = title,
                 subtitle = subtitle,
                 question = question,
-                selectedGame = if (selectedGame == Game.TRIVIA) "trivia" else "spelling",
+                selectedGame = when (selectedGame) {
+                    Game.TRIVIA -> "trivia"
+                    Game.SPELLING -> "spelling"
+                    Game.GUESS_WHO -> "guesswho"
+                },
                 isPlaying = isPlaying,
                 connected = connected,
                 onSelectTrivia = {
@@ -112,6 +117,9 @@ class CarPreviewActivity : ComponentActivity() {
                 },
                 onSelectSpelling = {
                     selectGame(Game.SPELLING)
+                },
+                onSelectGuessWho = {
+                    selectGame(Game.GUESS_WHO)
                 },
                 onPlayPause = {
                     runWithPermissions {
@@ -176,7 +184,11 @@ class CarPreviewActivity : ComponentActivity() {
     }
 
     private fun selectedGameTitle(): String =
-        if (selectedGame == Game.TRIVIA) "Quick Trivia" else "Spelling Bee"
+        when (selectedGame) {
+            Game.TRIVIA -> "Quick Trivia"
+            Game.SPELLING -> "Spelling Bee"
+            Game.GUESS_WHO -> "Guess Who"
+        }
 
     private fun runWithPermissions(action: () -> Unit) {
         val missing = buildList {
@@ -237,5 +249,6 @@ class CarPreviewActivity : ComponentActivity() {
     companion object {
         private const val MEDIA_ID_TRIVIA = "trivia_career"
         private const val MEDIA_ID_SPELLING = "spelling_bee"
+        private const val MEDIA_ID_GUESS_WHO = "guess_who"
     }
 }
