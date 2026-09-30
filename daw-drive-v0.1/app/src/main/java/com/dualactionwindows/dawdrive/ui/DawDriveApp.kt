@@ -124,7 +124,7 @@ private fun LauncherScreen(
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "v0.12 Quick Trivia Stats",
+            text = "v0.20 Road Games",
             color = Color(0xFF9AA4B2),
             fontSize = 14.sp
         )
