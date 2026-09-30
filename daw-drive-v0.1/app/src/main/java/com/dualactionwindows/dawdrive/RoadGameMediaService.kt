@@ -682,7 +682,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             return
         }
 
-        familyEngine.startOrResume(triviaEngine.language())
+        if (familyEngine.mode() != FamilyGameEngine.Mode.BATTLE || !familyEngine.battleNeedsChoice()) {
+            familyEngine.startOrResume(triviaEngine.language())
+        }
         applyVoiceLanguage()
         setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
         updateMetadata()
@@ -693,15 +695,15 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             val battle = familyEngine.mode() == FamilyGameEngine.Mode.BATTLE
             speakSystem(
                 en = if (battle) {
-                    "Welcome to Family Battle. Players: " + players +
-                        ". After each question, the first player says only their name to buzz in. After I confirm the name, answer the question."
+                    "Welcome to Family Battle two point zero. Players: " + players +
+                        ". The winner of a question chooses the next category and value. Say for example Sport for 300. Then the first player says only their name to buzz in. After I confirm the name, answer the question."
                 } else {
                     "Welcome to Family Round. Players: " + players +
                         ". Each player gets their own question. Correct answers earn points and streak bonuses."
                 },
                 cs = if (battle) {
-                    "Vítejte ve Family Battle. Hráči: " + players +
-                        ". Po každé otázce se první hráč přihlásí pouze svým jménem. Až jméno potvrdím, řekne odpověď."
+                    "Vítejte ve Family Battle dva nula. Hráči: " + players +
+                        ". Vítěz otázky vybírá další kategorii a hodnotu. Řekni například Sport za 300. Potom se první hráč přihlásí pouze svým jménem a po potvrzení odpoví."
                 } else {
                     "Vítejte ve Family Round. Hráči: " + players +
                         ". Každý dostane svou otázku. Za správné odpovědi jsou body a bonusy za sérii."
@@ -709,8 +711,36 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 utteranceId = SESSION_INTRO_UTTERANCE_ID
             )
         } else {
-            speakCurrentFamilyQuestion()
+            if (battle && familyEngine.battleNeedsChoice()) {
+                speakFamilyBattleChoicePrompt()
+            } else {
+                speakCurrentFamilyQuestion()
+            }
         }
+    }
+
+    private fun speakFamilyBattleChoicePrompt() {
+        if (!ttsReady) return
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+        artworkState = ArtworkState.IDLE
+
+        val language = triviaEngine.language()
+        val cs = language == TriviaGameEngine.Language.CS
+        val selector = familyEngine.battleSelector()
+        updateMetadata()
+
+        val text = if (cs) {
+            selector.name + ", vybíráš další otázku. " +
+                familyEngine.availableBattleChoices(language) +
+                " Řekni například Sport za 300."
+        } else {
+            selector.name + ", choose the next question. " +
+                familyEngine.availableBattleChoices(language) +
+                " Say for example Sport for 300."
+        }
+        speak(text, QUESTION_UTTERANCE_ID)
     }
 
     private fun speakCurrentFamilyQuestion() {
@@ -721,13 +751,21 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         artworkState = ArtworkState.IDLE
 
         val language = triviaEngine.language()
-        val q = familyEngine.currentQuestion(language) ?: familyEngine.startOrResume(language)
         val battle = familyEngine.mode() == FamilyGameEngine.Mode.BATTLE
+        if (battle && familyEngine.battleNeedsChoice()) {
+            speakFamilyBattleChoicePrompt()
+            return
+        }
+        val q = familyEngine.currentQuestion(language) ?: familyEngine.startOrResume(language)
         val cs = language == TriviaGameEngine.Language.CS
         updateMetadata()
 
         val prefix = if (battle) {
-            if (cs) "Battle za " + q.value + " bodů. " else "Battle for " + q.value + " points. "
+            if (q.bonusRound) {
+                if (cs) "Bonusové kolo za " + q.value + " bodů. " else "Bonus round for " + q.value + " points. "
+            } else {
+                if (cs) "Battle za " + q.value + " bodů. " else "Battle for " + q.value + " points. "
+            }
         } else {
             val player = familyEngine.currentPlayer()
             if (cs) player.name + ", tvoje otázka. " else player.name + ", your question. "
@@ -746,6 +784,36 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         val language = triviaEngine.language()
         val cs = language == TriviaGameEngine.Language.CS
+
+        if (familyEngine.mode() == FamilyGameEngine.Mode.BATTLE && familyEngine.battleNeedsChoice()) {
+            val choice = familyEngine.parseBattleChoice(candidates)
+            if (choice == null) {
+                awaitingAnswer = true
+                artworkState = ArtworkState.LISTENING
+                updateMetadata()
+                speakSystem(
+                    en = "I did not catch a valid category and value. Say for example Sport for 300.",
+                    cs = "Nerozuměl jsem kategorii a hodnotě. Řekni například Sport za 300.",
+                    utteranceId = COMMAND_UTTERANCE_ID
+                )
+                return
+            }
+
+            familyEngine.chooseBattleQuestion(choice, language)
+            awaitingAnswer = true
+            artworkState = ArtworkState.IDLE
+            updateMetadata()
+            val selected = familyEngine.currentQuestion(language)!!
+            speak(
+                (if (cs) "Vybráno. " else "Selected. ") +
+                    selected.categoryName + ". " + selected.value +
+                    (if (cs) " bodů. " else " points. ") +
+                    selected.prompt +
+                    (if (cs) " Kdo ví, řekne nejdřív svoje jméno." else " If you know it, say your name first."),
+                QUESTION_UTTERANCE_ID
+            )
+            return
+        }
 
         if (familyEngine.mode() == FamilyGameEngine.Mode.BATTLE && familyEngine.lockedPlayer() == null) {
             val buzzer = familyEngine.buzz(candidates)
@@ -806,8 +874,14 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             }
 
             if (familyEngine.mode() == FamilyGameEngine.Mode.BATTLE && !result.questionResolved) {
-                append(if (cs) "Otázka je stále otevřená pro ostatní. Řekněte svoje jméno." else
-                    "The question is still open for the other players. Say your name.")
+                val stealText = when (result.stealAttempt + 1) {
+                    2 -> if (cs) " Další správná odpověď bere 70 procent bodů." else " The next correct answer gets 70 percent of the points."
+                    else -> if (cs) " Další správná odpověď bere 50 procent bodů." else " The next correct answer gets 50 percent of the points."
+                }
+                append(
+                    if (cs) "Otázka je stále otevřená pro ostatní. Řekněte svoje jméno." + stealText
+                    else "The question is still open for the other players. Say your name." + stealText
+                )
             } else if (!result.correct) {
                 append(if (cs) "Správná odpověď je " else "The answer is ")
                 append(result.expected)
@@ -819,6 +893,17 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 append(" ")
                 append(if (cs) "Skóre: " else "Score: ")
                 append(familyEngine.scoreboard())
+
+                if (result.winnerSelectsNext) {
+                    append(" ")
+                    append(
+                        if (cs) result.player.name + " vybírá další kategorii a hodnotu."
+                        else result.player.name + " chooses the next category and value."
+                    )
+                } else if (result.bonusRound && !result.sessionFinished) {
+                    append(" ")
+                    append(if (cs) "Pokračujeme bonusovým kolem." else "Continuing the bonus round.")
+                }
             }
         }
 
@@ -835,14 +920,25 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
     private fun moveToNextFamilyQuestion() {
         artworkState = ArtworkState.IDLE
-        familyEngine.nextQuestion(triviaEngine.language())
-        speakCurrentFamilyQuestion()
+        if (familyEngine.mode() == FamilyGameEngine.Mode.BATTLE) {
+            if (familyEngine.battleNeedsChoice()) {
+                speakFamilyBattleChoicePrompt()
+            } else {
+                familyEngine.startOrResume(triviaEngine.language())
+                speakCurrentFamilyQuestion()
+            }
+        } else {
+            familyEngine.nextQuestion(triviaEngine.language())
+            speakCurrentFamilyQuestion()
+        }
     }
 
     private fun startNextFamilySession() {
         artworkState = ArtworkState.IDLE
         familyEngine.resetSession(keepScores = true)
-        familyEngine.startOrResume(triviaEngine.language())
+        if (familyEngine.mode() != FamilyGameEngine.Mode.BATTLE) {
+            familyEngine.startOrResume(triviaEngine.language())
+        }
         speakSystem(
             en = "Next Family round. Current score: " + familyEngine.scoreboard() + ".",
             cs = "Další Family kolo. Aktuální skóre: " + familyEngine.scoreboard() + ".",
