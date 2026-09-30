@@ -16,7 +16,10 @@ class KidsTriviaEngine(context: Context) {
         BODY("body"),
         SPORTS("sports"),
         FOOD_WORLD("food_world"),
-        LOGIC("logic")
+        LOGIC("logic"),
+        FAIRY_TALES("fairy_tales"),
+        SCHOOL("school"),
+        CZECHIA("czechia")
     }
 
     data class Question(
@@ -88,7 +91,9 @@ class KidsTriviaEngine(context: Context) {
     }
 
     fun currentQuestion(language: TriviaGameEngine.Language): LocalizedQuestion? =
-        currentQuestionId?.let { id -> questions.firstOrNull { it.id == id } }?.let {
+        currentQuestionId?.let { id ->
+            questionsFor(language).firstOrNull { it.id == id }
+        }?.let {
             localize(it, language)
         }
 
@@ -110,12 +115,13 @@ class KidsTriviaEngine(context: Context) {
             ?.filter { it.isNotBlank() }
             .orEmpty()
 
-        val eligible = questions.filter { it.difficulty <= maxDifficulty }
+        val pool = questionsFor(language)
+        val eligible = pool.filter { it.difficulty <= maxDifficulty }
         val selected = eligible
             .filterNot { recent.contains(it.id) }
             .minByOrNull { seenCount(it.id) * 10 + wrongCount(it.id) * -3 }
             ?: eligible.minByOrNull { seenCount(it.id) }
-            ?: questions.first()
+            ?: pool.first()
 
         currentQuestionId = selected.id
         prefs.edit()
@@ -277,6 +283,9 @@ class KidsTriviaEngine(context: Context) {
             Category.SPORTS -> "Sports"
             Category.FOOD_WORLD -> "Food and World"
             Category.LOGIC -> "Logic"
+            Category.FAIRY_TALES -> "Fairy Tales"
+            Category.SCHOOL -> "School"
+            Category.CZECHIA -> "Czechia"
         }
 
         return when (category) {
@@ -289,7 +298,40 @@ class KidsTriviaEngine(context: Context) {
             Category.SPORTS -> "Sport"
             Category.FOOD_WORLD -> "Jídlo a svět"
             Category.LOGIC -> "Logika"
+            Category.FAIRY_TALES -> "Pohádky"
+            Category.SCHOOL -> "Škola"
+            Category.CZECHIA -> "České reálie"
         }
+    }
+
+    private fun questionsFor(language: TriviaGameEngine.Language): List<Question> {
+        if (language != TriviaGameEngine.Language.CS) return questions
+
+        val czechPack = KidsTriviaQuestionBank.questions.map { q ->
+            Question(
+                id = "czkid_" + q.id,
+                difficulty = when {
+                    q.minAge <= 7 -> 1
+                    q.minAge <= 9 -> 2
+                    else -> 3
+                },
+                category = when (q.category) {
+                    KidsTriviaQuestionBank.Category.ANIMALS -> Category.ANIMALS
+                    KidsTriviaQuestionBank.Category.FAIRY_TALES -> Category.FAIRY_TALES
+                    KidsTriviaQuestionBank.Category.NATURE -> Category.NATURE
+                    KidsTriviaQuestionBank.Category.SCHOOL -> Category.SCHOOL
+                    KidsTriviaQuestionBank.Category.CZECHIA -> Category.CZECHIA
+                },
+                promptEn = q.prompt,
+                promptCs = q.prompt,
+                answersEn = q.answers,
+                answersCs = q.answers,
+                explanationEn = q.explanation,
+                explanationCs = q.explanation
+            )
+        }
+
+        return questions + czechPack
     }
 
     private fun normalize(
