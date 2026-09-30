@@ -76,6 +76,9 @@ class MainActivity : ComponentActivity() {
                 onCarPreviewClick = {
                     openCarPreview()
                 },
+                onFamilySetupClick = {
+                    startActivity(Intent(this, FamilySetupActivity::class.java))
+                },
                 onDebugLogsClick = {
                     startActivity(
                         Intent(this, DebugLogsActivity::class.java)
