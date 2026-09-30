@@ -15,6 +15,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.net.Uri
+import android.media.AudioAttributes
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -226,6 +227,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (status != TextToSpeech.SUCCESS) return
 
         ttsReady = true
+        tts.setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build()
+        )
         applyVoiceLanguage()
 
         if (pendingStartAfterTts) {
