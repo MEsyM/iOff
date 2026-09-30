@@ -1328,6 +1328,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 val summary = when (activeGame) {
                     ActiveGame.SPELLING -> spellingEngine.scoreSummary(language)
                     ActiveGame.GUESS_WHO -> guessWhoEngine.scoreSummary(language)
+                    ActiveGame.KIDS_TRIVIA -> kidsTriviaEngine.scoreSummary(language)
                     ActiveGame.TRIVIA -> triviaEngine.scoreSummary()
                 }
                 speak(summary, COMMAND_UTTERANCE_ID)
@@ -1339,6 +1340,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 val summary = when (activeGame) {
                     ActiveGame.SPELLING -> spellingEngine.levelSummary(language)
                     ActiveGame.GUESS_WHO -> guessWhoEngine.levelSummary(language)
+                    ActiveGame.KIDS_TRIVIA -> kidsTriviaEngine.levelSummary(language)
                     ActiveGame.TRIVIA -> triviaEngine.levelSummary()
                 }
                 speak(summary, COMMAND_UTTERANCE_ID)
@@ -1861,6 +1863,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         if (cs) "Spelling Bee je aktivní" else "Spelling Bee is active"
                     ActiveGame.GUESS_WHO ->
                         if (cs) "Guess Who je aktivní" else "Guess Who is active"
+                    ActiveGame.KIDS_TRIVIA ->
+                        if (cs) "Trivia Kids je aktivní" else "Kids Trivia is active"
                     ActiveGame.TRIVIA ->
                         if (cs) "Quick Trivia je aktivní" else "Quick Trivia is active"
                 }
