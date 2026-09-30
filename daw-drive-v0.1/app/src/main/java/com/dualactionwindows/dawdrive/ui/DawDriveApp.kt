@@ -851,6 +851,7 @@ private fun localizedCategory(
         TriviaQuestionBank.Category.NATURE -> "Příroda"
         TriviaQuestionBank.Category.SPORTS -> "Sport"
         TriviaQuestionBank.Category.CULTURE -> "Kultura"
+        TriviaQuestionBank.Category.MOVIES -> "Filmy"
         TriviaQuestionBank.Category.CARS -> "Auta"
         TriviaQuestionBank.Category.NUMBERS -> "Čísla"
     }
