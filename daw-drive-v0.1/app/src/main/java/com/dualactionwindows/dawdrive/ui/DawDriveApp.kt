@@ -46,7 +46,7 @@ private enum class DawModule(
     val title: String,
     val subtitle: String
 ) {
-    Games("Road Games", "Quick Trivia + Spelling Bee + Guess Who"),
+    Games("Road Games", "Quick Trivia + Kids + Spelling Bee + Guess Who"),
     Video("Video", "Web browser"),
     Erp("DAW ERP", "Deals, contacts and next actions"),
     Tools("Tools", "Vehicle and utility tools")
@@ -320,6 +320,25 @@ private fun TriviaProfileScreen(
                     "Guess the name at any time or say next hint.",
                     "First-hint answers earn the most XP.",
                     "Separate level, XP, streak and 10-person rounds."
+                )
+            }
+        )
+
+        StatCard(
+            title = "Trivia Kids 6–12",
+            lines = if (cs) {
+                listOf(
+                    "Samostatná dětská trivia hra bez letopočtů a těžké politiky.",
+                    "Zvířata, filmy a postavy, auta, vesmír, příroda, tělo, sport, jídlo a logika.",
+                    "Obtížnost se automaticky přizpůsobuje výkonu dítěte.",
+                    "Má vlastní XP, level, streak a 10 otázek v jednom kole."
+                )
+            } else {
+                listOf(
+                    "Separate kids trivia without date-heavy or political questions.",
+                    "Animals, movies and characters, cars, space, nature, body, sports, food and logic.",
+                    "Difficulty adapts automatically to the child's performance.",
+                    "Separate XP, level, streak and 10-question rounds."
                 )
             }
         )
