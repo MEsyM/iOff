@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -116,27 +117,32 @@ class DebugLogsActivity : ComponentActivity() {
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        SelectionContainer {
-                            Text(
-                                text = if (logText.isBlank()) {
-                                    "No log entries yet. Test in the car, then tap Refresh."
-                                } else {
-                                    logText
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .weight(1f)
-                                    .background(
-                                        Color(0xFF11151B),
-                                        RoundedCornerShape(14.dp)
-                                    )
-                                    .verticalScroll(rememberScrollState())
-                                    .padding(14.dp),
-                                color = Color(0xFFD7DEE8),
-                                fontSize = 12.sp,
-                                lineHeight = 17.sp,
-                                fontFamily = FontFamily.Monospace
-                            )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .background(
+                                    Color(0xFF11151B),
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .padding(14.dp)
+                        ) {
+                            SelectionContainer {
+                                Text(
+                                    text = if (logText.isBlank()) {
+                                        "No log entries yet. Test in the car, then tap Refresh."
+                                    } else {
+                                        logText
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .verticalScroll(rememberScrollState()),
+                                    color = Color(0xFFD7DEE8),
+                                    fontSize = 12.sp,
+                                    lineHeight = 17.sp,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
                         }
                     }
                 }
