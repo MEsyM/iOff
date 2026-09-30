@@ -54,14 +54,19 @@ class FamilyGameActivity : ComponentActivity(), TextToSpeech.OnInitListener {
     enum class Mode { SETUP, MENU, ROUNDS, BATTLE }
     enum class BattlePhase { QUESTION, BUZZ, ANSWER, RESULT }
 
-    data class Player(
+    class Player(
         val id: Long,
         val name: String,
-        var score: Int = 0,
-        var streak: Int = 0,
-        var bestStreak: Int = 0,
-        var lockedOut: Boolean = false
-    )
+        score: Int = 0,
+        streak: Int = 0,
+        bestStreak: Int = 0,
+        lockedOut: Boolean = false
+    ) {
+        var score by mutableStateOf(score)
+        var streak by mutableStateOf(streak)
+        var bestStreak by mutableStateOf(bestStreak)
+        var lockedOut by mutableStateOf(lockedOut)
+    }
 
     private val prefs by lazy {
         getSharedPreferences("daw_family_game", Context.MODE_PRIVATE)
