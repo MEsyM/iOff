@@ -11,6 +11,7 @@ object TriviaQuestionBank {
         NATURE("nature"),
         SPORTS("sports"),
         CULTURE("culture"),
+        MOVIES("movies"),
         CARS("cars"),
         NUMBERS("numbers")
     }
@@ -156,7 +157,8 @@ object TriviaQuestionBank {
         q("num008",4,Category.NUMBERS,"What is 7 cubed?","Kolik je 7 na třetí?",listOf("343","three hundred forty three"),listOf("343","tri sta ctyricet tri","tři sta čtyřicet tři"),"Seven cubed is 343.","Sedm na třetí je 343."),
         q("num009",5,Category.NUMBERS,"What is 17 times 19?","Kolik je 17 krát 19?",listOf("323","three hundred twenty three"),listOf("323","tri sta dvacet tri","tři sta dvacet tři"),"Seventeen times nineteen is 323.","Sedmnáct krát devatenáct je 323."),
         q("num010",5,Category.NUMBERS,"What is 15 percent of 360?","Kolik je 15 procent z 360?",listOf("54","fifty four"),listOf("54","padesat ctyri","padesát čtyři"),"Fifteen percent of 360 is 54.","Patnáct procent z 360 je 54.")
-    ) + generatedCapitalQuestions() + generatedElementQuestions() + generatedNumberQuestions()
+    ) + generatedCapitalQuestions() + generatedElementQuestions() + generatedNumberQuestions() +
+        generatedMovieQuestions() + generatedHistoryExpansion() + generatedSportsExpansion()
 
 
     private data class CapitalFact(
@@ -450,6 +452,207 @@ object TriviaQuestionBank {
         }
 
         return result
+    }
+
+    private data class MovieFact(
+        val film: String,
+        val director: String,
+        val year: Int,
+        val difficulty: Int
+    )
+
+    private fun generatedMovieQuestions(): List<LocalizedQuestion> {
+        val facts = listOf(
+            MovieFact("Jaws","Steven Spielberg",1975,2),
+            MovieFact("E.T. the Extra-Terrestrial","Steven Spielberg",1982,2),
+            MovieFact("Jurassic Park","Steven Spielberg",1993,1),
+            MovieFact("Schindler's List","Steven Spielberg",1993,3),
+            MovieFact("Titanic","James Cameron",1997,1),
+            MovieFact("Avatar","James Cameron",2009,1),
+            MovieFact("The Terminator","James Cameron",1984,2),
+            MovieFact("Aliens","James Cameron",1986,3),
+            MovieFact("Pulp Fiction","Quentin Tarantino",1994,2),
+            MovieFact("Kill Bill: Volume 1","Quentin Tarantino",2003,3),
+            MovieFact("Inception","Christopher Nolan",2010,1),
+            MovieFact("Interstellar","Christopher Nolan",2014,1),
+            MovieFact("The Dark Knight","Christopher Nolan",2008,1),
+            MovieFact("Dunkirk","Christopher Nolan",2017,3),
+            MovieFact("The Godfather","Francis Ford Coppola",1972,1),
+            MovieFact("Apocalypse Now","Francis Ford Coppola",1979,3),
+            MovieFact("Goodfellas","Martin Scorsese",1990,2),
+            MovieFact("Taxi Driver","Martin Scorsese",1976,3),
+            MovieFact("The Departed","Martin Scorsese",2006,2),
+            MovieFact("The Wolf of Wall Street","Martin Scorsese",2013,1),
+            MovieFact("Alien","Ridley Scott",1979,2),
+            MovieFact("Blade Runner","Ridley Scott",1982,2),
+            MovieFact("Gladiator","Ridley Scott",2000,1),
+            MovieFact("The Martian","Ridley Scott",2015,2),
+            MovieFact("Fight Club","David Fincher",1999,2),
+            MovieFact("Se7en","David Fincher",1995,3),
+            MovieFact("The Social Network","David Fincher",2010,2),
+            MovieFact("Forrest Gump","Robert Zemeckis",1994,1),
+            MovieFact("Back to the Future","Robert Zemeckis",1985,1),
+            MovieFact("Cast Away","Robert Zemeckis",2000,2)
+        )
+
+        return facts.flatMapIndexed { index, fact ->
+            listOf(
+                LocalizedQuestion(
+                    id = "movdir" + (index + 1).toString().padStart(3, '0'),
+                    difficulty = fact.difficulty,
+                    category = Category.MOVIES,
+                    promptEn = "Who directed " + fact.film + "?",
+                    promptCs = "Kdo režíroval film " + fact.film + "?",
+                    answersEn = listOf(fact.director.lowercase()),
+                    answersCs = listOf(fact.director.lowercase()),
+                    explanationEn = fact.film + " was directed by " + fact.director + ".",
+                    explanationCs = "Film " + fact.film + " režíroval " + fact.director + "."
+                ),
+                LocalizedQuestion(
+                    id = "movyr" + (index + 1).toString().padStart(3, '0'),
+                    difficulty = minOf(5, fact.difficulty + 1),
+                    category = Category.MOVIES,
+                    promptEn = "In what year was " + fact.film + " released?",
+                    promptCs = "V kterém roce měl premiéru film " + fact.film + "?",
+                    answersEn = listOf(fact.year.toString()),
+                    answersCs = listOf(fact.year.toString()),
+                    explanationEn = fact.film + " was released in " + fact.year + ".",
+                    explanationCs = "Film " + fact.film + " měl premiéru v roce " + fact.year + "."
+                )
+            )
+        }
+    }
+
+    private data class HistoryFact(
+        val eventEn: String,
+        val eventCs: String,
+        val year: Int,
+        val difficulty: Int
+    )
+
+    private fun generatedHistoryExpansion(): List<LocalizedQuestion> {
+        val facts = listOf(
+            HistoryFact("the fall of the Western Roman Empire","pád Západořímské říše",476,4),
+            HistoryFact("the Battle of Hastings","bitva u Hastingsu",1066,3),
+            HistoryFact("the signing of Magna Carta","podepsání Magny Charty",1215,4),
+            HistoryFact("the fall of Constantinople","pád Konstantinopole",1453,4),
+            HistoryFact("Columbus's first voyage to the Americas","první Kolumbova výprava do Ameriky",1492,2),
+            HistoryFact("the start of the Protestant Reformation","začátek protestantské reformace",1517,4),
+            HistoryFact("the defeat of the Spanish Armada","porážka španělské Armady",1588,4),
+            HistoryFact("the English Civil War began","začátek anglické občanské války",1642,5),
+            HistoryFact("the American Declaration of Independence","americká Deklarace nezávislosti",1776,1),
+            HistoryFact("the start of the French Revolution","začátek Francouzské revoluce",1789,1),
+            HistoryFact("the Battle of Waterloo","bitva u Waterloo",1815,2),
+            HistoryFact("the publication of The Communist Manifesto","vydání Komunistického manifestu",1848,4),
+            HistoryFact("the start of the American Civil War","začátek americké občanské války",1861,2),
+            HistoryFact("the unification of Germany","sjednocení Německa",1871,4),
+            HistoryFact("the first modern Olympic Games","první novodobé olympijské hry",1896,2),
+            HistoryFact("the sinking of the Titanic","potopení Titaniku",1912,1),
+            HistoryFact("the start of World War One","začátek první světové války",1914,1),
+            HistoryFact("the Russian Revolution","ruská revoluce",1917,2),
+            HistoryFact("the end of World War One","konec první světové války",1918,1),
+            HistoryFact("the Wall Street Crash","krach na Wall Street",1929,2),
+            HistoryFact("the start of World War Two","začátek druhé světové války",1939,1),
+            HistoryFact("D-Day landings in Normandy","vylodění v Normandii",1944,2),
+            HistoryFact("the end of World War Two in Europe","konec druhé světové války v Evropě",1945,1),
+            HistoryFact("the founding of NATO","založení NATO",1949,3),
+            HistoryFact("the first human spaceflight by Yuri Gagarin","první let člověka do vesmíru Jurije Gagarina",1961,2),
+            HistoryFact("the Apollo 11 Moon landing","přistání Apolla 11 na Měsíci",1969,1),
+            HistoryFact("the fall of Saigon","pád Saigonu",1975,3),
+            HistoryFact("the fall of the Berlin Wall","pád Berlínské zdi",1989,1),
+            HistoryFact("the dissolution of the Soviet Union","rozpad Sovětského svazu",1991,2),
+            HistoryFact("the creation of the Czech Republic","vznik České republiky",1993,1)
+        )
+
+        return facts.flatMapIndexed { index, fact ->
+            listOf(
+                LocalizedQuestion(
+                    id = "histyrx" + (index + 1).toString().padStart(3, '0'),
+                    difficulty = fact.difficulty,
+                    category = Category.HISTORY,
+                    promptEn = "In what year did " + fact.eventEn + " occur?",
+                    promptCs = "V kterém roce nastal " + fact.eventCs + "?",
+                    answersEn = listOf(fact.year.toString()),
+                    answersCs = listOf(fact.year.toString()),
+                    explanationEn = fact.eventEn.replaceFirstChar { it.uppercase() } +
+                        " occurred in " + fact.year + ".",
+                    explanationCs = fact.eventCs.replaceFirstChar { it.uppercase() } +
+                        " nastal v roce " + fact.year + "."
+                ),
+                LocalizedQuestion(
+                    id = "histdec" + (index + 1).toString().padStart(3, '0'),
+                    difficulty = minOf(5, fact.difficulty + 1),
+                    category = Category.HISTORY,
+                    promptEn = "Which decade includes the year " + fact.year + "?",
+                    promptCs = "Do kterého desetiletí patří rok " + fact.year + "?",
+                    answersEn = listOf(((fact.year / 10) * 10).toString() + "s"),
+                    answersCs = listOf(((fact.year / 10) * 10).toString()),
+                    explanationEn = fact.year.toString() + " is in the " +
+                        ((fact.year / 10) * 10) + "s.",
+                    explanationCs = "Rok " + fact.year + " patří do " +
+                        ((fact.year / 10) * 10) + ". let."
+                )
+            )
+        }
+    }
+
+    private data class SportsFact(
+        val questionEn: String,
+        val questionCs: String,
+        val answerEn: List<String>,
+        val answerCs: List<String>,
+        val explanationEn: String,
+        val explanationCs: String,
+        val difficulty: Int
+    )
+
+    private fun generatedSportsExpansion(): List<LocalizedQuestion> {
+        val facts = listOf(
+            SportsFact("How many players does a soccer team have on the field at the start of a match?","Kolik hráčů má fotbalový tým na hřišti na začátku zápasu?",listOf("11","eleven"),listOf("11","jedenact","jedenáct"),"A soccer team starts with eleven players.","Fotbalový tým začíná s jedenácti hráči.",1),
+            SportsFact("How many points is a touchdown worth in American football before the extra point?","Kolik bodů má touchdown v americkém fotbalu před extra bodem?",listOf("6","six"),listOf("6","sest","šest"),"A touchdown is worth six points.","Touchdown má hodnotu šest bodů.",2),
+            SportsFact("How many players are on court for one basketball team?","Kolik hráčů jednoho basketbalového týmu je současně na hřišti?",listOf("5","five"),listOf("5","pet","pět"),"Five players per team are on court.","Na hřišti je pět hráčů jednoho týmu.",1),
+            SportsFact("How many sets must a men's Grand Slam tennis player win to win a match?","Kolik setů musí muž vyhrát v grandslamovém tenisu, aby vyhrál zápas?",listOf("3","three"),listOf("3","tri","tři"),"Men's Grand Slam singles are best of five sets.","Mužský grandslam se hraje na tři vítězné sety.",3),
+            SportsFact("What surface is Wimbledon traditionally played on?","Na jakém povrchu se tradičně hraje Wimbledon?",listOf("grass"),listOf("trava","tráva"),"Wimbledon is played on grass.","Wimbledon se hraje na trávě.",1),
+            SportsFact("How many rings are on the Olympic symbol?","Kolik kruhů má olympijský symbol?",listOf("5","five"),listOf("5","pet","pět"),"The Olympic symbol has five rings.","Olympijský symbol má pět kruhů.",1),
+            SportsFact("In which sport is the Stanley Cup awarded?","Ve kterém sportu se uděluje Stanley Cup?",listOf("ice hockey","hockey"),listOf("ledni hokej","hokej"),"The Stanley Cup is awarded in ice hockey.","Stanley Cup se uděluje v ledním hokeji.",1),
+            SportsFact("In which sport would you perform a slam dunk?","Ve kterém sportu se provádí slam dunk?",listOf("basketball"),listOf("basketbal"),"A slam dunk is a basketball shot.","Slam dunk je basketbalové zakončení.",1),
+            SportsFact("How many bases are there in baseball?","Kolik met je v baseballu?",listOf("4","four"),listOf("4","ctyri","čtyři"),"Baseball has four bases including home plate.","Baseball má čtyři mety včetně domácí mety.",2),
+            SportsFact("What is the maximum score with one dart in standard darts?","Jaké je nejvyšší skóre jednou šipkou v klasických šipkách?",listOf("60","sixty"),listOf("60","sedesat","šedesát"),"Triple 20 scores sixty.","Trojitá dvacítka dává šedesát bodů.",2),
+            SportsFact("How long is an Olympic swimming pool?","Jak dlouhý je olympijský plavecký bazén?",listOf("50 meters","50","fifty meters"),listOf("50 metru","50","padesat metru"),"An Olympic pool is fifty meters long.","Olympijský bazén je dlouhý padesát metrů.",2),
+            SportsFact("How many holes are played in a standard round of golf?","Kolik jamek má standardní golfové kolo?",listOf("18","eighteen"),listOf("18","osmnact","osmnáct"),"A standard golf round has eighteen holes.","Standardní golfové kolo má osmnáct jamek.",1),
+            SportsFact("What color jersey is worn by the Tour de France overall leader?","Jakou barvu dresu nosí průběžný lídr Tour de France?",listOf("yellow"),listOf("zluty","žlutý"),"The overall leader wears the yellow jersey.","Průběžný lídr nosí žlutý trikot.",2),
+            SportsFact("In Formula One, what flag signals the end of a race?","Jaká vlajka ve Formuli 1 signalizuje konec závodu?",listOf("checkered flag","chequered flag"),listOf("sachovnicova vlajka","šachovnicová vlajka"),"The chequered flag signals the finish.","Konec závodu signalizuje šachovnicová vlajka.",1),
+            SportsFact("What is the official marathon distance in kilometers?","Jaká je oficiální délka maratonu v kilometrech?",listOf("42.195","42.195 kilometers"),listOf("42.195","42,195"),"A marathon is 42.195 kilometers.","Maraton měří 42,195 kilometru.",3),
+            SportsFact("How many points is a free throw worth in basketball?","Kolik bodů má trestný hod v basketbalu?",listOf("1","one"),listOf("1","jeden"),"A free throw is worth one point.","Trestný hod má hodnotu jednoho bodu.",1),
+            SportsFact("How many periods are played in regulation ice hockey?","Kolik třetin má běžný hokejový zápas?",listOf("3","three"),listOf("3","tri","tři"),"Ice hockey regulation has three periods.","Hokejový zápas má tři třetiny.",1),
+            SportsFact("Which sport uses the terms birdie and eagle?","Ve kterém sportu se používají pojmy birdie a eagle?",listOf("golf"),listOf("golf"),"Birdie and eagle are golf scoring terms.","Birdie a eagle jsou golfové pojmy.",1),
+            SportsFact("Which sport uses a pommel horse?","Ve kterém sportu se používá kůň našíř?",listOf("gymnastics"),listOf("gymnastika"),"The pommel horse is an artistic gymnastics apparatus.","Kůň našíř je nářadí sportovní gymnastiky.",2),
+            SportsFact("How many players are on court for one volleyball team?","Kolik hráčů jednoho volejbalového týmu je na hřišti?",listOf("6","six"),listOf("6","sest","šest"),"Six players per team are on court.","Na hřišti je šest hráčů jednoho týmu.",1),
+            SportsFact("What is zero called in tennis scoring?","Jak se v tenisovém skóre říká nule?",listOf("love"),listOf("love"),"Zero in tennis scoring is called love.","Nula se v tenisovém skóre označuje jako love.",2),
+            SportsFact("In boxing, what does KO stand for?","Co znamená zkratka KO v boxu?",listOf("knockout"),listOf("knockout","knokaut"),"KO stands for knockout.","KO znamená knockout.",1),
+            SportsFact("How many minutes are in a standard soccer match excluding added time?","Kolik minut má standardní fotbalový zápas bez nastavení?",listOf("90","ninety"),listOf("90","devadesat","devadesát"),"A standard match is ninety minutes.","Standardní zápas má devadesát minut.",1),
+            SportsFact("Which sport features the Ryder Cup?","Ve kterém sportu se hraje Ryder Cup?",listOf("golf"),listOf("golf"),"The Ryder Cup is a golf competition.","Ryder Cup je golfová soutěž.",2),
+            SportsFact("Which sport is played at Roland Garros?","Který sport se hraje na Roland Garros?",listOf("tennis"),listOf("tenis"),"Roland Garros is a Grand Slam tennis tournament.","Roland Garros je grandslamový tenisový turnaj.",1),
+            SportsFact("What color card sends a player off in soccer?","Jaká karta ve fotbale znamená vyloučení hráče?",listOf("red","red card"),listOf("cervena","červená","cervena karta"),"A red card sends a player off.","Červená karta znamená vyloučení.",1),
+            SportsFact("How many lanes are typically used in an Olympic 400-meter track?","Kolik drah má běžně olympijský atletický ovál?",listOf("8","eight"),listOf("8","osm"),"Major championship tracks commonly use eight lanes.","Na vrcholných soutěžích se běžně používá osm drah.",3),
+            SportsFact("Which sport has positions called scrum-half and fly-half?","Ve kterém sportu jsou pozice scrum-half a fly-half?",listOf("rugby union","rugby"),listOf("ragby","rugby"),"Those are rugby union positions.","Jsou to pozice v ragby.",3),
+            SportsFact("How many points is a try worth in rugby union?","Kolik bodů má položení pětky v ragby union?",listOf("5","five"),listOf("5","pet","pět"),"A try is worth five points.","Položení má hodnotu pěti bodů.",3),
+            SportsFact("Which sport uses a shuttlecock?","Ve kterém sportu se používá košíček?",listOf("badminton"),listOf("badminton"),"Badminton uses a shuttlecock.","Badminton používá košíček.",1)
+        )
+
+        return facts.mapIndexed { index, fact ->
+            LocalizedQuestion(
+                id = "sportx" + (index + 1).toString().padStart(3, '0'),
+                difficulty = fact.difficulty,
+                category = Category.SPORTS,
+                promptEn = fact.questionEn,
+                promptCs = fact.questionCs,
+                answersEn = fact.answerEn,
+                answersCs = fact.answerCs,
+                explanationEn = fact.explanationEn,
+                explanationCs = fact.explanationCs
+            )
+        }
     }
 
     private fun q(
