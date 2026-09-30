@@ -9,9 +9,34 @@ class FamilyGameEngine(context: Context) {
 
     enum class Mode { ROUND, BATTLE }
 
+    enum class Difficulty(val minQuestionDifficulty: Int, val maxQuestionDifficulty: Int) {
+        KIDS(1, 1),
+        EASY(1, 2),
+        NORMAL(2, 3),
+        HARD(3, 4),
+        EXPERT(4, 5);
+
+        fun labelCs(): String = when (this) {
+            KIDS -> "Děti"
+            EASY -> "Lehká"
+            NORMAL -> "Normální"
+            HARD -> "Těžká"
+            EXPERT -> "Expert"
+        }
+
+        fun labelEn(): String = when (this) {
+            KIDS -> "Kids"
+            EASY -> "Easy"
+            NORMAL -> "Normal"
+            HARD -> "Hard"
+            EXPERT -> "Expert"
+        }
+    }
+
     data class Player(
         val id: Int,
         val name: String,
+        val difficulty: Difficulty,
         val score: Int,
         val streak: Int,
         val bestStreak: Int
@@ -65,15 +90,32 @@ class FamilyGameEngine(context: Context) {
         return if (saved.size >= 2) saved.take(MAX_PLAYERS) else listOf("Petr", "Player 2")
     }
 
-    fun savePlayers(names: List<String>) {
-        val clean = names
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-            .distinctBy { normalize(it) }
-            .take(MAX_PLAYERS)
-        if (clean.size < 2) return
+    fun playerDifficulties(): List<Difficulty> {
+        val saved = prefs.getString(KEY_DIFFICULTIES, "")
+            ?.split(",")
+            ?.map { raw -> runCatching { Difficulty.valueOf(raw) }.getOrDefault(Difficulty.NORMAL) }
+            .orEmpty()
+        return playerNames().indices.map { index -> saved.getOrNull(index) ?: Difficulty.NORMAL }
+    }
 
-        val editor = prefs.edit().putString(KEY_PLAYERS, clean.joinToString(PLAYER_SEPARATOR))
+    fun savePlayers(names: List<String>, difficulties: List<Difficulty> = emptyList()) {
+        val configured = names.mapIndexedNotNull { index, rawName ->
+            val cleanName = rawName.trim()
+            if (cleanName.isBlank()) null
+            else Triple(index, cleanName, difficulties.getOrNull(index) ?: Difficulty.NORMAL)
+        }
+            .distinctBy { normalize(it.second) }
+            .take(MAX_PLAYERS)
+
+        if (configured.size < 2) return
+
+        val cleanNames = configured.map { it.second }
+        val cleanDifficulties = configured.map { it.third }
+
+        val editor = prefs.edit()
+            .putString(KEY_PLAYERS, cleanNames.joinToString(PLAYER_SEPARATOR))
+            .putString(KEY_DIFFICULTIES, cleanDifficulties.joinToString(",") { it.name })
+
         scoreKeys().forEach { editor.remove(it) }
         streakKeys().forEach { editor.remove(it) }
         bestStreakKeys().forEach { editor.remove(it) }
@@ -81,14 +123,18 @@ class FamilyGameEngine(context: Context) {
         resetSession()
     }
 
-    fun players(): List<Player> = playerNames().mapIndexed { index, name ->
+    fun players(): List<Player> {
+        val difficulties = playerDifficulties()
+        return playerNames().mapIndexed { index, name ->
         Player(
             id = index,
             name = name,
+            difficulty = difficulties.getOrNull(index) ?: Difficulty.NORMAL,
             score = prefs.getInt(scoreKey(index), 0),
             streak = prefs.getInt(streakKey(index), 0),
             bestStreak = prefs.getInt(bestStreakKey(index), 0)
         )
+    }
     }
 
     fun currentPlayer(): Player {
@@ -122,12 +168,17 @@ class FamilyGameEngine(context: Context) {
         val pool = TriviaQuestionBank.questions.filterNot { it.id in recent }.ifEmpty {
             TriviaQuestionBank.questions
         }
-        val preferredDifficulty = when {
-            questionsAnswered < 4 -> 1..3
-            questionsAnswered < 10 -> 2..4
-            else -> 2..5
+        val preferredDifficulty = if (mode() == Mode.ROUND) {
+            val difficulty = currentPlayer().difficulty
+            difficulty.minQuestionDifficulty..difficulty.maxQuestionDifficulty
+        } else {
+            battleDifficultyRange()
         }
-        val chosen = pool.filter { it.difficulty in preferredDifficulty }.ifEmpty { pool }.random()
+
+        val chosen = pool
+            .filter { it.difficulty in preferredDifficulty }
+            .ifEmpty { pool }
+            .random()
         currentQuestionId = chosen.id
 
         val updatedRecent = (recent + chosen.id).takeLast(RECENT_WINDOW)
@@ -137,6 +188,41 @@ class FamilyGameEngine(context: Context) {
             .apply()
 
         return localize(chosen, language)
+    }
+
+    fun difficultySummary(language: TriviaGameEngine.Language): String =
+        players().joinToString(" • ") { player ->
+            val label = if (language == TriviaGameEngine.Language.CS) {
+                player.difficulty.labelCs()
+            } else {
+                player.difficulty.labelEn()
+            }
+            player.name + ": " + label
+        }
+
+    private fun battleDifficultyRange(): IntRange {
+        val levels = players().map { player ->
+            when (player.difficulty) {
+                Difficulty.KIDS -> 1
+                Difficulty.EASY -> 2
+                Difficulty.NORMAL -> 3
+                Difficulty.HARD -> 4
+                Difficulty.EXPERT -> 5
+            }
+        }
+
+        if (levels.isEmpty()) return 2..3
+
+        val sorted = levels.sorted()
+        val median = if (sorted.size % 2 == 1) {
+            sorted[sorted.size / 2]
+        } else {
+            ((sorted[sorted.size / 2 - 1] + sorted[sorted.size / 2]) / 2.0)
+                .toInt()
+                .coerceIn(1, 5)
+        }
+
+        return (median - 1).coerceAtLeast(1)..(median + 1).coerceAtMost(5)
     }
 
     fun buzz(candidates: List<String>): Player? {
@@ -343,6 +429,7 @@ class FamilyGameEngine(context: Context) {
     companion object {
         private const val PREFS_NAME = "family_game_v1"
         private const val KEY_PLAYERS = "players"
+        private const val KEY_DIFFICULTIES = "difficulties"
         private const val KEY_MODE = "mode"
         private const val KEY_QUESTION_ID = "question_id"
         private const val KEY_QUESTIONS_ANSWERED = "questions_answered"
