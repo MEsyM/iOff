@@ -34,6 +34,7 @@ fun CarPreviewScreen(
     connected: Boolean,
     onSelectTrivia: () -> Unit,
     onSelectSpelling: () -> Unit,
+    onSelectGuessWho: () -> Unit,
     onPlayPause: () -> Unit,
     onRepeat: () -> Unit,
     onNext: () -> Unit,
@@ -41,6 +42,7 @@ fun CarPreviewScreen(
     onClose: () -> Unit
 ) {
     val spelling = selectedGame == "spelling"
+    val guessWho = selectedGame == "guesswho"
 
     MaterialTheme {
         Surface(
@@ -78,13 +80,18 @@ fun CarPreviewScreen(
 
                         PreviewButton(
                             text = "Quick Trivia",
-                            primary = !spelling,
+                            primary = !spelling && !guessWho,
                             onClick = onSelectTrivia
                         )
                         PreviewButton(
                             text = "Spelling Bee",
                             primary = spelling,
                             onClick = onSelectSpelling
+                        )
+                        PreviewButton(
+                            text = "Guess Who",
+                            primary = guessWho,
+                            onClick = onSelectGuessWho
                         )
                     }
 
@@ -145,13 +152,21 @@ fun CarPreviewScreen(
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = if (spelling) "ABC" else "Q",
+                                    text = when {
+                                        spelling -> "ABC"
+                                        guessWho -> "WHO?"
+                                        else -> "Q"
+                                    },
                                     color = Color.White,
-                                    fontSize = if (spelling) 56.sp else 82.sp,
+                                    fontSize = if (guessWho) 46.sp else if (spelling) 56.sp else 82.sp,
                                     fontWeight = FontWeight.Black
                                 )
                                 Text(
-                                    text = if (spelling) "SPELLING BEE" else "QUICK TRIVIA",
+                                    text = when {
+                                        spelling -> "SPELLING BEE"
+                                        guessWho -> "GUESS WHO"
+                                        else -> "QUICK TRIVIA"
+                                    },
                                     color = Color(0xFF9AA5B3),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.SemiBold
