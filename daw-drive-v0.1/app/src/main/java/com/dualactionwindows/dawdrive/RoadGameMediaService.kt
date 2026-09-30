@@ -1138,13 +1138,14 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             activeGame == ActiveGame.GUESS_WHO &&
                 normalized in setOf(
                     "next hint", "hint", "another hint", "give me a hint",
-                    "dalsi napoveda", "napoveda", "dej napovedu", "nevim", "nevím"
+                    "next", "i dont know", "i don t know",
+                    "dalsi napoveda", "napoveda", "dej napovedu", "nevim", "dalsi"
                 ) -> "hint"
 
             normalized in setOf("repeat", "repeat question", "again", "zopakuj", "znovu", "opakuj") ->
                 "repeat"
 
-            normalized in setOf("skip", "next", "preskoc", "preskocit", "dalsi") ->
+            normalized in setOf("skip", "preskoc", "preskocit") ->
                 "skip"
 
             normalized in setOf("score", "my score", "skore", "moje skore", "vysledek") ->
