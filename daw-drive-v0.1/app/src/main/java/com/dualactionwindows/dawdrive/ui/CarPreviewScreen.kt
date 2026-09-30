@@ -35,6 +35,7 @@ fun CarPreviewScreen(
     onSelectTrivia: () -> Unit,
     onSelectSpelling: () -> Unit,
     onSelectGuessWho: () -> Unit,
+    onSelectKids: () -> Unit,
     onPlayPause: () -> Unit,
     onRepeat: () -> Unit,
     onNext: () -> Unit,
@@ -43,6 +44,7 @@ fun CarPreviewScreen(
 ) {
     val spelling = selectedGame == "spelling"
     val guessWho = selectedGame == "guesswho"
+    val kids = selectedGame == "kids"
 
     MaterialTheme {
         Surface(
@@ -80,7 +82,7 @@ fun CarPreviewScreen(
 
                         PreviewButton(
                             text = "Quick Trivia",
-                            primary = !spelling && !guessWho,
+                            primary = !spelling && !guessWho && !kids,
                             onClick = onSelectTrivia
                         )
                         PreviewButton(
@@ -92,6 +94,11 @@ fun CarPreviewScreen(
                             text = "Guess Who",
                             primary = guessWho,
                             onClick = onSelectGuessWho
+                        )
+                        PreviewButton(
+                            text = "Kids",
+                            primary = kids,
+                            onClick = onSelectKids
                         )
                     }
 
@@ -155,16 +162,18 @@ fun CarPreviewScreen(
                                     text = when {
                                         spelling -> "ABC"
                                         guessWho -> "WHO?"
+                                        kids -> "KIDS"
                                         else -> "Q"
                                     },
                                     color = Color.White,
-                                    fontSize = if (guessWho) 46.sp else if (spelling) 56.sp else 82.sp,
+                                    fontSize = if (guessWho || kids) 46.sp else if (spelling) 56.sp else 82.sp,
                                     fontWeight = FontWeight.Black
                                 )
                                 Text(
                                     text = when {
                                         spelling -> "SPELLING BEE"
                                         guessWho -> "GUESS WHO"
+                                        kids -> "TRIVIA KIDS 6–12"
                                         else -> "QUICK TRIVIA"
                                     },
                                     color = Color(0xFF9AA5B3),
