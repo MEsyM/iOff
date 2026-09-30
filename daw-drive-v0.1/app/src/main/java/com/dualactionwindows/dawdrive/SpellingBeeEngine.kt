@@ -140,13 +140,16 @@ class SpellingBeeEngine(context: Context) {
         return selected
     }
 
-    fun evaluate(candidates: List<String>): Result {
+    fun evaluate(
+        candidates: List<String>,
+        language: TriviaGameEngine.Language
+    ): Result {
         val current = startOrResume()
         val before = profile()
-        val expected = normalizeSpelling(current.word)
+        val expected = normalizeSpelling(current.word, language)
 
         val correct = candidates.any { candidate ->
-            val normalized = normalizeSpelling(candidate)
+            val normalized = normalizeSpelling(candidate, language)
             normalized == expected ||
                 levenshtein(normalized, expected) <= if (expected.length >= 9) 1 else 0
         }
@@ -226,9 +229,12 @@ class SpellingBeeEngine(context: Context) {
             .apply()
     }
 
-    private fun normalizeSpelling(value: String): String {
+    private fun normalizeSpelling(
+        value: String,
+        language: TriviaGameEngine.Language
+    ): String {
         val withoutMarks = Normalizer.normalize(
-            value.lowercase(Locale.US),
+            value.lowercase(language.locale),
             Normalizer.Form.NFD
         ).replace(Regex("\\p{M}+"), "")
 
@@ -238,6 +244,8 @@ class SpellingBeeEngine(context: Context) {
             .trim()
 
         val direct = clean.replace(" ", "")
+        if (clean.isBlank()) return ""
+
         if (clean.split(" ").all { it.length == 1 }) {
             return direct
         }
@@ -247,8 +255,8 @@ class SpellingBeeEngine(context: Context) {
         var i = 0
 
         while (i < tokens.size) {
-            if (i + 1 < tokens.size && tokens[i] == "double") {
-                val letter = letterName(tokens[i + 1])
+            if (i + 1 < tokens.size && tokens[i] in setOf("double", "dvojite", "dvojity")) {
+                val letter = letterName(tokens[i + 1], language)
                 if (letter != null) {
                     mapped += letter
                     mapped += letter
@@ -257,7 +265,7 @@ class SpellingBeeEngine(context: Context) {
                 }
             }
 
-            val letter = letterName(tokens[i])
+            val letter = letterName(tokens[i], language)
             if (letter != null) {
                 mapped += letter
             } else if (tokens[i].length == 1) {
@@ -271,34 +279,71 @@ class SpellingBeeEngine(context: Context) {
         return mapped.joinToString("")
     }
 
-    private fun letterName(token: String): String? = when (token) {
-        "a", "ay", "ey" -> "a"
-        "b", "bee" -> "b"
-        "c", "see", "sea" -> "c"
-        "d", "dee" -> "d"
-        "e", "ee" -> "e"
-        "f", "ef", "eff" -> "f"
-        "g", "gee" -> "g"
-        "h", "aitch" -> "h"
-        "i", "eye" -> "i"
-        "j", "jay" -> "j"
-        "k", "kay" -> "k"
-        "l", "el" -> "l"
-        "m", "em" -> "m"
-        "n", "en" -> "n"
-        "o", "oh" -> "o"
-        "p", "pee" -> "p"
-        "q", "cue", "queue" -> "q"
-        "r", "are" -> "r"
-        "s", "ess" -> "s"
-        "t", "tee", "tea" -> "t"
-        "u", "you" -> "u"
-        "v", "vee" -> "v"
-        "w", "doubleyou", "doubleu" -> "w"
-        "x", "ex" -> "x"
-        "y", "why" -> "y"
-        "z", "zee", "zed" -> "z"
-        else -> null
+    private fun letterName(
+        token: String,
+        language: TriviaGameEngine.Language
+    ): String? {
+        if (language == TriviaGameEngine.Language.CS) {
+            return when (token) {
+                "a", "aah", "aa" -> "a"
+                "b", "be" -> "b"
+                "c", "ce" -> "c"
+                "d", "de" -> "d"
+                "e", "ee" -> "e"
+                "f", "ef" -> "f"
+                "g", "ge" -> "g"
+                "h", "ha" -> "h"
+                "i", "ii" -> "i"
+                "j", "jot" -> "j"
+                "k", "ka" -> "k"
+                "l", "el" -> "l"
+                "m", "em" -> "m"
+                "n", "en" -> "n"
+                "o", "oo" -> "o"
+                "p", "pe" -> "p"
+                "q", "kve" -> "q"
+                "r", "er" -> "r"
+                "s", "es" -> "s"
+                "t", "te" -> "t"
+                "u", "uu" -> "u"
+                "v", "ve" -> "v"
+                "w", "dvojiteve", "dvojitev" -> "w"
+                "x", "iks" -> "x"
+                "y", "ypsilon" -> "y"
+                "z", "zet" -> "z"
+                else -> null
+            }
+        }
+
+        return when (token) {
+            "a", "ay", "ey" -> "a"
+            "b", "bee" -> "b"
+            "c", "see", "sea" -> "c"
+            "d", "dee" -> "d"
+            "e", "ee" -> "e"
+            "f", "ef", "eff" -> "f"
+            "g", "gee" -> "g"
+            "h", "aitch" -> "h"
+            "i", "eye" -> "i"
+            "j", "jay" -> "j"
+            "k", "kay" -> "k"
+            "l", "el" -> "l"
+            "m", "em" -> "m"
+            "n", "en" -> "n"
+            "o", "oh" -> "o"
+            "p", "pee" -> "p"
+            "q", "cue", "queue" -> "q"
+            "r", "are" -> "r"
+            "s", "ess" -> "s"
+            "t", "tee", "tea" -> "t"
+            "u", "you" -> "u"
+            "v", "vee" -> "v"
+            "w", "doubleyou", "doubleu" -> "w"
+            "x", "ex" -> "x"
+            "y", "why" -> "y"
+            "z", "zee", "zed" -> "z"
+            else -> null
+        }
     }
 
     private fun levelForXp(xp: Int): Int = when {
