@@ -1,7 +1,7 @@
 name: DAW Drive APK
 
 concurrency:
-  group: daw-drive-${{ github.ref }}
+  group: daw-drive-${{ github.sha }}
   cancel-in-progress: true
 
 on:
