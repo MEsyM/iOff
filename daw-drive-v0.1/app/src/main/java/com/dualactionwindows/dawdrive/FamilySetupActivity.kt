@@ -89,7 +89,7 @@ class FamilySetupActivity : ComponentActivity() {
                             if (mode == FamilyGameEngine.Mode.ROUND)
                                 "Round: každý hráč dostane vlastní otázku. Správně 100 bodů + rostoucí bonus za sérii."
                             else
-                                "Battle: po otázce první řekne své jméno. Hra ho zamkne a až potom poslouchá odpověď. Hodnota 100/200/300 bodů; chyba body odečítá a otevírá šanci ostatním.",
+                                "Battle 2.0: vítěz vybírá další kategorii a 100/200/300 bodů hlasem. Po otázce první řekne své jméno. Chyba otevře steal ostatním za 70 % a pak 50 % bodů. Poslední 3 otázky jsou bonusové za dvojnásobek.",
                             color = Color(0xFF98A3B1),
                             fontSize = 14.sp
                         )
