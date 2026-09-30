@@ -73,6 +73,11 @@ class MainActivity : ComponentActivity() {
                         Intent(this, CarPreviewActivity::class.java)
                     )
                 },
+                onDebugLogsClick = {
+                    startActivity(
+                        Intent(this, DebugLogsActivity::class.java)
+                    )
+                },
                 onRoadVoiceStart = {
                     ensureRoadVoiceSetup(resumeGame = false)
                 },
