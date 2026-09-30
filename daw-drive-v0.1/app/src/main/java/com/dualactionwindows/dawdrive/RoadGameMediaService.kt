@@ -1332,6 +1332,40 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val cs = language == TriviaGameEngine.Language.CS
         val artUri = artworkUri(activeGame, artworkState).toString()
 
+        if (activeGame == ActiveGame.GUESS_WHO) {
+            val p = guessWhoEngine.profile()
+            val hintNumber = guessWhoEngine.currentHintNumber()
+            mediaSession.setMetadata(
+                MediaMetadataCompat.Builder()
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_TITLE,
+                        "Guess Who • Level " + p.level
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_ARTIST,
+                        p.xp.toString() + " XP • " +
+                            (if (cs) "série " else "streak ") + p.streak
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
+                        if (cs) "Nápověda " + hintNumber + " ze 3"
+                        else "Hint " + hintNumber + " of 3"
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
+                        if (cs) "Uhodni osobnost" else "Guess the personality"
+                    )
+                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putLong(
+                        MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
+                        (p.totalAnswered + 1).toLong()
+                    )
+                    .build()
+            )
+            return
+        }
+
         if (activeGame == ActiveGame.SPELLING) {
             val p = spellingEngine.profile()
             val word = spellingEngine.currentWord()
@@ -1409,6 +1443,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 ArtworkState.LISTENING -> R.drawable.spelling_listening
                 ArtworkState.CORRECT -> R.drawable.spelling_correct
                 ArtworkState.WRONG -> R.drawable.spelling_wrong
+            }
+            ActiveGame.GUESS_WHO -> when (state) {
+                ArtworkState.IDLE -> R.drawable.guesswho_idle
+                ArtworkState.LISTENING -> R.drawable.guesswho_listening
+                ArtworkState.CORRECT -> R.drawable.guesswho_correct
+                ArtworkState.WRONG -> R.drawable.guesswho_wrong
             }
         }
         return Uri.parse("android.resource://" + packageName + "/" + resId)
@@ -1630,12 +1670,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("DAW Drive Road Voice")
             .setContentText(
-                if (activeGame == ActiveGame.SPELLING) {
-                    if (cs) "Spelling Bee je aktivní"
-                    else "Spelling Bee is active"
-                } else {
-                    if (cs) "Quick Trivia je aktivní"
-                    else "Quick Trivia is active"
+                when (activeGame) {
+                    ActiveGame.SPELLING ->
+                        if (cs) "Spelling Bee je aktivní" else "Spelling Bee is active"
+                    ActiveGame.GUESS_WHO ->
+                        if (cs) "Guess Who je aktivní" else "Guess Who is active"
+                    ActiveGame.TRIVIA ->
+                        if (cs) "Quick Trivia je aktivní" else "Quick Trivia is active"
                 }
             )
             .setOngoing(true)
@@ -1665,6 +1706,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val ROOT_ID = "road_games_root"
         private const val MEDIA_ID_TRIVIA = "trivia_career"
         private const val MEDIA_ID_SPELLING = "spelling_bee"
+        private const val MEDIA_ID_GUESS_WHO = "guess_who"
 
         private const val CONTENT_STYLE_BROWSABLE_KEY =
             "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT"
