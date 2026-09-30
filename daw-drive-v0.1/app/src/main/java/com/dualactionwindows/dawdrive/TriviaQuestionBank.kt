@@ -230,7 +230,7 @@ object TriviaQuestionBank {
             CapitalFact("Uruguay","Uruguay","Montevideo",3)
         )
 
-        return facts.mapIndexed { index, fact ->
+        val forward = facts.mapIndexed { index, fact ->
             LocalizedQuestion(
                 id = "cap" + (index + 1).toString().padStart(3, '0'),
                 difficulty = fact.difficulty,
@@ -243,6 +243,22 @@ object TriviaQuestionBank {
                 explanationCs = fact.capital + " je hlavní město země " + fact.countryCs + "."
             )
         }
+
+        val reverse = facts.mapIndexed { index, fact ->
+            LocalizedQuestion(
+                id = "country" + (index + 1).toString().padStart(3, '0'),
+                difficulty = minOf(5, fact.difficulty + 1),
+                category = Category.GEOGRAPHY,
+                promptEn = "Which country has " + fact.capital + " as its capital?",
+                promptCs = "Která země má hlavní město " + fact.capital + "?",
+                answersEn = listOf(fact.countryEn.lowercase()),
+                answersCs = listOf(fact.countryCs.lowercase()),
+                explanationEn = fact.capital + " is the capital of " + fact.countryEn + ".",
+                explanationCs = fact.capital + " je hlavní město země " + fact.countryCs + "."
+            )
+        }
+
+        return forward + reverse
     }
 
     private data class ElementFact(
@@ -291,7 +307,7 @@ object TriviaQuestionBank {
             ElementFact("plutonium","plutonium","Pu",3)
         )
 
-        return facts.mapIndexed { index, fact ->
+        val forward = facts.mapIndexed { index, fact ->
             LocalizedQuestion(
                 id = "elm" + (index + 1).toString().padStart(3, '0'),
                 difficulty = fact.difficulty,
@@ -306,18 +322,39 @@ object TriviaQuestionBank {
                     " má značku " + fact.symbol + "."
             )
         }
+
+        val reverse = facts.mapIndexed { index, fact ->
+            LocalizedQuestion(
+                id = "elmname" + (index + 1).toString().padStart(3, '0'),
+                difficulty = minOf(5, fact.difficulty + 1),
+                category = Category.SCIENCE,
+                promptEn = "Which element has the symbol " + fact.symbol + "?",
+                promptCs = "Který prvek má značku " + fact.symbol + "?",
+                answersEn = listOf(fact.nameEn.lowercase()),
+                answersCs = listOf(fact.nameCs.lowercase()),
+                explanationEn = fact.symbol + " is the symbol for " + fact.nameEn + ".",
+                explanationCs = fact.symbol + " je značka prvku " + fact.nameCs + "."
+            )
+        }
+
+        return forward + reverse
     }
 
     private fun generatedNumberQuestions(): List<LocalizedQuestion> {
         val result = mutableListOf<LocalizedQuestion>()
 
-        for (i in 1..30) {
-            val a = 11 + i
-            val b = 4 + (i % 13)
+        for (i in 1..200) {
+            val a = 10 + i * 2
+            val b = 3 + (i % 17)
             val value = a + b
             result += LocalizedQuestion(
                 id = "add" + i.toString().padStart(3, '0'),
-                difficulty = if (value < 35) 1 else 2,
+                difficulty = when {
+                    value < 50 -> 1
+                    value < 150 -> 2
+                    value < 300 -> 3
+                    else -> 4
+                },
                 category = Category.NUMBERS,
                 promptEn = "What is " + a + " plus " + b + "?",
                 promptCs = "Kolik je " + a + " plus " + b + "?",
@@ -328,13 +365,17 @@ object TriviaQuestionBank {
             )
         }
 
-        for (i in 1..30) {
-            val a = 70 + i * 3
-            val b = 8 + (i % 17)
+        for (i in 1..200) {
+            val a = 90 + i * 3
+            val b = 7 + (i % 29)
             val value = a - b
             result += LocalizedQuestion(
                 id = "sub" + i.toString().padStart(3, '0'),
-                difficulty = if (a < 120) 2 else 3,
+                difficulty = when {
+                    a < 150 -> 2
+                    a < 350 -> 3
+                    else -> 4
+                },
                 category = Category.NUMBERS,
                 promptEn = "What is " + a + " minus " + b + "?",
                 promptCs = "Kolik je " + a + " minus " + b + "?",
@@ -345,15 +386,16 @@ object TriviaQuestionBank {
             )
         }
 
-        for (i in 1..30) {
-            val a = 6 + (i % 13)
-            val b = 4 + ((i * 3) % 12)
+        for (i in 0 until 200) {
+            val a = 2 + i / 10
+            val b = 2 + i % 10
             val value = a * b
             result += LocalizedQuestion(
-                id = "mul" + i.toString().padStart(3, '0'),
+                id = "mul" + (i + 1).toString().padStart(3, '0'),
                 difficulty = when {
-                    value < 60 -> 2
-                    value < 140 -> 3
+                    value < 40 -> 1
+                    value < 100 -> 2
+                    value < 180 -> 3
                     else -> 4
                 },
                 category = Category.NUMBERS,
@@ -363,6 +405,47 @@ object TriviaQuestionBank {
                 answersCs = listOf(value.toString()),
                 explanationEn = a.toString() + " times " + b + " is " + value + ".",
                 explanationCs = a.toString() + " krát " + b + " je " + value + "."
+            )
+        }
+
+        for (i in 1..120) {
+            val divisor = 2 + (i % 11)
+            val answer = 3 + i
+            val dividend = divisor * answer
+            result += LocalizedQuestion(
+                id = "div" + i.toString().padStart(3, '0'),
+                difficulty = when {
+                    answer < 20 -> 2
+                    answer < 60 -> 3
+                    else -> 4
+                },
+                category = Category.NUMBERS,
+                promptEn = "What is " + dividend + " divided by " + divisor + "?",
+                promptCs = "Kolik je " + dividend + " děleno " + divisor + "?",
+                answersEn = listOf(answer.toString()),
+                answersCs = listOf(answer.toString()),
+                explanationEn = dividend.toString() + " divided by " + divisor + " is " + answer + ".",
+                explanationCs = dividend.toString() + " děleno " + divisor + " je " + answer + "."
+            )
+        }
+
+        for (n in 2..51) {
+            val value = n * n
+            result += LocalizedQuestion(
+                id = "sq" + n.toString().padStart(3, '0'),
+                difficulty = when {
+                    n <= 12 -> 2
+                    n <= 25 -> 3
+                    n <= 40 -> 4
+                    else -> 5
+                },
+                category = Category.NUMBERS,
+                promptEn = "What is " + n + " squared?",
+                promptCs = "Kolik je " + n + " na druhou?",
+                answersEn = listOf(value.toString()),
+                answersCs = listOf(value.toString()),
+                explanationEn = n.toString() + " squared is " + value + ".",
+                explanationCs = n.toString() + " na druhou je " + value + "."
             )
         }
 
