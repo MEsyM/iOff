@@ -1,5 +1,9 @@
 name: DAW Drive APK
 
+concurrency:
+  group: daw-drive-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
