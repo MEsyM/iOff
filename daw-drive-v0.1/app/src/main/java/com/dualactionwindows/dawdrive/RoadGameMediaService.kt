@@ -9,6 +9,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -52,6 +53,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var retryCount = 0
     private var sessionStarted = false
     private var questionListeningStartedAt = 0L
+    private var pendingStartAfterTts = false
+    private var fallbackNoticeSpoken = false
 
     override fun onCreate() {
         super.onCreate()
@@ -183,7 +186,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         return
                     }
 
-                    evaluateSpeechCandidates(candidates)
+                    if (activeGame == ActiveGame.SPELLING) {
+                        evaluateSpellingCandidates(candidates)
+                    } else {
+                        evaluateSpeechCandidates(candidates)
+                    }
                 }
 
                 override fun onPartialResults(partialResults: Bundle?) = Unit
@@ -221,6 +228,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         ttsReady = true
         applyVoiceLanguage()
 
+        if (pendingStartAfterTts) {
+            pendingStartAfterTts = false
+            mainHandler.post { startOrResumeActiveGame() }
+        }
+
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) = Unit
             override fun onError(utteranceId: String?) = Unit
@@ -235,10 +247,17 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     }
 
                     QUESTION_UTTERANCE_ID -> {
-                        if (voiceModeEnabled && awaitingAnswer) {
-                            mainHandler.post {
-                                questionListeningStartedAt = SystemClock.elapsedRealtime()
-                                startListeningForAnswer()
+                        if (awaitingAnswer) {
+                            if (voiceModeEnabled) {
+                                mainHandler.post {
+                                    questionListeningStartedAt = SystemClock.elapsedRealtime()
+                                    startListeningForAnswer()
+                                }
+                            } else {
+                                mainHandler.post {
+                                    artworkState = ArtworkState.IDLE
+                                    updateMetadata()
+                                }
                             }
                         }
                     }
@@ -328,7 +347,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun startOrResumeTrivia() {
-        if (!ensureRoadVoiceForPlayback()) return
+        if (!ensurePlaybackForeground()) return
+        if (!ttsReady) {
+            pendingStartAfterTts = true
+            setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            return
+        }
 
         triviaEngine.startOrResumeRound()
         applyVoiceLanguage()
@@ -371,7 +395,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun startOrResumeSpelling() {
-        if (!ensureRoadVoiceForPlayback()) return
+        if (!ensurePlaybackForeground()) return
+        if (!ttsReady) {
+            pendingStartAfterTts = true
+            setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            return
+        }
 
         spellingEngine.startOrResume()
         applyVoiceLanguage()
@@ -429,7 +458,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             return
         }
 
-        val locale = triviaEngine.language().locale
+        val locale = if (activeGame == ActiveGame.SPELLING) {
+            Locale.US
+        } else {
+            triviaEngine.language().locale
+        }
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
@@ -653,7 +686,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun repeatCurrentQuestion() {
-        if (!ensureRoadVoiceForPlayback()) return
+        if (!ensurePlaybackForeground()) return
         stopListening()
         awaitingAnswer = true
         retryCount = 0
@@ -663,7 +696,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun skipCurrentQuestion() {
-        if (!ensureRoadVoiceForPlayback()) return
+        if (!ensurePlaybackForeground()) return
 
         stopListening()
         awaitingAnswer = false
@@ -798,6 +831,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         awaitingAnswer = false
         sessionStarted = false
         voiceModeEnabled = false
+        pendingStartAfterTts = false
+        fallbackNoticeSpoken = false
         if (::tts.isInitialized) {
             tts.stop()
         }
@@ -814,44 +849,50 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         super.onTaskRemoved(rootIntent)
     }
 
-    private fun ensureRoadVoiceForPlayback(): Boolean {
-        if (voiceModeEnabled) return true
-
-        if (
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            showEnableRoadVoiceNotification(needsPermission = true)
-            speakSystem(
-                en = "Road Voice needs one-time microphone permission. Tap the phone notification.",
-                cs = "Road Voice potřebuje jednorázově povolit mikrofon. Klepni na notifikaci v telefonu."
-            )
-            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
-            return false
-        }
-
+    private fun ensurePlaybackForeground(): Boolean {
         return try {
-            activateRoadVoiceForeground()
+            val type = if (voiceModeEnabled) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            } else {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            }
+
+            startForeground(
+                NOTIFICATION_ID,
+                buildActiveNotification(),
+                type
+            )
+
+            if (!voiceModeEnabled && !fallbackNoticeSpoken) {
+                fallbackNoticeSpoken = true
+                showEnableRoadVoiceNotification(
+                    needsPermission =
+                        ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.RECORD_AUDIO
+                        ) != PackageManager.PERMISSION_GRANTED
+                )
+            }
             true
         } catch (_: ForegroundServiceStartNotAllowedException) {
-            showEnableRoadVoiceNotification(needsPermission = false)
-            speakSystem(
-                en = "Tap the Road Voice notification once to enable hands-free mode.",
-                cs = "Jednou klepni na notifikaci Road Voice pro aktivaci hands-free režimu."
-            )
             setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            showEnableRoadVoiceNotification(needsPermission = false)
             false
         } catch (_: SecurityException) {
-            showEnableRoadVoiceNotification(needsPermission = false)
             setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+            showEnableRoadVoiceNotification(needsPermission = false)
             false
         }
     }
 
     private fun activateRoadVoiceForeground() {
-        startForeground(NOTIFICATION_ID, buildActiveNotification())
+        startForeground(
+            NOTIFICATION_ID,
+            buildActiveNotification(),
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+        )
         voiceModeEnabled = true
         getSystemService(NotificationManager::class.java)
             .cancel(ENABLE_NOTIFICATION_ID)
@@ -1101,8 +1142,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("DAW Drive Road Voice")
             .setContentText(
-                if (cs) "Hands-free Quick Trivia je aktivní"
-                else "Hands-free Quick Trivia is active"
+                if (activeGame == ActiveGame.SPELLING) {
+                    if (cs) "Spelling Bee je aktivní"
+                    else "Spelling Bee is active"
+                } else {
+                    if (cs) "Quick Trivia je aktivní"
+                    else "Quick Trivia is active"
+                }
             )
             .setOngoing(true)
             .build()
