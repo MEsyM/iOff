@@ -35,7 +35,8 @@ class CarPreviewActivity : ComponentActivity() {
     private enum class Game(val mediaId: String) {
         TRIVIA(MEDIA_ID_TRIVIA),
         SPELLING(MEDIA_ID_SPELLING),
-        GUESS_WHO(MEDIA_ID_GUESS_WHO)
+        GUESS_WHO(MEDIA_ID_GUESS_WHO),
+        KIDS(MEDIA_ID_KIDS)
     }
 
     private val controllerCallback = object : MediaControllerCompat.Callback() {
@@ -109,6 +110,7 @@ class CarPreviewActivity : ComponentActivity() {
                     Game.TRIVIA -> "trivia"
                     Game.SPELLING -> "spelling"
                     Game.GUESS_WHO -> "guesswho"
+                    Game.KIDS -> "kids"
                 },
                 isPlaying = isPlaying,
                 connected = connected,
@@ -120,6 +122,9 @@ class CarPreviewActivity : ComponentActivity() {
                 },
                 onSelectGuessWho = {
                     selectGame(Game.GUESS_WHO)
+                },
+                onSelectKids = {
+                    selectGame(Game.KIDS)
                 },
                 onPlayPause = {
                     runWithPermissions {
@@ -188,6 +193,7 @@ class CarPreviewActivity : ComponentActivity() {
             Game.TRIVIA -> "Quick Trivia"
             Game.SPELLING -> "Spelling Bee"
             Game.GUESS_WHO -> "Guess Who"
+            Game.KIDS -> "Trivia Kids 6–12"
         }
 
     private fun runWithPermissions(action: () -> Unit) {
@@ -250,5 +256,6 @@ class CarPreviewActivity : ComponentActivity() {
         private const val MEDIA_ID_TRIVIA = "trivia_career"
         private const val MEDIA_ID_SPELLING = "spelling_bee"
         private const val MEDIA_ID_GUESS_WHO = "guess_who"
+        private const val MEDIA_ID_KIDS = "kids_trivia"
     }
 }
