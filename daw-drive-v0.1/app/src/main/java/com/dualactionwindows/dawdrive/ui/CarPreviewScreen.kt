@@ -36,6 +36,8 @@ fun CarPreviewScreen(
     onSelectSpelling: () -> Unit,
     onSelectGuessWho: () -> Unit,
     onSelectKids: () -> Unit,
+    onSelectFamily: () -> Unit,
+    onFamilySetup: () -> Unit,
     onPlayPause: () -> Unit,
     onRepeat: () -> Unit,
     onNext: () -> Unit,
@@ -45,6 +47,7 @@ fun CarPreviewScreen(
     val spelling = selectedGame == "spelling"
     val guessWho = selectedGame == "guesswho"
     val kids = selectedGame == "kids"
+    val family = selectedGame == "family"
 
     MaterialTheme {
         Surface(
@@ -82,7 +85,7 @@ fun CarPreviewScreen(
 
                         PreviewButton(
                             text = "Quick Trivia",
-                            primary = !spelling && !guessWho && !kids,
+                            primary = !spelling && !guessWho && !kids && !family,
                             onClick = onSelectTrivia
                         )
                         PreviewButton(
@@ -99,6 +102,11 @@ fun CarPreviewScreen(
                             text = "Kids",
                             primary = kids,
                             onClick = onSelectKids
+                        )
+                        PreviewButton(
+                            text = "Family",
+                            primary = family,
+                            onClick = onSelectFamily
                         )
                     }
 
@@ -163,6 +171,7 @@ fun CarPreviewScreen(
                                         spelling -> "ABC"
                                         guessWho -> "WHO?"
                                         kids -> "KIDS"
+                                        family -> "FAM"
                                         else -> "Q"
                                     },
                                     color = Color.White,
@@ -174,6 +183,7 @@ fun CarPreviewScreen(
                                         spelling -> "SPELLING BEE"
                                         guessWho -> "GUESS WHO"
                                         kids -> "TRIVIA KIDS 6–12"
+                                        family -> "FAMILY"
                                         else -> "QUICK TRIVIA"
                                     },
                                     color = Color(0xFF9AA5B3),
@@ -258,6 +268,15 @@ fun CarPreviewScreen(
                         primary = false,
                         onClick = onStop
                     )
+
+                    if (family) {
+                        Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                        PreviewButton(
+                            text = "Players / Mode",
+                            primary = false,
+                            onClick = onFamilySetup
+                        )
+                    }
                 }
             }
         }
