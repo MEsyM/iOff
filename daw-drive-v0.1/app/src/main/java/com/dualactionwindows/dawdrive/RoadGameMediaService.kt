@@ -1039,6 +1039,133 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         speak(text, QUESTION_UTTERANCE_ID)
     }
 
+    private fun startOrResumeEnglish() {
+        if (!ensurePlaybackForeground()) return
+        if (!ttsReady) {
+            pendingStartAfterTts = true
+            setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            return
+        }
+
+        englishEngine.startOrResume()
+        applyVoiceLanguage()
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        updateMetadata()
+
+        if (!sessionStarted) {
+            sessionStarted = true
+            val p = englishEngine.settings()
+            val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+            val audience = if (p.audience == EnglishLearningEngine.Audience.KID) {
+                if (cs) "dětský" else "kids"
+            } else {
+                if (cs) "dospělý" else "adult"
+            }
+            val mode = if (p.mode == EnglishLearningEngine.Mode.LEARN) "Learn" else "Challenge"
+            speakSystem(
+                en = "Welcome to Lone Rider English. " + p.playerName + ", " +
+                    audience + " profile, level " + p.level.label + ", " + mode +
+                    ". Ten voice lessons. Answer in English.",
+                cs = "Vítej v Lone Rider English. " + p.playerName + ", " +
+                    audience + " profil, úroveň " + p.level.label + ", režim " + mode +
+                    ". Deset hlasových lekcí. Odpovídej anglicky.",
+                utteranceId = SESSION_INTRO_UTTERANCE_ID
+            )
+        } else {
+            speakCurrentEnglishItem()
+        }
+    }
+
+    private fun speakCurrentEnglishItem() {
+        if (!ttsReady) return
+
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+        artworkState = ArtworkState.IDLE
+
+        val item = englishEngine.currentItem() ?: englishEngine.startOrResume()
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+        updateMetadata()
+
+        val prefix = when (item.type) {
+            EnglishLearningEngine.LessonType.VOCABULARY ->
+                if (cs) "Slovíčko. " else "Vocabulary. "
+            EnglishLearningEngine.LessonType.PHRASE ->
+                if (cs) "Fráze. " else "Phrase. "
+            EnglishLearningEngine.LessonType.TRANSLATION ->
+                if (cs) "Překlad. " else "Translation. "
+            EnglishLearningEngine.LessonType.REPEAT ->
+                if (cs) "Opakování. " else "Repeat. "
+        }
+        val prompt = if (cs) item.promptCs else item.promptEn
+        speak(prefix + prompt, QUESTION_UTTERANCE_ID)
+    }
+
+    private fun evaluateEnglishCandidates(candidates: List<String>) {
+        if (!awaitingAnswer) return
+
+        stopListening()
+        awaitingAnswer = false
+
+        val before = englishEngine.settings()
+        val result = englishEngine.answerCandidates(candidates)
+        artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
+        updateMetadata()
+
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+        val feedback = buildString {
+            if (result.correct) {
+                append(if (cs) "Správně." else "Correct.")
+                append(" +")
+                append(result.xpEarned)
+                append(" XP.")
+                if (result.streak >= 3) {
+                    append(if (cs) " Série " else " Streak ")
+                    append(result.streak)
+                    append(".")
+                }
+            } else if (before.mode == EnglishLearningEngine.Mode.LEARN) {
+                append(if (cs) "Skoro. Správně je: " else "Not quite. A good answer is: ")
+                append(result.expected)
+                append(". ")
+                append(result.teaching)
+            } else {
+                append(if (cs) "Špatně. Správně je: " else "Wrong. A good answer is: ")
+                append(result.expected)
+                append(".")
+            }
+
+            if (result.roundFinished) {
+                append(" ")
+                append(englishEngine.roundSummary())
+            }
+        }
+
+        speak(
+            feedback,
+            if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID else FEEDBACK_UTTERANCE_ID
+        )
+    }
+
+    private fun moveToNextEnglishItem() {
+        artworkState = ArtworkState.IDLE
+        englishEngine.nextItem()
+        speakCurrentEnglishItem()
+    }
+
+    private fun startNextEnglishRound() {
+        artworkState = ArtworkState.IDLE
+        englishEngine.resetRound()
+        englishEngine.startOrResume()
+        val p = englishEngine.settings()
+        speakSystem(
+            en = "Next English lesson for " + p.playerName + ".",
+            cs = "Další English lekce pro " + p.playerName + ".",
+            utteranceId = SESSION_INTRO_UTTERANCE_ID
+        )
+    }
+
     private fun startListeningForAnswer() {
         if (!voiceModeEnabled || !awaitingAnswer || listening) return
 
