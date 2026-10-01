@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleDisplayName</key><string>Lone Rider</string>
+<key>NSMicrophoneUsageDescription</key><string>Lone Rider uses the microphone for voice-first driving games.</string>
+<key>NSSpeechRecognitionUsageDescription</key><string>Lone Rider uses speech recognition to understand game answers.</string>
+<key>UIBackgroundModes</key><array><string>audio</string></array>
+<key>UIApplicationSceneManifest</key><dict>
+<key>UIApplicationSupportsMultipleScenes</key><true/>
+<key>UISceneConfigurations</key><dict>
+<key>CPTemplateApplicationSceneSessionRoleApplication</key><array><dict>
+<key>UISceneClassName</key><string>CPTemplateApplicationScene</string>
+<key>UISceneConfigurationName</key><string>CarPlay</string>
+<key>UISceneDelegateClassName</key><string>$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate</string>
+</dict></array>
+</dict></dict>
+</dict></plist>

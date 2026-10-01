@@ -1,0 +1,40 @@
+name: LoneRider
+options:
+  bundleIdPrefix: com.dualactionwindows
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    SWIFT_VERSION: 5.10
+targets:
+  LoneRider:
+    type: application
+    platform: iOS
+    sources:
+      - LoneRider
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dualactionwindows.lonerider
+        PRODUCT_NAME: Lone Rider
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Lone Rider
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: Lone Rider uses the microphone for voice-first driving games.
+        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: Lone Rider uses speech recognition to understand game answers.
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        TARGETED_DEVICE_FAMILY: "1"
+    info:
+      path: LoneRider/Info.plist
+      properties:
+        CFBundleDisplayName: Lone Rider
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            CPTemplateApplicationSceneSessionRoleApplication:
+              - UISceneClassName: CPTemplateApplicationScene
+                UISceneConfigurationName: CarPlay
+                UISceneDelegateClassName: "$(PRODUCT_MODULE_NAME).CarPlaySceneDelegate"
+        NSMicrophoneUsageDescription: Lone Rider uses the microphone for voice-first driving games.
+        NSSpeechRecognitionUsageDescription: Lone Rider uses speech recognition to understand game answers.
+        UIBackgroundModes:
+          - audio
