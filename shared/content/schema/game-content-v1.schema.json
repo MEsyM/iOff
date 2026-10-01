@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lonerider.app/schema/game-content-v1.json",
+  "title": "Lone Rider game content",
+  "type": "object",
+  "required": ["schemaVersion","game","version"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "game": {"type": "string"},
+    "version": {"type": "string"},
+    "items": {"type": "array"}
+  },
+  "additionalProperties": true
+}

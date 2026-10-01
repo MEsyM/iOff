@@ -1,0 +1,36 @@
+openapi: 3.1.0
+info:
+  title: Lone Rider Content API
+  version: 1.0.0
+paths:
+  /v1/manifest:
+    get:
+      responses:
+        '200':
+          description: Current published manifest
+  /v1/games/{game}:
+    get:
+      parameters:
+        - in: path
+          name: game
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Current published game content
+    put:
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: game
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Validate and publish a new content version
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
