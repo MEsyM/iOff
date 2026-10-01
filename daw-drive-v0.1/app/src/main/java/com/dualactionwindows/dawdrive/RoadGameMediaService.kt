@@ -42,8 +42,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private lateinit var guessWhoEngine: GuessWhoEngine
     private lateinit var kidsTriviaEngine: KidsTriviaEngine
     private lateinit var familyEngine: FamilyGameEngine
+    private lateinit var englishEngine: EnglishLearningEngine
 
-    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO, KIDS_TRIVIA, FAMILY }
+    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO, KIDS_TRIVIA, FAMILY, ENGLISH }
     private enum class ArtworkState { IDLE, LISTENING, CORRECT, WRONG }
 
     private var activeGame = ActiveGame.TRIVIA
@@ -124,6 +125,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         guessWhoEngine = GuessWhoEngine(this)
         kidsTriviaEngine = KidsTriviaEngine(this)
         familyEngine = FamilyGameEngine(this)
+        englishEngine = EnglishLearningEngine(this)
         tts = TextToSpeech(this, this)
 
         createSpeechRecognizer()
@@ -180,6 +182,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             sessionStarted = false
                             startOrResumeFamily()
                         }
+                        MEDIA_ID_ENGLISH -> {
+                            activeGame = ActiveGame.ENGLISH
+                            sessionStarted = false
+                            startOrResumeEnglish()
+                        }
                         else -> {
                             activeGame = ActiveGame.TRIVIA
                             sessionStarted = false
@@ -206,6 +213,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             ActiveGame.GUESS_WHO -> evaluateGuessWhoCandidates(listOf(spoken))
                             ActiveGame.KIDS_TRIVIA -> evaluateKidsTriviaCandidates(listOf(spoken))
                             ActiveGame.FAMILY -> evaluateFamilyCandidates(listOf(spoken))
+                            ActiveGame.ENGLISH -> evaluateEnglishCandidates(listOf(spoken))
                             ActiveGame.TRIVIA -> evaluateSpeechCandidates(listOf(spoken))
                         }
                     } else {
@@ -302,6 +310,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         ActiveGame.GUESS_WHO -> evaluateGuessWhoCandidates(candidates)
                         ActiveGame.KIDS_TRIVIA -> evaluateKidsTriviaCandidates(candidates)
                         ActiveGame.FAMILY -> evaluateFamilyCandidates(candidates)
+                        ActiveGame.ENGLISH -> evaluateEnglishCandidates(candidates)
                         ActiveGame.TRIVIA -> evaluateSpeechCandidates(candidates)
                     }
                 }
@@ -393,6 +402,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
                                 ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
                                 ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
+                                ActiveGame.ENGLISH -> speakCurrentEnglishItem()
                                 ActiveGame.TRIVIA -> speakCurrentQuestion()
                             }
                         }
@@ -421,6 +431,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 ActiveGame.GUESS_WHO -> moveToNextGuessWhoPerson()
                                 ActiveGame.KIDS_TRIVIA -> moveToNextKidsQuestion()
                                 ActiveGame.FAMILY -> moveToNextFamilyQuestion()
+                                ActiveGame.ENGLISH -> moveToNextEnglishItem()
                                 ActiveGame.TRIVIA -> moveToNextQuestion()
                             }
                         }
@@ -433,6 +444,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 ActiveGame.GUESS_WHO -> startNextGuessWhoRound()
                                 ActiveGame.KIDS_TRIVIA -> startNextKidsRound()
                                 ActiveGame.FAMILY -> startNextFamilySession()
+                                ActiveGame.ENGLISH -> startNextEnglishRound()
                                 ActiveGame.TRIVIA -> startNextRound()
                             }
                         }, 700)
@@ -537,6 +549,14 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "Family",
                     familySubtitle,
                     R.drawable.kids_idle
+                ),
+                mediaItem(
+                    MEDIA_ID_ENGLISH,
+                    "English Lessons",
+                    englishEngine.settings().playerName + " • " +
+                        englishEngine.settings().level.label + " • " +
+                        englishEngine.settings().mode.name.lowercase().replaceFirstChar { it.uppercase() },
+                    R.drawable.trivia_idle
                 )
             )
         )
@@ -548,6 +568,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ActiveGame.GUESS_WHO -> startOrResumeGuessWho()
             ActiveGame.KIDS_TRIVIA -> startOrResumeKidsTrivia()
             ActiveGame.FAMILY -> startOrResumeFamily()
+            ActiveGame.ENGLISH -> startOrResumeEnglish()
             ActiveGame.TRIVIA -> startOrResumeTrivia()
         }
     }
@@ -1045,7 +1066,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             return
         }
 
-        val locale = triviaEngine.language().locale
+        val locale = if (activeGame == ActiveGame.ENGLISH) Locale.US else triviaEngine.language().locale
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
@@ -1503,6 +1524,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
             ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
             ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
+            ActiveGame.ENGLISH -> speakCurrentEnglishItem()
             ActiveGame.TRIVIA -> speakCurrentQuestion()
         }
     }
@@ -1573,6 +1595,19 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         cs = "Přeskakuji. Family kolo dokončeno. Skóre: " + familyEngine.scoreboard() + ".",
                         utteranceId = ROUND_SUMMARY_UTTERANCE_ID
                     )
+                } else {
+                    speakSystem(
+                        en = "Skipped.",
+                        cs = "Přeskakuji.",
+                        utteranceId = FEEDBACK_UTTERANCE_ID
+                    )
+                }
+            }
+
+            ActiveGame.ENGLISH -> {
+                val finished = englishEngine.skipCurrent()
+                if (finished) {
+                    speak(englishEngine.roundSummary(), ROUND_SUMMARY_UTTERANCE_ID)
                 } else {
                     speakSystem(
                         en = "Skipped.",
@@ -1666,6 +1701,15 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 }
             }
 
+            ActiveGame.ENGLISH -> {
+                val finished = englishEngine.skipCurrent()
+                if (finished) {
+                    speak(text + " " + englishEngine.roundSummary(), ROUND_SUMMARY_UTTERANCE_ID)
+                } else {
+                    speak(text, FEEDBACK_UTTERANCE_ID)
+                }
+            }
+
             ActiveGame.TRIVIA -> {
                 val skip = triviaEngine.skipCurrent()
                 if (skip.roundFinished) {
@@ -1722,6 +1766,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     ActiveGame.GUESS_WHO -> guessWhoEngine.scoreSummary(language)
                     ActiveGame.KIDS_TRIVIA -> kidsTriviaEngine.scoreSummary(language)
                     ActiveGame.FAMILY -> (if (language == TriviaGameEngine.Language.CS) "Skóre: " else "Score: ") + familyEngine.scoreboard()
+                    ActiveGame.ENGLISH -> englishEngine.roundSummary()
                     ActiveGame.TRIVIA -> triviaEngine.scoreSummary()
                 }
                 speak(summary, COMMAND_UTTERANCE_ID)
@@ -1738,6 +1783,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         "Family nemá levely. Aktuální skóre: " + familyEngine.scoreboard()
                     } else {
                         "Family has no levels. Current score: " + familyEngine.scoreboard()
+                    }
+                    ActiveGame.ENGLISH -> {
+                        val p = englishEngine.settings()
+                        p.playerName + ", English " + p.level.label + ", " + p.xp + " XP."
                     }
                     ActiveGame.TRIVIA -> triviaEngine.levelSummary()
                 }
@@ -2353,6 +2402,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         if (cs) "Trivia Kids je aktivní" else "Kids Trivia is active"
                     ActiveGame.FAMILY ->
                         if (cs) "Family hra je aktivní" else "Family game is active"
+                    ActiveGame.ENGLISH ->
+                        if (cs) "English Lessons jsou aktivní" else "English Lessons are active"
                     ActiveGame.TRIVIA ->
                         if (cs) "Quick Trivia je aktivní" else "Quick Trivia is active"
                 }
@@ -2387,6 +2438,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val MEDIA_ID_GUESS_WHO = "guess_who"
         private const val MEDIA_ID_KIDS_TRIVIA = "kids_trivia"
         private const val MEDIA_ID_FAMILY = "family_game"
+        private const val MEDIA_ID_ENGLISH = "english_lessons"
 
         private const val CONTENT_STYLE_BROWSABLE_KEY =
             "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT"
