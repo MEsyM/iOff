@@ -46,7 +46,7 @@ class CarPreviewActivity : ComponentActivity() {
             title = metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
                 ?: selectedGameTitle()
             subtitle = metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
-                ?: "DAW Drive"
+                ?: "Lone Rider"
             question = metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE)
                 ?: "Ready"
         }
