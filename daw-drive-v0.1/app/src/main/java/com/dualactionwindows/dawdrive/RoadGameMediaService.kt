@@ -2239,6 +2239,41 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             return
         }
 
+        if (activeGame == ActiveGame.ENGLISH) {
+            val p = englishEngine.settings()
+            val item = englishEngine.currentItem()
+            val accuracy = if (p.answered == 0) 0 else p.correct * 100 / p.answered
+            mediaSession.setMetadata(
+                MediaMetadataCompat.Builder()
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_TITLE,
+                        "English Lessons • " + p.playerName + " • " + p.level.label
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_ARTIST,
+                        p.xp.toString() + " XP • " + accuracy + "% • " +
+                            p.mode.name.lowercase().replaceFirstChar { it.uppercase() }
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
+                        item?.let { if (cs) it.promptCs else it.promptEn }
+                            ?: if (cs) "Připraveno" else "Ready"
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
+                        item?.topic ?: "English"
+                    )
+                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putLong(
+                        MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
+                        (p.answered + 1).toLong()
+                    )
+                    .build()
+            )
+            return
+        }
+
         val p = triviaEngine.profile()
         val q = triviaEngine.currentQuestion()
         val title = "Quick Trivia • Level " + p.level
@@ -2299,6 +2334,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 ArtworkState.LISTENING -> R.drawable.kids_listening
                 ArtworkState.CORRECT -> R.drawable.kids_correct
                 ArtworkState.WRONG -> R.drawable.kids_wrong
+            }
+            ActiveGame.ENGLISH -> when (state) {
+                ArtworkState.IDLE -> R.drawable.trivia_idle
+                ArtworkState.LISTENING -> R.drawable.trivia_listening
+                ArtworkState.CORRECT -> R.drawable.trivia_correct
+                ArtworkState.WRONG -> R.drawable.trivia_wrong
             }
         }
         return Uri.parse("android.resource://" + packageName + "/" + resId)
