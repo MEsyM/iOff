@@ -4,21 +4,23 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,247 +46,357 @@ fun CarPreviewScreen(
     onStop: () -> Unit,
     onClose: () -> Unit
 ) {
-    val spelling = selectedGame == "spelling"
-    val guessWho = selectedGame == "guesswho"
-    val kids = selectedGame == "kids"
-    val family = selectedGame == "family"
+    val game = when (selectedGame) {
+        "spelling" -> GameVisual("🐝", "SPELLING BEE", LoneRiderColors.Amber)
+        "guesswho" -> GameVisual("👤", "GUESS WHO", LoneRiderColors.Green)
+        "kids" -> GameVisual("★", "TRIVIA KIDS", LoneRiderColors.Blue)
+        "family" -> GameVisual("🏆", "FAMILY QUIZ", LoneRiderColors.Pink)
+        else -> GameVisual("💡", "QUICK TRIVIA", LoneRiderColors.Purple)
+    }
 
-    MaterialTheme {
+    LoneRiderTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = Color(0xFF050607)
+            color = LoneRiderColors.Background
         ) {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 26.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFF05070B), Color(0xFF07111F))
+                        )
+                    )
+                    .padding(18.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                NavigationRail(
+                    selectedGame = selectedGame,
+                    onSelectTrivia = onSelectTrivia,
+                    onSelectSpelling = onSelectSpelling,
+                    onSelectGuessWho = onSelectGuessWho,
+                    onSelectKids = onSelectKids,
+                    onSelectFamily = onSelectFamily
+                )
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "DAW DRIVE",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "PHONE CAR PREVIEW",
-                                color = Color(0xFF8E98A5),
-                                fontSize = 11.sp
-                            )
-                        }
+                    CarHeader(
+                        connected = connected,
+                        onClose = onClose
+                    )
 
-                        PreviewButton(
-                            text = "Quick Trivia",
-                            primary = !spelling && !guessWho && !kids && !family,
-                            onClick = onSelectTrivia
-                        )
-                        PreviewButton(
-                            text = "Spelling Bee",
-                            primary = spelling,
-                            onClick = onSelectSpelling
-                        )
-                        PreviewButton(
-                            text = "Guess Who",
-                            primary = guessWho,
-                            onClick = onSelectGuessWho
-                        )
-                        PreviewButton(
-                            text = "Kids",
-                            primary = kids,
-                            onClick = onSelectKids
-                        )
-                        PreviewButton(
-                            text = "Family",
-                            primary = family,
-                            onClick = onSelectFamily
-                        )
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .background(
-                                    color = if (connected) Color(0xFF26362C) else Color(0xFF3A2828),
-                                    shape = RoundedCornerShape(999.dp)
-                                )
-                                .padding(horizontal = 12.dp, vertical = 7.dp)
-                        ) {
-                            Text(
-                                text = if (connected) "CONNECTED" else "CONNECTING",
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-
-                        PreviewButton(
-                            text = "Close",
-                            primary = false,
-                            onClick = onClose
-                        )
-                    }
-                }
-
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    color = Color(0xFF111418),
-                    shape = RoundedCornerShape(24.dp)
-                ) {
-                    Row(
+                    Surface(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(24.dp),
-                        horizontalArrangement = Arrangement.spacedBy(28.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .fillMaxWidth()
+                            .weight(1f),
+                        color = LoneRiderColors.Surface,
+                        shape = RoundedCornerShape(28.dp)
                     ) {
-                        Box(
+                        Row(
                             modifier = Modifier
-                                .weight(0.34f)
                                 .fillMaxSize()
-                                .background(
-                                    color = Color(0xFF1A1F26),
-                                    shape = RoundedCornerShape(22.dp)
-                                ),
-                            contentAlignment = Alignment.Center
+                                .padding(24.dp),
+                            horizontalArrangement = Arrangement.spacedBy(24.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            GameHero(
+                                modifier = Modifier.weight(0.34f),
+                                visual = game,
+                                isPlaying = isPlaying
+                            )
+
                             Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.weight(0.66f),
                                 verticalArrangement = Arrangement.Center
                             ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text(
+                                        text = game.label,
+                                        color = game.accent,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 1.6.sp
+                                    )
+                                    StatusPill(
+                                        text = if (isPlaying) "LISTENING" else "READY",
+                                        active = isPlaying
+                                    )
+                                }
+
+                                Spacer(Modifier.height(10.dp))
+
                                 Text(
-                                    text = when {
-                                        spelling -> "ABC"
-                                        guessWho -> "WHO?"
-                                        kids -> "KIDS"
-                                        family -> "FAM"
-                                        else -> "Q"
-                                    },
+                                    text = title.ifBlank { game.label },
                                     color = Color.White,
-                                    fontSize = if (guessWho || kids) 46.sp else if (spelling) 56.sp else 82.sp,
-                                    fontWeight = FontWeight.Black
+                                    fontSize = 32.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
+
                                 Text(
-                                    text = when {
-                                        spelling -> "SPELLING BEE"
-                                        guessWho -> "GUESS WHO"
-                                        kids -> "TRIVIA KIDS 6–12"
-                                        family -> "FAMILY"
-                                        else -> "QUICK TRIVIA"
+                                    text = subtitle.ifBlank { "Lone Rider • Car Game Hub" },
+                                    color = LoneRiderColors.TextSecondary,
+                                    fontSize = 14.sp
+                                )
+
+                                Spacer(Modifier.height(20.dp))
+
+                                Surface(
+                                    color = Color(0xFF0A1421),
+                                    shape = RoundedCornerShape(20.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = question.ifBlank { "Press Play to start" },
+                                        color = LoneRiderColors.TextPrimary,
+                                        fontSize = 23.sp,
+                                        lineHeight = 30.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(20.dp)
+                                    )
+                                }
+
+                                Spacer(Modifier.height(16.dp))
+
+                                Text(
+                                    text = if (isPlaying) {
+                                        "Voice loop active • answer naturally"
+                                    } else {
+                                        "Large controls • voice first • family friendly"
                                     },
-                                    color = Color(0xFF9AA5B3),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    color = LoneRiderColors.TextSecondary,
+                                    fontSize = 12.sp
                                 )
                             }
                         }
-
-                        Column(
-                            modifier = Modifier.weight(0.66f),
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = title,
-                                color = Color.White,
-                                fontSize = 34.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = subtitle,
-                                color = Color(0xFF9AA5B3),
-                                fontSize = 17.sp
-                            )
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
-                            Text(
-                                text = question,
-                                color = Color(0xFFE9EEF4),
-                                fontSize = 24.sp,
-                                lineHeight = 31.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-
-                            Spacer(modifier = Modifier.height(26.dp))
-
-                            Text(
-                                text = if (isPlaying) "GAME ACTIVE • VOICE LOOP" else "READY / PAUSED",
-                                color = if (isPlaying) Color(0xFFC7D4C9) else Color(0xFF8D98A6),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
                     }
-                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    PreviewButton(
-                        text = "Repeat",
-                        primary = false,
-                        onClick = onRepeat
+                    ControlBar(
+                        isPlaying = isPlaying,
+                        family = selectedGame == "family",
+                        onPlayPause = onPlayPause,
+                        onRepeat = onRepeat,
+                        onNext = onNext,
+                        onStop = onStop,
+                        onFamilySetup = onFamilySetup
                     )
-
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-
-                    PreviewButton(
-                        text = if (isPlaying) "Pause" else "Play",
-                        primary = true,
-                        onClick = onPlayPause
-                    )
-
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-
-                    PreviewButton(
-                        text = "Next",
-                        primary = false,
-                        onClick = onNext
-                    )
-
-                    Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-
-                    PreviewButton(
-                        text = "Stop",
-                        primary = false,
-                        onClick = onStop
-                    )
-
-                    if (family) {
-                        Spacer(modifier = Modifier.padding(horizontal = 8.dp))
-                        PreviewButton(
-                            text = "Players / Mode",
-                            primary = false,
-                            onClick = onFamilySetup
-                        )
-                    }
                 }
             }
         }
     }
 }
 
+private data class GameVisual(
+    val icon: String,
+    val label: String,
+    val accent: Color
+)
+
 @Composable
-private fun PreviewButton(
+private fun NavigationRail(
+    selectedGame: String,
+    onSelectTrivia: () -> Unit,
+    onSelectSpelling: () -> Unit,
+    onSelectGuessWho: () -> Unit,
+    onSelectKids: () -> Unit,
+    onSelectFamily: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.width(92.dp),
+        color = Color(0xFF08101A),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(vertical = 12.dp, horizontal = 9.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            WolfMark()
+            RailButton("💡", selectedGame == "trivia", onSelectTrivia)
+            RailButton("🐝", selectedGame == "spelling", onSelectSpelling)
+            RailButton("👤", selectedGame == "guesswho", onSelectGuessWho)
+            RailButton("★", selectedGame == "kids", onSelectKids)
+            RailButton("🏆", selectedGame == "family", onSelectFamily)
+        }
+    }
+}
+
+@Composable
+private fun WolfMark() {
+    Surface(
+        color = Color.White,
+        shape = RoundedCornerShape(999.dp),
+        modifier = Modifier
+            .width(54.dp)
+            .height(54.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text("◢", color = Color(0xFF07101D), fontSize = 28.sp, fontWeight = FontWeight.Black)
+        }
+    }
+}
+
+@Composable
+private fun RailButton(
+    icon: String,
+    active: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        contentPadding = PaddingValues(0.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (active) LoneRiderColors.Blue else Color.Transparent,
+            contentColor = Color.White
+        ),
+        modifier = Modifier
+            .width(62.dp)
+            .height(54.dp)
+    ) {
+        Text(icon, fontSize = 23.sp)
+    }
+}
+
+@Composable
+private fun CarHeader(
+    connected: Boolean,
+    onClose: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                "LONE RIDER",
+                color = Color.White,
+                fontSize = 21.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.4.sp
+            )
+            Text(
+                "CAR GAME HUB",
+                color = LoneRiderColors.Cyan,
+                fontSize = 10.sp,
+                letterSpacing = 1.3.sp
+            )
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            StatusPill(if (connected) "CONNECTED" else "CONNECTING", connected)
+            CarButton("CLOSE", false, onClose)
+        }
+    }
+}
+
+@Composable
+private fun GameHero(
+    modifier: Modifier,
+    visual: GameVisual,
+    isPlaying: Boolean
+) {
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = visual.accent.copy(alpha = 0.14f),
+        shape = RoundedCornerShape(26.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(visual.icon, fontSize = 70.sp)
+                Text(
+                    visual.label,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.3.sp
+                )
+                Text(
+                    if (isPlaying) "● VOICE ACTIVE" else "○ READY",
+                    color = if (isPlaying) LoneRiderColors.Green else LoneRiderColors.TextSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ControlBar(
+    isPlaying: Boolean,
+    family: Boolean,
+    onPlayPause: () -> Unit,
+    onRepeat: () -> Unit,
+    onNext: () -> Unit,
+    onStop: () -> Unit,
+    onFamilySetup: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color(0xFF08101A),
+        shape = RoundedCornerShape(22.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CarButton("REPEAT", false, onRepeat)
+            Spacer(Modifier.width(10.dp))
+            CarButton(if (isPlaying) "PAUSE" else "PLAY", true, onPlayPause)
+            Spacer(Modifier.width(10.dp))
+            CarButton("NEXT", false, onNext)
+            Spacer(Modifier.width(10.dp))
+            CarButton("STOP", false, onStop)
+            if (family) {
+                Spacer(Modifier.width(10.dp))
+                CarButton("PLAYERS / MODE", false, onFamilySetup)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusPill(
+    text: String,
+    active: Boolean
+) {
+    Surface(
+        color = if (active) LoneRiderColors.Green.copy(alpha = 0.18f) else Color(0xFF1A2431),
+        shape = RoundedCornerShape(999.dp)
+    ) {
+        Text(
+            text,
+            color = if (active) LoneRiderColors.Green else LoneRiderColors.TextSecondary,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp)
+        )
+    }
+}
+
+@Composable
+private fun CarButton(
     text: String,
     primary: Boolean,
     onClick: () -> Unit
@@ -292,16 +404,13 @@ private fun PreviewButton(
     Button(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 11.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (primary) Color(0xFFE5E9EE) else Color(0xFF20252C),
-            contentColor = if (primary) Color(0xFF0B0D10) else Color.White
+            containerColor = if (primary) LoneRiderColors.Blue else LoneRiderColors.SurfaceRaised,
+            contentColor = Color.White
         ),
         modifier = Modifier.height(48.dp)
     ) {
-        Text(
-            text = text,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        Text(text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
