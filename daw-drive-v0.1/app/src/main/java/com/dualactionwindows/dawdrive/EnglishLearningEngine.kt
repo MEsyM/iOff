@@ -184,6 +184,13 @@ class EnglishLearningEngine(context: Context) {
         return chosen
     }
 
+    fun isCurrentAnswerCorrect(candidates: List<String>): Boolean {
+        val item = currentItem() ?: startOrResume()
+        return candidates
+            .filter { it.isNotBlank() }
+            .any { actual -> item.answers.any { expected -> matches(actual, expected) } }
+    }
+
     fun answerCandidates(candidates: List<String>): AnswerResult {
         val profile = settings()
         val item = currentItem() ?: startOrResume()
