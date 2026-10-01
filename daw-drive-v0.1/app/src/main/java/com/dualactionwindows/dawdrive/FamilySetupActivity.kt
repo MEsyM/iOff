@@ -6,16 +6,18 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,6 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dualactionwindows.dawdrive.ui.LoneRiderColors
+import com.dualactionwindows.dawdrive.ui.LoneRiderTheme
 
 class FamilySetupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,118 +56,222 @@ class FamilySetupActivity : ComponentActivity() {
             var mode by remember { mutableStateOf(engine.mode()) }
             var saved by remember { mutableStateOf(false) }
 
-            MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF080A0D)) {
+            LoneRiderTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = LoneRiderColors.Background
+                ) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
-                            .padding(28.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Text("Family Game", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Bold)
                         Text(
-                            "Nastav 2 až 6 hráčů. Každý má vlastní obtížnost. Jméno funguje zároveň jako hlasový buzzer v Battle.",
-                            color = Color(0xFFADB6C3),
-                            fontSize = 16.sp
+                            "LONE RIDER",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            letterSpacing = 2.sp,
+                            fontWeight = FontWeight.Bold
                         )
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(
-                                onClick = { mode = FamilyGameEngine.Mode.ROUND },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (mode == FamilyGameEngine.Mode.ROUND) Color(0xFF334A3A) else Color(0xFF1A1F26)
-                                ),
-                                shape = RoundedCornerShape(16.dp)
-                            ) { Text("Round") }
-                            Button(
-                                onClick = { mode = FamilyGameEngine.Mode.BATTLE },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (mode == FamilyGameEngine.Mode.BATTLE) Color(0xFF4A3434) else Color(0xFF1A1F26)
-                                ),
-                                shape = RoundedCornerShape(16.dp)
-                            ) { Text("Battle") }
-                        }
-
                         Text(
-                            if (mode == FamilyGameEngine.Mode.ROUND)
-                                "Round: každý hráč dostane vlastní otázku. Správně 100 bodů + rostoucí bonus za sérii."
-                            else
-                                "Battle 2.0: vítěz vybírá další kategorii a 100/200/300 bodů hlasem. Po otázce první řekne své jméno. Chyba otevře steal ostatním za 70 % a pak 50 % bodů. Poslední 3 otázky jsou bonusové za dvojnásobek.",
-                            color = Color(0xFF98A3B1),
+                            "Family Quiz",
+                            color = Color.White,
+                            fontSize = 34.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Nastav hráče, jejich pořadí a obtížnost. V Battle módu funguje jméno jako hlasový buzzer.",
+                            color = LoneRiderColors.TextSecondary,
                             fontSize = 14.sp
                         )
 
-                        repeat(6) { index ->
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            ModeButton(
+                                title = "ROUND",
+                                subtitle = "Každý hraje své kolo",
+                                selected = mode == FamilyGameEngine.Mode.ROUND,
+                                color = LoneRiderColors.Purple
                             ) {
-                                OutlinedTextField(
-                                    value = names.getOrElse(index) { "" },
-                                    onValueChange = { value ->
-                                        while (names.size <= index) names.add("")
-                                        names[index] = value
-                                        saved = false
+                                mode = FamilyGameEngine.Mode.ROUND
+                                saved = false
+                            }
+                            ModeButton(
+                                title = "BATTLE",
+                                subtitle = "Kdo buzzne první, odpovídá",
+                                selected = mode == FamilyGameEngine.Mode.BATTLE,
+                                color = LoneRiderColors.Amber
+                            ) {
+                                mode = FamilyGameEngine.Mode.BATTLE
+                                saved = false
+                            }
+                        }
+
+                        Surface(
+                            color = LoneRiderColors.Surface,
+                            shape = RoundedCornerShape(22.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(18.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    if (mode == FamilyGameEngine.Mode.ROUND) {
+                                        "Round mode • otázky se střídají podle hráčů • série zvyšuje body"
+                                    } else {
+                                        "Battle mode • společná otázka • řekni své jméno pro buzz • steal po chybě"
                                     },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    label = { Text("Hráč " + (index + 1)) },
-                                    singleLine = true
+                                    color = LoneRiderColors.TextSecondary,
+                                    fontSize = 13.sp
                                 )
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    FamilyGameEngine.Difficulty.entries.forEach { difficulty ->
-                                        Button(
-                                            onClick = {
-                                                while (difficulties.size <= index) {
-                                                    difficulties.add(FamilyGameEngine.Difficulty.NORMAL)
-                                                }
-                                                difficulties[index] = difficulty
-                                                saved = false
-                                            },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (difficulties.getOrNull(index) == difficulty) {
-                                                    Color(0xFF334A3A)
-                                                } else {
-                                                    Color(0xFF1A1F26)
-                                                }
-                                            ),
-                                            shape = RoundedCornerShape(12.dp),
-                                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                                horizontal = 10.dp,
-                                                vertical = 6.dp
-                                            )
-                                        ) {
-                                            Text(difficulty.labelCs(), fontSize = 12.sp)
+                                repeat(6) { index ->
+                                    PlayerEditor(
+                                        number = index + 1,
+                                        name = names.getOrElse(index) { "" },
+                                        difficulty = difficulties.getOrElse(index) {
+                                            FamilyGameEngine.Difficulty.NORMAL
+                                        },
+                                        onNameChange = { value ->
+                                            while (names.size <= index) names.add("")
+                                            names[index] = value
+                                            saved = false
+                                        },
+                                        onDifficultyChange = { difficulty ->
+                                            while (difficulties.size <= index) {
+                                                difficulties.add(FamilyGameEngine.Difficulty.NORMAL)
+                                            }
+                                            difficulties[index] = difficulty
+                                            saved = false
                                         }
-                                    }
+                                    )
                                 }
                             }
                         }
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Button(
-                                onClick = {
-                                    engine.savePlayers(names.toList(), difficulties.toList())
-                                    engine.setMode(mode)
-                                    saved = true
-                                },
-                                shape = RoundedCornerShape(16.dp)
-                            ) { Text(if (saved) "Uloženo" else "Uložit hráče a mód") }
-                            Button(
-                                onClick = { finish() },
-                                shape = RoundedCornerShape(16.dp)
-                            ) { Text("Zpět") }
+                            ActionButton(
+                                text = if (saved) "ULOŽENO" else "ULOŽIT HRÁČE A MÓD",
+                                primary = true
+                            ) {
+                                engine.savePlayers(names.toList(), difficulties.toList())
+                                engine.setMode(mode)
+                                saved = true
+                            }
+                            ActionButton("ZPĚT", false) { finish() }
                         }
 
-                        Text(
-                            "Round respektuje obtížnost každého hráče zvlášť. Battle má jednu společnou otázku, proto vybírá obtížnost kolem mediánu celé rodiny. Tip: po otázce řekni pouze své jméno a až po potvrzení odpověď.",
-                            color = Color(0xFF7F8A99),
-                            fontSize = 13.sp
-                        )
+                        Spacer(Modifier.height(8.dp))
                     }
                 }
             }
         }
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun ModeButton(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .weight(1f)
+            .height(96.dp),
+        contentPadding = PaddingValues(16.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (selected) color.copy(alpha = 0.28f) else LoneRiderColors.Surface,
+            contentColor = Color.White
+        )
+    ) {
+        Column {
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(subtitle, color = LoneRiderColors.TextSecondary, fontSize = 12.sp)
+        }
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun PlayerEditor(
+    number: Int,
+    name: String,
+    difficulty: FamilyGameEngine.Difficulty,
+    onNameChange: (String) -> Unit,
+    onDifficultyChange: (FamilyGameEngine.Difficulty) -> Unit
+) {
+    Surface(
+        color = LoneRiderColors.SurfaceRaised,
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    number.toString(),
+                    color = LoneRiderColors.Cyan,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 15.dp)
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = onNameChange,
+                    modifier = Modifier.weight(1f),
+                    label = { Text("Jméno hráče") },
+                    singleLine = true
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FamilyGameEngine.Difficulty.entries.forEach { item ->
+                    Button(
+                        onClick = { onDifficultyChange(item) },
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 7.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (difficulty == item) {
+                                LoneRiderColors.Blue
+                            } else {
+                                Color(0xFF1A2431)
+                            },
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(item.labelCs(), fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun ActionButton(
+    text: String,
+    primary: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (primary) LoneRiderColors.Blue else LoneRiderColors.SurfaceRaised,
+            contentColor = Color.White
+        )
+    ) {
+        Text(text, fontWeight = FontWeight.Bold, fontSize = 12.sp)
     }
 }
