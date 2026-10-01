@@ -72,6 +72,7 @@ fun DawDriveApp(
     onSetDrivingVoiceArmed: (Boolean) -> Unit,
     onOpenAppSettings: () -> Unit,
     onFamilySetupClick: () -> Unit,
+    onEnglishSetupClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
     onRoadVoiceStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
@@ -106,6 +107,7 @@ fun DawDriveApp(
                     onGuessWho = { onCarGameClick("guesswho") },
                     onKids = { onCarGameClick("kids") },
                     onFamily = onFamilySetupClick,
+                    onEnglish = { onCarGameClick("english") },
                     onOpenCar = onCarPreviewClick
                 )
 
@@ -129,6 +131,7 @@ fun DawDriveApp(
                     onBack = { screen = LoneScreen.HOME },
                     onLanguageChange = onLanguageChange,
                     onFamilySetup = onFamilySetupClick,
+                    onEnglishSetup = onEnglishSetupClick,
                     onDiagnostics = { screen = LoneScreen.DIAGNOSTICS }
                 )
 
@@ -393,6 +396,7 @@ private fun GamesScreen(
     onGuessWho: () -> Unit,
     onKids: () -> Unit,
     onFamily: () -> Unit,
+    onEnglish: () -> Unit,
     onOpenCar: () -> Unit
 ) {
     val compact = LocalConfiguration.current.screenWidthDp < 700
@@ -463,6 +467,19 @@ private fun GamesScreen(
                 )
                 GameCard(
                     modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "🇬🇧",
+                    title = "English",
+                    subtitle = "Kids + Adults • Learn + Challenge.",
+                    accent = LoneRiderColors.Cyan,
+                    onClick = onEnglish
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
                     icon = "🚙",
                     title = "Car Game Hub",
                     subtitle = "Pick a game and control playback.",
@@ -523,6 +540,20 @@ private fun GamesScreen(
                 )
                 GameCard(
                     modifier = Modifier.weight(1f),
+                    icon = "🇬🇧",
+                    title = "English",
+                    subtitle = "Kids + Adults • Learn + Challenge.",
+                    accent = LoneRiderColors.Cyan,
+                    onClick = onEnglish
+                )
+            }
+
+            Row(
+                modifier = Modifier.height(160.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.fillMaxWidth(),
                     icon = "🚙",
                     title = "Car Game Hub",
                     subtitle = "Pick a game and control playback.",
@@ -660,6 +691,7 @@ private fun SettingsScreen(
     onBack: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
     onFamilySetup: () -> Unit,
+    onEnglishSetup: () -> Unit,
     onDiagnostics: () -> Unit
 ) {
     val cs = profile.language == TriviaGameEngine.Language.CS
@@ -771,6 +803,12 @@ private fun SettingsScreen(
             title = if (cs) "Rodinný režim" else "Family mode",
             subtitle = if (cs) "Hráči, jména, obtížnost a Battle" else "Players, names, difficulty and Battle",
             actions = { CompactButton(if (cs) "NASTAVIT" else "SET UP", true, onFamilySetup) }
+        )
+
+        SettingsRow(
+            title = "English",
+            subtitle = if (cs) "Každý hráč má vlastní Kids/Adult profil, úroveň a progress" else "Per-player Kids/Adult profile, level and progress",
+            actions = { CompactButton(if (cs) "PROFILY" else "PROFILES", true, onEnglishSetup) }
         )
 
         SettingsRow(
