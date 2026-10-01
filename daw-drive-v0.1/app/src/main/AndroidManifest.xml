@@ -22,9 +22,9 @@
         android:allowBackup="true"
         android:appCategory="game"
         android:hardwareAccelerated="true"
-        android:icon="@drawable/ic_lone_rider"
+        android:icon="@drawable/lone_rider_logo"
         android:label="Lone Rider"
-        android:roundIcon="@drawable/ic_lone_rider"
+        android:roundIcon="@drawable/lone_rider_logo"
         android:supportsRtl="true"
         android:theme="@style/Theme.LoneRider"
         android:usesCleartextTraffic="true">
