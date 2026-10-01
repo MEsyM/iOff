@@ -255,12 +255,18 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     listening = false
                     if (!voiceModeEnabled || !awaitingAnswer) return
 
-                    if (retryCount < 1) {
-                        retryCount += 1
-                        mainHandler.postDelayed({ startListeningForAnswer() }, 650)
-                    } else {
-                        retryCount = 0
-                        autoSkipAfterSilence()
+                    when (error) {
+                        SpeechRecognizer.ERROR_NO_MATCH,
+                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> handleMissedAnswer()
+                        else -> {
+                            if (retryCount < 1) {
+                                retryCount += 1
+                                mainHandler.postDelayed({ startListeningForAnswer() }, 700)
+                            } else {
+                                retryCount = 0
+                                autoSkipAfterSilence()
+                            }
+                        }
                     }
                 }
 
@@ -281,7 +287,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
 
                     if (candidates.isEmpty()) {
-                        startListeningForAnswer()
+                        handleMissedAnswer()
                         return
                     }
 
@@ -435,6 +441,15 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     COMMAND_UTTERANCE_ID -> {
                         if (awaitingAnswer && voiceModeEnabled) {
                             mainHandler.postDelayed({ startListeningForAnswer() }, 250)
+                        }
+                    }
+
+                    RETRY_UTTERANCE_ID -> {
+                        if (awaitingAnswer && voiceModeEnabled) {
+                            mainHandler.postDelayed({
+                                questionListeningStartedAt = SystemClock.elapsedRealtime()
+                                startListeningForAnswer()
+                            }, 200)
                         }
                     }
                 }
@@ -1585,6 +1600,27 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
     }
 
+    private fun handleMissedAnswer() {
+        if (!voiceModeEnabled || !awaitingAnswer) return
+
+        stopListening()
+
+        if (retryCount == 0) {
+            retryCount = 1
+            artworkState = ArtworkState.IDLE
+            updateMetadata()
+            DawDebugLog.log(this, "STT_SECOND_CHANCE", "game=" + activeGame)
+            speakSystem(
+                en = "I didn't catch that. One more try. Say your answer now.",
+                cs = "Neslyšel jsem tě. Zkus to ještě jednou. Řekni odpověď teď.",
+                utteranceId = RETRY_UTTERANCE_ID
+            )
+        } else {
+            retryCount = 0
+            autoSkipAfterSilence()
+        }
+    }
+
     private fun autoSkipAfterSilence() {
         awaitingAnswer = false
         stopListening()
@@ -2370,6 +2406,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val FEEDBACK_UTTERANCE_ID = "trivia_feedback"
         private const val ROUND_SUMMARY_UTTERANCE_ID = "trivia_round_summary"
         private const val COMMAND_UTTERANCE_ID = "trivia_command"
+        private const val RETRY_UTTERANCE_ID = "trivia_retry"
         private const val SYSTEM_UTTERANCE_ID = "trivia_system"
     }
 }
