@@ -74,6 +74,11 @@ class CarPreviewActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        selectedGame = gameFromIntent(intent)
+        title = selectedGameTitle()
+        subtitle = "Lone Rider • Car Game Hub"
+        question = "Press Play to start"
+
         mediaBrowser = MediaBrowserCompat(
             this,
             ComponentName(this, RoadGameMediaService::class.java),
@@ -196,6 +201,15 @@ class CarPreviewActivity : ComponentActivity() {
         isPlaying = false
     }
 
+    private fun gameFromIntent(intent: Intent?): Game =
+        when (intent?.getStringExtra(EXTRA_GAME)?.lowercase()) {
+            "spelling" -> Game.SPELLING
+            "guesswho" -> Game.GUESS_WHO
+            "kids" -> Game.KIDS
+            "family" -> Game.FAMILY
+            else -> Game.TRIVIA
+        }
+
     private fun selectedGameTitle(): String =
         when (selectedGame) {
             Game.TRIVIA -> "Quick Trivia"
@@ -262,6 +276,7 @@ class CarPreviewActivity : ComponentActivity() {
     }
 
     companion object {
+        const val EXTRA_GAME = "lone_rider_game"
         private const val MEDIA_ID_TRIVIA = "trivia_career"
         private const val MEDIA_ID_SPELLING = "spelling_bee"
         private const val MEDIA_ID_GUESS_WHO = "guess_who"
