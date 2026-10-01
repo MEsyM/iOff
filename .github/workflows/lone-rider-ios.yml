@@ -1,0 +1,39 @@
+name: Lone Rider iOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/lone-rider-ios-v0.1
+    paths:
+      - "ios/**"
+      - ".github/workflows/lone-rider-ios.yml"
+
+jobs:
+  build-simulator:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Build iOS Simulator app
+        run: |
+          xcodebuild \
+            -project ios/LoneRider.xcodeproj \
+            -scheme LoneRider \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Package simulator app
+        run: |
+          cd build/DerivedData/Build/Products/Debug-iphonesimulator
+          ditto -c -k --sequesterRsrc --keepParent "Lone Rider.app" ../../../../../Lone-Rider-iOS-Simulator.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Lone-Rider-iOS-Simulator
+          path: Lone-Rider-iOS-Simulator.zip
