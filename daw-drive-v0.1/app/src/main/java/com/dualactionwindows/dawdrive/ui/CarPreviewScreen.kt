@@ -1,5 +1,6 @@
 package com.dualactionwindows.dawdrive.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -230,17 +232,13 @@ private fun NavigationRail(
 
 @Composable
 private fun WolfMark() {
-    Surface(
-        color = Color.White,
-        shape = RoundedCornerShape(999.dp),
+    Image(
+        painter = painterResource(R.drawable.ic_lone_rider),
+        contentDescription = "Lone Rider logo",
         modifier = Modifier
             .width(54.dp)
             .height(54.dp)
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text("◢", color = Color(0xFF07101D), fontSize = 28.sp, fontWeight = FontWeight.Black)
-        }
-    }
+    )
 }
 
 @Composable
