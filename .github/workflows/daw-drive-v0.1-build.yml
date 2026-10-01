@@ -1,7 +1,7 @@
 name: Lone Rider APK
 
 concurrency:
-  group: lone-rider-${{ github.sha }}
+  group: lone-rider-${{ github.ref }}
   cancel-in-progress: true
 
 on:
