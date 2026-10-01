@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -137,6 +138,8 @@ private fun HomeScreen(
     onTools: () -> Unit,
     onSettings: () -> Unit
 ) {
+    val compact = LocalConfiguration.current.screenWidthDp < 700
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -145,8 +148,9 @@ private fun HomeScreen(
                     listOf(Color(0xFF06101E), LoneRiderColors.Background)
                 )
             )
-            .padding(horizontal = 24.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = if (compact) 16.dp else 24.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         BrandHeader(
             eyebrow = "DRIVING TOGETHER  •  PLAYING FURTHER",
@@ -159,48 +163,93 @@ private fun HomeScreen(
             fontSize = 15.sp
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            HomeTile(
-                modifier = Modifier.weight(1f),
-                card = ModuleCard("🚙", "Drive", "Car preview & road voice", LoneRiderColors.Blue),
-                onClick = onDrive
-            )
-            HomeTile(
-                modifier = Modifier.weight(1f),
-                card = ModuleCard("🎮", "Games", "Play together on the road", LoneRiderColors.Purple),
-                onClick = onGames
-            )
-            HomeTile(
-                modifier = Modifier.weight(1f),
-                card = ModuleCard("♫", "Media", "Music, podcasts & web", LoneRiderColors.Pink),
-                onClick = onMedia
-            )
-        }
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("🚙", "Drive", "Car preview & road voice", LoneRiderColors.Blue),
+                    onClick = onDrive
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("🎮", "Games", "Play together on the road", LoneRiderColors.Purple),
+                    onClick = onGames
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("♫", "Media", "Music, podcasts & web", LoneRiderColors.Pink),
+                    onClick = onMedia
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("▥", "Stats", "XP, streaks & progress", LoneRiderColors.Cyan),
+                    onClick = onStats
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("⚙", "Tools", "Diagnostics & utilities", LoneRiderColors.Amber),
+                    onClick = onTools
+                )
+                ProfileMiniCard(
+                    modifier = Modifier.weight(1f),
+                    profile = profile
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("🚙", "Drive", "Car preview & road voice", LoneRiderColors.Blue),
+                    onClick = onDrive
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("🎮", "Games", "Play together on the road", LoneRiderColors.Purple),
+                    onClick = onGames
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("♫", "Media", "Music, podcasts & web", LoneRiderColors.Pink),
+                    onClick = onMedia
+                )
+            }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            HomeTile(
-                modifier = Modifier.weight(1f),
-                card = ModuleCard("▥", "Stats", "XP, streaks & progress", LoneRiderColors.Cyan),
-                onClick = onStats
-            )
-            HomeTile(
-                modifier = Modifier.weight(1f),
-                card = ModuleCard("⚙", "Tools", "Diagnostics & utilities", LoneRiderColors.Amber),
-                onClick = onTools
-            )
-            ProfileMiniCard(
-                modifier = Modifier.weight(1f),
-                profile = profile
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("▥", "Stats", "XP, streaks & progress", LoneRiderColors.Cyan),
+                    onClick = onStats
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("⚙", "Tools", "Diagnostics & utilities", LoneRiderColors.Amber),
+                    onClick = onTools
+                )
+                ProfileMiniCard(
+                    modifier = Modifier.weight(1f),
+                    profile = profile
+                )
+            }
         }
-
-        Spacer(modifier = Modifier.weight(1f))
 
         Text(
             text = "Voice first • Family friendly • Distraction aware",
@@ -331,72 +380,141 @@ private fun GamesScreen(
     onFamily: () -> Unit,
     onOpenCar: () -> Unit
 ) {
+    val compact = LocalConfiguration.current.screenWidthDp < 700
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(if (compact) 16.dp else 24.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         ScreenHeader("Games", "Voice-first road games", onBack)
 
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            GameCard(
-                modifier = Modifier.weight(1f),
-                icon = "💡",
-                title = "Quick Trivia",
-                subtitle = "Fast facts. Big fun.",
-                accent = LoneRiderColors.Purple,
-                onClick = onQuickTrivia
-            )
-            GameCard(
-                modifier = Modifier.weight(1f),
-                icon = "🐝",
-                title = "Spelling Bee",
-                subtitle = "Spell it out together.",
-                accent = LoneRiderColors.Amber,
-                onClick = onSpellingBee
-            )
-            GameCard(
-                modifier = Modifier.weight(1f),
-                icon = "👤",
-                title = "Guess WHO",
-                subtitle = "People, clues & personalities.",
-                accent = LoneRiderColors.Green,
-                onClick = onGuessWho
-            )
-        }
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "💡",
+                    title = "Quick Trivia",
+                    subtitle = "Fast facts. Big fun.",
+                    accent = LoneRiderColors.Purple,
+                    onClick = onQuickTrivia
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "🐝",
+                    title = "Spelling Bee",
+                    subtitle = "Spell it out together.",
+                    accent = LoneRiderColors.Amber,
+                    onClick = onSpellingBee
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "👤",
+                    title = "Guess WHO",
+                    subtitle = "People, clues & personalities.",
+                    accent = LoneRiderColors.Green,
+                    onClick = onGuessWho
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "🏆",
+                    title = "Family Quiz",
+                    subtitle = "Round + Battle modes.",
+                    accent = LoneRiderColors.Pink,
+                    onClick = onFamily
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "★",
+                    title = "Trivia Kids",
+                    subtitle = "Adaptive questions for 6–12.",
+                    accent = LoneRiderColors.Blue,
+                    onClick = onKids
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "🚙",
+                    title = "Car Game Hub",
+                    subtitle = "Pick a game and control playback.",
+                    accent = LoneRiderColors.Cyan,
+                    onClick = onOpenCar
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.height(210.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "💡",
+                    title = "Quick Trivia",
+                    subtitle = "Fast facts. Big fun.",
+                    accent = LoneRiderColors.Purple,
+                    onClick = onQuickTrivia
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "🐝",
+                    title = "Spelling Bee",
+                    subtitle = "Spell it out together.",
+                    accent = LoneRiderColors.Amber,
+                    onClick = onSpellingBee
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "👤",
+                    title = "Guess WHO",
+                    subtitle = "People, clues & personalities.",
+                    accent = LoneRiderColors.Green,
+                    onClick = onGuessWho
+                )
+            }
 
-        Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            GameCard(
-                modifier = Modifier.weight(1f),
-                icon = "🏆",
-                title = "Family Quiz",
-                subtitle = "Round + Battle modes.",
-                accent = LoneRiderColors.Pink,
-                onClick = onFamily
-            )
-            GameCard(
-                modifier = Modifier.weight(1f),
-                icon = "★",
-                title = "Trivia Kids",
-                subtitle = "Adaptive questions for 6–12.",
-                accent = LoneRiderColors.Blue,
-                onClick = onKids
-            )
-            GameCard(
-                modifier = Modifier.weight(1f),
-                icon = "🚙",
-                title = "Car Game Hub",
-                subtitle = "Pick a game and control playback.",
-                accent = LoneRiderColors.Cyan,
-                onClick = onOpenCar
-            )
+            Row(
+                modifier = Modifier.height(210.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "🏆",
+                    title = "Family Quiz",
+                    subtitle = "Round + Battle modes.",
+                    accent = LoneRiderColors.Pink,
+                    onClick = onFamily
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "★",
+                    title = "Trivia Kids",
+                    subtitle = "Adaptive questions for 6–12.",
+                    accent = LoneRiderColors.Blue,
+                    onClick = onKids
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "🚙",
+                    title = "Car Game Hub",
+                    subtitle = "Pick a game and control playback.",
+                    accent = LoneRiderColors.Cyan,
+                    onClick = onOpenCar
+                )
+            }
         }
     }
 }
@@ -444,22 +562,34 @@ private fun StatsScreen(
     onRefresh: () -> Unit
 ) {
     val cs = profile.language == TriviaGameEngine.Language.CS
+    val compact = LocalConfiguration.current.screenWidthDp < 700
     val scroll = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scroll)
-            .padding(24.dp),
+            .padding(if (compact) 16.dp else 24.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         ScreenHeader(if (cs) "Statistiky" else "Stats", "Lone Rider profile", onBack)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            StatKpi(Modifier.weight(1f), "XP", profile.xp.toString(), LoneRiderColors.Purple)
-            StatKpi(Modifier.weight(1f), if (cs) "Úspěšnost" else "Accuracy", "${profile.accuracy}%", LoneRiderColors.Green)
-            StatKpi(Modifier.weight(1f), if (cs) "Nejlepší série" else "Best streak", profile.bestStreak.toString(), LoneRiderColors.Amber)
-            StatKpi(Modifier.weight(1f), if (cs) "Kola" else "Rounds", profile.roundsCompleted.toString(), LoneRiderColors.Blue)
+        if (compact) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                StatKpi(Modifier.weight(1f), "XP", profile.xp.toString(), LoneRiderColors.Purple)
+                StatKpi(Modifier.weight(1f), if (cs) "Úspěšnost" else "Accuracy", "${profile.accuracy}%", LoneRiderColors.Green)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                StatKpi(Modifier.weight(1f), if (cs) "Nejlepší série" else "Best streak", profile.bestStreak.toString(), LoneRiderColors.Amber)
+                StatKpi(Modifier.weight(1f), if (cs) "Kola" else "Rounds", profile.roundsCompleted.toString(), LoneRiderColors.Blue)
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                StatKpi(Modifier.weight(1f), "XP", profile.xp.toString(), LoneRiderColors.Purple)
+                StatKpi(Modifier.weight(1f), if (cs) "Úspěšnost" else "Accuracy", "${profile.accuracy}%", LoneRiderColors.Green)
+                StatKpi(Modifier.weight(1f), if (cs) "Nejlepší série" else "Best streak", profile.bestStreak.toString(), LoneRiderColors.Amber)
+                StatKpi(Modifier.weight(1f), if (cs) "Kola" else "Rounds", profile.roundsCompleted.toString(), LoneRiderColors.Blue)
+            }
         }
 
         SectionCard(if (cs) "Kategorie" else "Category stats") {
