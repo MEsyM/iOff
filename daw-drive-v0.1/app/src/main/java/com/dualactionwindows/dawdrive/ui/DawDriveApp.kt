@@ -64,6 +64,11 @@ fun DawDriveApp(
     onCarPreviewClick: () -> Unit,
     onCarGameClick: (String) -> Unit,
     onDebugLogsClick: () -> Unit,
+    micPermissionGranted: Boolean,
+    notificationPermissionGranted: Boolean,
+    speechRecognitionAvailable: Boolean,
+    onRequestVoicePermissions: () -> Unit,
+    onOpenAppSettings: () -> Unit,
     onFamilySetupClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
     onRoadVoiceStop: () -> Unit,
@@ -112,6 +117,11 @@ fun DawDriveApp(
 
                 LoneScreen.SETTINGS -> SettingsScreen(
                     profile = profile,
+                    micPermissionGranted = micPermissionGranted,
+                    notificationPermissionGranted = notificationPermissionGranted,
+                    speechRecognitionAvailable = speechRecognitionAvailable,
+                    onRequestVoicePermissions = onRequestVoicePermissions,
+                    onOpenAppSettings = onOpenAppSettings,
                     onBack = { screen = LoneScreen.HOME },
                     onLanguageChange = onLanguageChange,
                     onFamilySetup = onFamilySetupClick,
@@ -636,6 +646,11 @@ private fun StatsScreen(
 @Composable
 private fun SettingsScreen(
     profile: TriviaGameEngine.Profile,
+    micPermissionGranted: Boolean,
+    notificationPermissionGranted: Boolean,
+    speechRecognitionAvailable: Boolean,
+    onRequestVoicePermissions: () -> Unit,
+    onOpenAppSettings: () -> Unit,
     onBack: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
     onFamilySetup: () -> Unit,
@@ -665,8 +680,70 @@ private fun SettingsScreen(
         )
 
         SettingsRow(
-            title = if (cs) "Hlas" else "Voice",
-            subtitle = if (cs) "Rozpoznávání řeči + hlasové prompty" else "Speech recognition + spoken prompts"
+            title = if (cs) "Mikrofon" else "Microphone",
+            subtitle = if (micPermissionGranted) {
+                if (cs) "Povoleno • Lone Rider může poslouchat odpovědi" else "Allowed • Lone Rider can listen for answers"
+            } else {
+                if (cs) "Není povoleno • bez toho nelze odpovídat hlasem" else "Not allowed • voice answers will not work"
+            },
+            actions = {
+                CompactButton(
+                    if (micPermissionGranted) {
+                        if (cs) "POVOLENO" else "ALLOWED"
+                    } else {
+                        if (cs) "POVOLIT" else "ALLOW"
+                    },
+                    micPermissionGranted,
+                    onRequestVoicePermissions
+                )
+            }
+        )
+
+        SettingsRow(
+            title = if (cs) "Road Voice" else "Road Voice",
+            subtitle = when {
+                !speechRecognitionAvailable ->
+                    if (cs) "Rozpoznávání řeči není v telefonu dostupné" else "Speech recognition is not available on this phone"
+                micPermissionGranted ->
+                    if (cs) "Připraveno • aktivuj před připojením k autu" else "Ready • arm it before using the car"
+                else ->
+                    if (cs) "Čeká na povolení mikrofonu" else "Waiting for microphone permission"
+            },
+            actions = {
+                CompactButton(
+                    if (cs) "AKTIVOVAT" else "ARM VOICE",
+                    micPermissionGranted && speechRecognitionAvailable,
+                    onRequestVoicePermissions
+                )
+            }
+        )
+
+        SettingsRow(
+            title = if (cs) "Notifikace" else "Notifications",
+            subtitle = if (notificationPermissionGranted) {
+                if (cs) "Povoleno • uvidíš stav Road Voice" else "Allowed • Road Voice status can be shown"
+            } else {
+                if (cs) "Doporučeno povolit kvůli běhu na pozadí" else "Recommended for background Road Voice status"
+            },
+            actions = {
+                CompactButton(
+                    if (notificationPermissionGranted) {
+                        if (cs) "POVOLENO" else "ALLOWED"
+                    } else {
+                        if (cs) "POVOLIT" else "ALLOW"
+                    },
+                    notificationPermissionGranted,
+                    onRequestVoicePermissions
+                )
+            }
+        )
+
+        SettingsRow(
+            title = if (cs) "Systémová oprávnění" else "System permissions",
+            subtitle = if (cs) "Otevře nastavení aplikace v Androidu" else "Open Android app permissions and settings",
+            actions = {
+                CompactButton(if (cs) "OTEVŘÍT" else "OPEN", false, onOpenAppSettings)
+            }
         )
 
         SettingsRow(
