@@ -234,7 +234,7 @@ private fun NavigationRail(
 @Composable
 private fun WolfMark() {
     Image(
-        painter = painterResource(R.drawable.ic_lone_rider),
+        painter = painterResource(R.drawable.lone_rider_logo),
         contentDescription = "Lone Rider logo",
         modifier = Modifier
             .width(54.dp)
