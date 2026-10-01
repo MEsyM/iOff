@@ -12,8 +12,8 @@ android {
         applicationId = "com.dualactionwindows.dawdrive"
         minSdk = 35
         targetSdk = 36
-        versionCode = 27
-        versionName = "1.1-driving-voice"
+        versionCode = 28
+        versionName = "1.2-random-retry"
     }
 
     buildTypes {
