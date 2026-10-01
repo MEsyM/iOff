@@ -67,7 +67,9 @@ fun DawDriveApp(
     micPermissionGranted: Boolean,
     notificationPermissionGranted: Boolean,
     speechRecognitionAvailable: Boolean,
+    drivingVoiceArmed: Boolean,
     onRequestVoicePermissions: () -> Unit,
+    onSetDrivingVoiceArmed: (Boolean) -> Unit,
     onOpenAppSettings: () -> Unit,
     onFamilySetupClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
@@ -120,7 +122,9 @@ fun DawDriveApp(
                     micPermissionGranted = micPermissionGranted,
                     notificationPermissionGranted = notificationPermissionGranted,
                     speechRecognitionAvailable = speechRecognitionAvailable,
+                    drivingVoiceArmed = drivingVoiceArmed,
                     onRequestVoicePermissions = onRequestVoicePermissions,
+                    onSetDrivingVoiceArmed = onSetDrivingVoiceArmed,
                     onOpenAppSettings = onOpenAppSettings,
                     onBack = { screen = LoneScreen.HOME },
                     onLanguageChange = onLanguageChange,
@@ -649,7 +653,9 @@ private fun SettingsScreen(
     micPermissionGranted: Boolean,
     notificationPermissionGranted: Boolean,
     speechRecognitionAvailable: Boolean,
+    drivingVoiceArmed: Boolean,
     onRequestVoicePermissions: () -> Unit,
+    onSetDrivingVoiceArmed: (Boolean) -> Unit,
     onOpenAppSettings: () -> Unit,
     onBack: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
@@ -701,21 +707,35 @@ private fun SettingsScreen(
         )
 
         SettingsRow(
-            title = if (cs) "Road Voice" else "Road Voice",
+            title = if (cs) "Driving Voice Mode" else "Driving Voice Mode",
             subtitle = when {
                 !speechRecognitionAvailable ->
                     if (cs) "Rozpoznávání řeči není v telefonu dostupné" else "Speech recognition is not available on this phone"
-                micPermissionGranted ->
-                    if (cs) "Připraveno • aktivuj před připojením k autu" else "Ready • arm it before using the car"
+                !micPermissionGranted ->
+                    if (cs) "Nejdřív povol mikrofon" else "Allow microphone access first"
+                drivingVoiceArmed ->
+                    if (cs) "AKTIVNÍ • hands-free režim je připraven pro jízdu" else "ACTIVE • hands-free mode is ready for driving"
                 else ->
-                    if (cs) "Čeká na povolení mikrofonu" else "Waiting for microphone permission"
+                    if (cs) "Vypnuto • aktivuj před jízdou" else "Off • arm it before driving"
             },
             actions = {
-                CompactButton(
-                    if (cs) "AKTIVOVAT" else "ARM VOICE",
-                    micPermissionGranted && speechRecognitionAvailable,
-                    onRequestVoicePermissions
-                )
+                if (!micPermissionGranted) {
+                    CompactButton(
+                        if (cs) "POVOLIT MIC" else "ALLOW MIC",
+                        false,
+                        onRequestVoicePermissions
+                    )
+                } else {
+                    CompactButton(
+                        if (drivingVoiceArmed) {
+                            if (cs) "VYPNOUT" else "TURN OFF"
+                        } else {
+                            if (cs) "AKTIVOVAT" else "ARM"
+                        },
+                        drivingVoiceArmed,
+                        { onSetDrivingVoiceArmed(!drivingVoiceArmed) }
+                    )
+                }
             }
         )
 
