@@ -22,11 +22,11 @@
         android:allowBackup="true"
         android:appCategory="game"
         android:hardwareAccelerated="true"
-        android:icon="@drawable/ic_daw_drive"
-        android:label="DAW Drive"
-        android:roundIcon="@drawable/ic_daw_drive"
+        android:icon="@drawable/ic_lone_rider"
+        android:label="Lone Rider"
+        android:roundIcon="@drawable/ic_lone_rider"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DAWDrive"
+        android:theme="@style/Theme.LoneRider"
         android:usesCleartextTraffic="true">
 
         <meta-data
