@@ -54,6 +54,11 @@
             android:configChanges="screenSize|smallestScreenSize|orientation|screenLayout|density" />
 
         <activity
+            android:name=".EnglishSetupActivity"
+            android:exported="false"
+            android:configChanges="screenSize|smallestScreenSize|orientation|screenLayout|density" />
+
+        <activity
             android:name=".CarPreviewActivity"
             android:exported="false"
             android:screenOrientation="landscape"
