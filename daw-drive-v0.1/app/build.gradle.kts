@@ -12,8 +12,8 @@ android {
         applicationId = "com.dualactionwindows.dawdrive"
         minSdk = 35
         targetSdk = 36
-        versionCode = 23
-        versionName = "0.23"
+        versionCode = 27
+        versionName = "1.1-driving-voice"
     }
 
     buildTypes {
