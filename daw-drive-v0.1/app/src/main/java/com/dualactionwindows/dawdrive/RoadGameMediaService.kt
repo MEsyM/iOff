@@ -99,6 +99,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var questionListeningStartedAt = 0L
     private var pendingStartAfterTts = false
     private var fallbackNoticeSpoken = false
+    private var englishWrongRetryUsed = false
 
     override fun onCreate() {
         super.onCreate()
@@ -1082,6 +1083,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         stopListening()
         awaitingAnswer = true
         retryCount = 0
+        englishWrongRetryUsed = false
         artworkState = ArtworkState.IDLE
 
         val item = englishEngine.currentItem() ?: englishEngine.startOrResume()
@@ -1105,10 +1107,27 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private fun evaluateEnglishCandidates(candidates: List<String>) {
         if (!awaitingAnswer) return
 
+        val before = englishEngine.settings()
+        if (
+            before.mode == EnglishLearningEngine.Mode.LEARN &&
+            !englishWrongRetryUsed &&
+            !englishEngine.isCurrentAnswerCorrect(candidates)
+        ) {
+            stopListening()
+            englishWrongRetryUsed = true
+            artworkState = ArtworkState.IDLE
+            updateMetadata()
+            speakSystem(
+                en = "Almost. Try once more in English.",
+                cs = "Skoro. Zkus to ještě jednou anglicky.",
+                utteranceId = RETRY_UTTERANCE_ID
+            )
+            return
+        }
+
         stopListening()
         awaitingAnswer = false
 
-        val before = englishEngine.settings()
         val result = englishEngine.answerCandidates(candidates)
         artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
         updateMetadata()
@@ -1126,7 +1145,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     append(".")
                 }
             } else if (before.mode == EnglishLearningEngine.Mode.LEARN) {
-                append(if (cs) "Skoro. Správně je: " else "Not quite. A good answer is: ")
+                append(if (cs) "Správná odpověď je: " else "A good answer is: ")
                 append(result.expected)
                 append(". ")
                 append(result.teaching)
