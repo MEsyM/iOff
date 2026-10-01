@@ -104,6 +104,9 @@ class MainActivity : ComponentActivity() {
                 onFamilySetupClick = {
                     startActivity(Intent(this, FamilySetupActivity::class.java))
                 },
+                onEnglishSetupClick = {
+                    startActivity(Intent(this, EnglishSetupActivity::class.java))
+                },
                 onDebugLogsClick = {
                     startActivity(
                         Intent(this, DebugLogsActivity::class.java)
