@@ -21,6 +21,7 @@ class MainActivity : ComponentActivity() {
 
     private var resumeGameAfterPermission = false
     private var openGamesAfterPermission = false
+    private var pendingGameAfterPermission: String? = null
 
     private val requestRoadVoicePermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
@@ -34,12 +35,13 @@ class MainActivity : ComponentActivity() {
             if (micGranted) {
                 startRoadVoiceService(resumeGameAfterPermission)
                 if (openGamesAfterPermission) {
-                    openCarPreview()
+                    openCarPreview(pendingGameAfterPermission)
                 }
             }
 
             resumeGameAfterPermission = false
             openGamesAfterPermission = false
+            pendingGameAfterPermission = null
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,6 +77,9 @@ class MainActivity : ComponentActivity() {
                 },
                 onCarPreviewClick = {
                     openCarPreview()
+                },
+                onCarGameClick = { game ->
+                    openCarPreview(game)
                 },
                 onFamilySetupClick = {
                     startActivity(Intent(this, FamilySetupActivity::class.java))
@@ -163,10 +168,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun openCarPreview() {
-        startActivity(
-            Intent(this, CarPreviewActivity::class.java)
-        )
+    private fun openCarPreview(game: String? = null) {
+        val intent = Intent(this, CarPreviewActivity::class.java)
+        if (game != null) {
+            intent.putExtra(CarPreviewActivity.EXTRA_GAME, game)
+        }
+        startActivity(intent)
     }
 
     private fun startRoadVoiceService(resumeGame: Boolean) {
