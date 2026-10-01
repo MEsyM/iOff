@@ -22,6 +22,11 @@ import com.dualactionwindows.dawdrive.ui.DawDriveApp
 
 class MainActivity : ComponentActivity() {
 
+    private val prefs by lazy {
+        getSharedPreferences("lone_rider_settings", MODE_PRIVATE)
+    }
+
+    private var drivingVoiceArmed by mutableStateOf(false)
     private var micPermissionGranted by mutableStateOf(false)
     private var notificationPermissionGranted by mutableStateOf(false)
     private var speechRecognitionAvailable by mutableStateOf(false)
@@ -59,6 +64,11 @@ class MainActivity : ComponentActivity() {
 
         val triviaEngine = TriviaGameEngine(this)
         refreshPermissionState()
+        drivingVoiceArmed = prefs.getBoolean(KEY_DRIVING_VOICE_ARMED, false)
+
+        if (drivingVoiceArmed && micPermissionGranted) {
+            startRoadVoiceService(resumeGame = false)
+        }
 
         setContent {
             var profile by remember {
@@ -102,11 +112,28 @@ class MainActivity : ComponentActivity() {
                 micPermissionGranted = micPermissionGranted,
                 notificationPermissionGranted = notificationPermissionGranted,
                 speechRecognitionAvailable = speechRecognitionAvailable,
+                drivingVoiceArmed = drivingVoiceArmed,
                 onRequestVoicePermissions = {
                     ensureRoadVoiceSetup(
                         resumeGame = false,
                         openGamesAfterSetup = false
                     )
+                },
+                onSetDrivingVoiceArmed = { armed ->
+                    drivingVoiceArmed = armed
+                    prefs.edit().putBoolean(KEY_DRIVING_VOICE_ARMED, armed).apply()
+
+                    if (armed) {
+                        ensureRoadVoiceSetup(
+                            resumeGame = false,
+                            openGamesAfterSetup = false
+                        )
+                    } else {
+                        startService(
+                            Intent(this, RoadGameMediaService::class.java)
+                                .setAction(RoadGameMediaService.ACTION_STOP_VOICE)
+                        )
+                    }
                 },
                 onOpenAppSettings = {
                     startActivity(
@@ -234,6 +261,7 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
+        private const val KEY_DRIVING_VOICE_ARMED = "driving_voice_armed"
         const val EXTRA_ENABLE_ROAD_VOICE = "enable_road_voice"
         const val EXTRA_RESUME_GAME = "resume_game"
         const val EXTRA_NEEDS_MIC_PERMISSION = "needs_mic_permission"
