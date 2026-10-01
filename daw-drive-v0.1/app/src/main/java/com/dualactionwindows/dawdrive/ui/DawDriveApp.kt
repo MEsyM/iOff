@@ -307,7 +307,7 @@ private fun WolfBadge() {
             .height(54.dp)
     ) {
         Image(
-            painter = painterResource(R.drawable.ic_lone_rider),
+            painter = painterResource(R.drawable.lone_rider_logo),
             contentDescription = "Lone Rider logo",
             modifier = Modifier.fillMaxSize()
         )
