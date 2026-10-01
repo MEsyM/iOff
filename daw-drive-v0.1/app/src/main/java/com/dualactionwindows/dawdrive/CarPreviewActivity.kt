@@ -37,7 +37,8 @@ class CarPreviewActivity : ComponentActivity() {
         SPELLING(MEDIA_ID_SPELLING),
         GUESS_WHO(MEDIA_ID_GUESS_WHO),
         KIDS(MEDIA_ID_KIDS),
-        FAMILY(MEDIA_ID_FAMILY)
+        FAMILY(MEDIA_ID_FAMILY),
+        ENGLISH(MEDIA_ID_ENGLISH)
     }
 
     private val controllerCallback = object : MediaControllerCompat.Callback() {
@@ -118,6 +119,7 @@ class CarPreviewActivity : ComponentActivity() {
                     Game.GUESS_WHO -> "guesswho"
                     Game.KIDS -> "kids"
                     Game.FAMILY -> "family"
+                    Game.ENGLISH -> "english"
                 },
                 isPlaying = isPlaying,
                 connected = connected,
@@ -135,6 +137,9 @@ class CarPreviewActivity : ComponentActivity() {
                 },
                 onSelectFamily = {
                     selectGame(Game.FAMILY)
+                },
+                onSelectEnglish = {
+                    selectGame(Game.ENGLISH)
                 },
                 onFamilySetup = {
                     startActivity(Intent(this, FamilySetupActivity::class.java))
@@ -207,6 +212,7 @@ class CarPreviewActivity : ComponentActivity() {
             "guesswho" -> Game.GUESS_WHO
             "kids" -> Game.KIDS
             "family" -> Game.FAMILY
+            "english" -> Game.ENGLISH
             else -> Game.TRIVIA
         }
 
@@ -217,6 +223,7 @@ class CarPreviewActivity : ComponentActivity() {
             Game.GUESS_WHO -> "Guess Who"
             Game.KIDS -> "Trivia Kids 6–12"
             Game.FAMILY -> "Family"
+            Game.ENGLISH -> "English Lessons"
         }
 
     private fun runWithPermissions(action: () -> Unit) {
@@ -282,5 +289,6 @@ class CarPreviewActivity : ComponentActivity() {
         private const val MEDIA_ID_GUESS_WHO = "guess_who"
         private const val MEDIA_ID_KIDS = "kids_trivia"
         private const val MEDIA_ID_FAMILY = "family_game"
+        private const val MEDIA_ID_ENGLISH = "english_lessons"
     }
 }
