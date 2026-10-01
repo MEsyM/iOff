@@ -62,6 +62,7 @@ fun DawDriveApp(
     achievementTitles: List<String>,
     onVideoClick: () -> Unit,
     onCarPreviewClick: () -> Unit,
+    onCarGameClick: (String) -> Unit,
     onDebugLogsClick: () -> Unit,
     onFamilySetupClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
@@ -94,9 +95,9 @@ fun DawDriveApp(
                 LoneScreen.GAMES -> GamesScreen(
                     onBack = { screen = LoneScreen.HOME },
                     onQuickTrivia = onRoadVoiceStart,
-                    onSpellingBee = onCarPreviewClick,
-                    onGuessWho = onCarPreviewClick,
-                    onKids = onCarPreviewClick,
+                    onSpellingBee = { onCarGameClick("spelling") },
+                    onGuessWho = { onCarGameClick("guesswho") },
+                    onKids = { onCarGameClick("kids") },
                     onFamily = onFamilySetupClick,
                     onOpenCar = onCarPreviewClick
                 )
