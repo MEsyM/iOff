@@ -1,14 +1,14 @@
-name: DAW Drive APK
+name: Lone Rider APK
 
 concurrency:
-  group: daw-drive-${{ github.sha }}
+  group: lone-rider-${{ github.sha }}
   cancel-in-progress: true
 
 on:
   push:
     branches:
-      - codex/daw-drive-v0.1-build
-      - codex/daw-drive-family-game
+      - codex/lone-rider-v0.1-build
+      - codex/lone-rider-family-game
   workflow_dispatch:
 
 jobs:
@@ -34,19 +34,19 @@ jobs:
           gradle-version: '8.13'
 
       - name: Build debug APK
-        run: gradle -p daw-drive-v0.1 assembleDebug --stacktrace
+        run: gradle -p lone-rider-v0.1 assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk DAW-Drive-v0.25-family-battle2.apk
+        run: cp lone-rider-v0.1/app/build/outputs/apk/debug/app-debug.apk Lone-Rider-v0.25-family-battle2.apk
 
       - name: Verify APK
         run: |
-          ls -lh DAW-Drive-v0.25-family-battle2.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose DAW-Drive-v0.25-family-battle2.apk
+          ls -lh Lone-Rider-v0.25-family-battle2.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose Lone-Rider-v0.25-family-battle2.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DAW-Drive-v0.25-family-battle2-apk
-          path: DAW-Drive-v0.25-family-battle2.apk
+          name: Lone-Rider-v0.25-family-battle2-apk
+          path: Lone-Rider-v0.25-family-battle2.apk
           if-no-files-found: error
