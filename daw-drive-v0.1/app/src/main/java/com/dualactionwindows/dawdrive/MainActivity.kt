@@ -4,6 +4,9 @@ import android.Manifest
 import android.app.ActivityOptions
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
+import android.speech.SpeechRecognizer
 import android.os.Bundle
 import android.view.Display
 import androidx.activity.ComponentActivity
@@ -19,6 +22,10 @@ import com.dualactionwindows.dawdrive.ui.DawDriveApp
 
 class MainActivity : ComponentActivity() {
 
+    private var micPermissionGranted by mutableStateOf(false)
+    private var notificationPermissionGranted by mutableStateOf(false)
+    private var speechRecognitionAvailable by mutableStateOf(false)
+
     private var resumeGameAfterPermission = false
     private var openGamesAfterPermission = false
     private var pendingGameAfterPermission: String? = null
@@ -31,6 +38,8 @@ class MainActivity : ComponentActivity() {
                         this,
                         Manifest.permission.RECORD_AUDIO
                     ) == PackageManager.PERMISSION_GRANTED
+
+            refreshPermissionState()
 
             if (micGranted) {
                 startRoadVoiceService(resumeGameAfterPermission)
@@ -49,6 +58,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val triviaEngine = TriviaGameEngine(this)
+        refreshPermissionState()
 
         setContent {
             var profile by remember {
@@ -89,6 +99,23 @@ class MainActivity : ComponentActivity() {
                         Intent(this, DebugLogsActivity::class.java)
                     )
                 },
+                micPermissionGranted = micPermissionGranted,
+                notificationPermissionGranted = notificationPermissionGranted,
+                speechRecognitionAvailable = speechRecognitionAvailable,
+                onRequestVoicePermissions = {
+                    ensureRoadVoiceSetup(
+                        resumeGame = false,
+                        openGamesAfterSetup = false
+                    )
+                },
+                onOpenAppSettings = {
+                    startActivity(
+                        Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.parse("package:" + packageName)
+                        )
+                    )
+                },
                 onRoadVoiceStart = {
                     ensureRoadVoiceSetup(
                         resumeGame = false,
@@ -116,10 +143,31 @@ class MainActivity : ComponentActivity() {
         handleRoadVoiceIntent(intent)
     }
 
+    override fun onResume() {
+        super.onResume()
+        refreshPermissionState()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleRoadVoiceIntent(intent)
+    }
+
+    private fun refreshPermissionState() {
+        micPermissionGranted =
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+
+        notificationPermissionGranted =
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+        speechRecognitionAvailable = SpeechRecognizer.isRecognitionAvailable(this)
     }
 
     private fun handleRoadVoiceIntent(intent: Intent?) {
