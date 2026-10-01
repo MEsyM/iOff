@@ -2203,7 +2203,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "DAW Drive Road Voice",
+                "Lone Rider Road Voice",
                 NotificationManager.IMPORTANCE_LOW
             )
         )
@@ -2211,7 +2211,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         manager.createNotificationChannel(
             NotificationChannel(
                 ENABLE_CHANNEL_ID,
-                "DAW Drive setup",
+                "Lone Rider setup",
                 NotificationManager.IMPORTANCE_HIGH
             )
         )
@@ -2222,7 +2222,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle("DAW Drive Road Voice")
+            .setContentTitle("Lone Rider Road Voice")
             .setContentText(
                 when (activeGame) {
                     ActiveGame.SPELLING ->
