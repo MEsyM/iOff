@@ -36,16 +36,16 @@ jobs:
         run: gradle -p daw-drive-v0.1 assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk Lone-Rider-v1.2-random-retry-debug.apk
+        run: cp daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk Lone-Rider-v1.3-english-debug.apk
 
       - name: Verify APK
         run: |
-          ls -lh Lone-Rider-v1.2-random-retry-debug.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose Lone-Rider-v1.2-random-retry-debug.apk
+          ls -lh Lone-Rider-v1.3-english-debug.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose Lone-Rider-v1.3-english-debug.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Lone-Rider-v1.2-random-retry-debug-apk
-          path: Lone-Rider-v1.2-random-retry-debug.apk
+          name: Lone-Rider-v1.3-english-debug-apk
+          path: Lone-Rider-v1.3-english-debug.apk
           if-no-files-found: error
