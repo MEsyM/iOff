@@ -314,15 +314,17 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         )
         when (intent?.action) {
             ACTION_START_VOICE -> {
-                activateRoadVoiceForeground()
+                val activated = activateRoadVoiceForeground()
 
-                if (intent.getBooleanExtra(EXTRA_RESUME_GAME, false)) {
-                    mainHandler.postDelayed({ startOrResumeTrivia() }, 250)
-                } else {
-                    speakSystem(
-                        en = "Road Voice is ready.",
-                        cs = "Road Voice je připraven."
-                    )
+                if (activated) {
+                    if (intent.getBooleanExtra(EXTRA_RESUME_GAME, false)) {
+                        mainHandler.postDelayed({ startOrResumeTrivia() }, 250)
+                    } else {
+                        speakSystem(
+                            en = "Road Voice is ready.",
+                            cs = "Road Voice je připraven."
+                        )
+                    }
                 }
             }
 
