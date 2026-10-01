@@ -89,6 +89,7 @@ class FamilySetupActivity : ComponentActivity() {
 
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             ModeButton(
+                                modifier = Modifier.weight(1f),
                                 title = "ROUND",
                                 subtitle = "Každý hraje své kolo",
                                 selected = mode == FamilyGameEngine.Mode.ROUND,
@@ -98,6 +99,7 @@ class FamilySetupActivity : ComponentActivity() {
                                 saved = false
                             }
                             ModeButton(
+                                modifier = Modifier.weight(1f),
                                 title = "BATTLE",
                                 subtitle = "Kdo buzzne první, odpovídá",
                                 selected = mode == FamilyGameEngine.Mode.BATTLE,
@@ -172,6 +174,7 @@ class FamilySetupActivity : ComponentActivity() {
 
 @androidx.compose.runtime.Composable
 private fun ModeButton(
+    modifier: Modifier,
     title: String,
     subtitle: String,
     selected: Boolean,
@@ -180,9 +183,7 @@ private fun ModeButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = Modifier
-            .weight(1f)
-            .height(96.dp),
+        modifier = modifier.height(96.dp),
         contentPadding = PaddingValues(16.dp),
         shape = RoundedCornerShape(20.dp),
         colors = ButtonDefaults.buttonColors(
