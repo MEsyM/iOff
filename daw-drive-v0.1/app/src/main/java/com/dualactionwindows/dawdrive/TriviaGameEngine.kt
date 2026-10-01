@@ -6,6 +6,7 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 
 class TriviaGameEngine(context: Context) {
 
@@ -526,7 +527,7 @@ class TriviaGameEngine(context: Context) {
         val totalAnswered = p.totalAnswered
         val lastCategory = lastCategoryKey
 
-        return TriviaQuestionBank.questions
+        val ranked = TriviaQuestionBank.questions
             .asSequence()
             .filter { unlockedDifficulty(it.difficulty, p.level) }
             .map { q ->
@@ -549,15 +550,31 @@ class TriviaGameEngine(context: Context) {
                 if (recentIds.contains(q.id)) score -= 80.0
                 if (q.category.key == lastCategory) score -= 18.0
 
-                val deterministicJitter =
-                    ((q.id.hashCode() xor totalAnswered) and 0xF) / 4.0
-                score += deterministicJitter
-
                 q to score
             }
-            .maxByOrNull { it.second }
-            ?.first
-            ?: TriviaQuestionBank.questions.first()
+            .sortedByDescending { it.second }
+            .take(RANDOM_TOP_POOL)
+            .toList()
+
+        if (ranked.isEmpty()) {
+            return TriviaQuestionBank.questions.random()
+        }
+
+        // Keep the adaptive ranking, but randomize inside the best candidate pool.
+        // This prevents every fresh install from receiving the exact same opening sequence.
+        val floor = ranked.minOf { it.second }
+        val weighted = ranked.map { (question, score) ->
+            question to max(1.0, score - floor + 8.0)
+        }
+        val totalWeight = weighted.sumOf { it.second }
+        var pick = Random.nextDouble(totalWeight)
+
+        for ((question, weight) in weighted) {
+            pick -= weight
+            if (pick <= 0.0) return question
+        }
+
+        return weighted.last().first
     }
 
     private fun targetDifficulty(profile: Profile): Int {
@@ -880,6 +897,7 @@ class TriviaGameEngine(context: Context) {
 
         private const val ROUND_SIZE = 10
         private const val RECENT_WINDOW = 8
+        private const val RANDOM_TOP_POOL = 12
         private const val RECENT_RESULT_WINDOW = 20
         private const val MAX_ROUND_HISTORY = 30
 
