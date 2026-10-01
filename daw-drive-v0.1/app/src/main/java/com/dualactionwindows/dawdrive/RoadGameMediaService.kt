@@ -132,6 +132,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
                     DawDebugLog.log(this@RoadGameMediaService, "MEDIA_ON_PLAY", "game=" + activeGame)
+                    tryEnableVoiceFromMediaSession()
                     startOrResumeActiveGame()
                 }
 
@@ -157,6 +158,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
                 override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
                     DawDebugLog.log(this@RoadGameMediaService, "MEDIA_PLAY_FROM_ID", "mediaId=" + mediaId)
+                    tryEnableVoiceFromMediaSession()
                     when (mediaId) {
                         MEDIA_ID_SPELLING -> {
                             activeGame = ActiveGame.SPELLING
@@ -1002,6 +1004,20 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private fun startListeningForAnswer() {
         if (!voiceModeEnabled || !awaitingAnswer || listening) return
 
+        if (
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            DawDebugLog.log(this, "STT_PERMISSION_MISSING", "game=" + activeGame)
+            voiceModeEnabled = false
+            artworkState = ArtworkState.IDLE
+            updateMetadata()
+            showEnableRoadVoiceNotification(needsPermission = true)
+            return
+        }
+
         val recognizer = speechRecognizer
         if (recognizer == null) {
             speakSystem(
@@ -1041,7 +1057,24 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             "STT_START",
             "game=" + activeGame + " locale=" + locale.toLanguageTag()
         )
-        recognizer.startListening(intent)
+        try {
+            recognizer.startListening(intent)
+        } catch (e: SecurityException) {
+            listening = false
+            artworkState = ArtworkState.IDLE
+            voiceModeEnabled = false
+            updateMetadata()
+            DawDebugLog.log(this, "STT_SECURITY_ERROR", e.message.orEmpty())
+            showEnableRoadVoiceNotification(needsPermission = true)
+        } catch (e: IllegalStateException) {
+            listening = false
+            artworkState = ArtworkState.IDLE
+            updateMetadata()
+            DawDebugLog.log(this, "STT_STATE_ERROR", e.message.orEmpty())
+            mainHandler.postDelayed({
+                if (voiceModeEnabled && awaitingAnswer) startListeningForAnswer()
+            }, 700)
+        }
     }
 
     private fun evaluateSpeechCandidates(candidates: List<String>) {
@@ -1762,16 +1795,65 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
     }
 
-    private fun activateRoadVoiceForeground() {
-        startForeground(
-            NOTIFICATION_ID,
-            buildActiveNotification(),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+    private fun activateRoadVoiceForeground(): Boolean {
+        if (
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            voiceModeEnabled = false
+            DawDebugLog.log(this, "VOICE_ENABLE_NO_PERMISSION")
+            showEnableRoadVoiceNotification(needsPermission = true)
+            return false
+        }
+
+        return try {
+            startForeground(
+                NOTIFICATION_ID,
+                buildActiveNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            )
+            voiceModeEnabled = true
+            getSystemService(NotificationManager::class.java)
+                .cancel(ENABLE_NOTIFICATION_ID)
+            DawDebugLog.log(this, "VOICE_ENABLE_OK", "source=foreground")
+            true
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            voiceModeEnabled = false
+            DawDebugLog.log(this, "VOICE_ENABLE_BLOCKED", e.message.orEmpty())
+            showEnableRoadVoiceNotification(needsPermission = false)
+            false
+        } catch (e: SecurityException) {
+            voiceModeEnabled = false
+            DawDebugLog.log(this, "VOICE_ENABLE_SECURITY_ERROR", e.message.orEmpty())
+            showEnableRoadVoiceNotification(needsPermission = false)
+            false
+        }
+    }
+
+    private fun tryEnableVoiceFromMediaSession() {
+        if (voiceModeEnabled) return
+
+        val hasMicPermission =
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+
+        DawDebugLog.log(
+            this,
+            "VOICE_ENABLE_FROM_MEDIA",
+            "permission=" + hasMicPermission + " game=" + activeGame
         )
-        voiceModeEnabled = true
-        getSystemService(NotificationManager::class.java)
-            .cancel(ENABLE_NOTIFICATION_ID)
+
+        if (!hasMicPermission) {
+            showEnableRoadVoiceNotification(needsPermission = true)
+            return
+        }
+
+        activateRoadVoiceForeground()
     }
 
     private fun showEnableRoadVoiceNotification(needsPermission: Boolean) {
@@ -1793,7 +1875,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         val notification = Notification.Builder(this, ENABLE_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle(if (cs) "Zapnout DAW Road Voice" else "Enable DAW Road Voice")
+            .setContentTitle(if (cs) "Zapnout Lone Rider Voice" else "Enable Lone Rider Voice")
             .setContentText(
                 if (needsPermission) {
                     if (cs) "Klepni pro povolení mikrofonu a pokračování"
