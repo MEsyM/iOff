@@ -178,10 +178,25 @@ class KidsTriviaEngine(context: Context) {
         val correct = candidates.any { raw ->
             val actual = normalize(raw, language)
             normalizedExpected.any { expected ->
-                actual == expected ||
-                    (expected.length >= 5 && actual.contains(expected)) ||
-                    (actual.length >= 5 && expected.contains(actual)) ||
-                    levenshtein(actual, expected) <= if (expected.length >= 8) 1 else 0
+                if (actual == expected) {
+                    true
+                } else if (expected.length >= 4 && actual.contains(expected)) {
+                    true
+                } else if (actual.length >= 4 && expected.contains(actual)) {
+                    true
+                } else {
+                    val distance = levenshtein(actual, expected)
+                    val maxLen = maxOf(actual.length, expected.length)
+                    val similarity = if (maxLen == 0) 0.0
+                    else 1.0 - distance.toDouble() / maxLen.toDouble()
+
+                    distance <= when {
+                        expected.length <= 4 -> 0
+                        expected.length <= 7 -> 1
+                        expected.length <= 12 -> 2
+                        else -> 3
+                    } || similarity >= 0.82
+                }
             }
         }
 
