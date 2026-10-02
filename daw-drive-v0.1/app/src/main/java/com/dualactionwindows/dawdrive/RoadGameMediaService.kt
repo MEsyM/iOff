@@ -2562,11 +2562,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private fun artworkBitmap(game: ActiveGame, state: ArtworkState): Bitmap {
         val drawable = ContextCompat.getDrawable(this, artworkResId(game, state))
             ?: error("Missing artwork for " + game + " / " + state)
-        val width = maxOf(1, drawable.intrinsicWidth)
-        val height = maxOf(1, drawable.intrinsicHeight)
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+
+        // Keep metadata comfortably below Android Binder limits while still sharp
+        // enough for Android Auto's artwork card.
+        val sizePx = 384
+        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.setBounds(0, 0, sizePx, sizePx)
         drawable.draw(canvas)
         return bitmap
     }
