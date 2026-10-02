@@ -236,3 +236,12 @@ def progress(profile_id:uuid.UUID,u:User=Depends(current_user),db:Session=Depend
     rows=db.scalars(select(Progress).where(Progress.profile_id==profile_id).order_by(Progress.game)).all()
     return [{"game":x.game,"xp":x.xp,"level":x.level,"current_streak":x.current_streak,"best_streak":x.best_streak,
              "total_answered":x.total_answered,"total_correct":x.total_correct,"updated_at":x.updated_at} for x in rows]
+
+
+# Content admin / public live-content API
+from app.admin_content import router as content_admin_router, seed_content_if_empty
+app.include_router(content_admin_router)
+
+@app.on_event("startup")
+def seed_initial_content():
+    seed_content_if_empty()
