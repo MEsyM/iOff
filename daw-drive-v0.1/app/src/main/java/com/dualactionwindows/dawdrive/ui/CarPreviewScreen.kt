@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dualactionwindows.dawdrive.R
+import com.dualactionwindows.dawdrive.TriviaGameEngine
 
 @Composable
 fun CarPreviewScreen(
@@ -37,12 +38,14 @@ fun CarPreviewScreen(
     selectedGame: String,
     isPlaying: Boolean,
     connected: Boolean,
+    language: TriviaGameEngine.Language,
     onSelectTrivia: () -> Unit,
     onSelectSpelling: () -> Unit,
     onSelectGuessWho: () -> Unit,
     onSelectKids: () -> Unit,
     onSelectFamily: () -> Unit,
     onSelectEnglish: () -> Unit,
+    onLanguageChange: (TriviaGameEngine.Language) -> Unit,
     onFamilySetup: () -> Unit,
     onPlayPause: () -> Unit,
     onRepeat: () -> Unit,
@@ -91,6 +94,8 @@ fun CarPreviewScreen(
                 ) {
                     CarHeader(
                         connected = connected,
+                        language = language,
+                        onLanguageChange = onLanguageChange,
                         onClose = onClose
                     )
 
@@ -272,6 +277,8 @@ private fun RailButton(
 @Composable
 private fun CarHeader(
     connected: Boolean,
+    language: TriviaGameEngine.Language,
+    onLanguageChange: (TriviaGameEngine.Language) -> Unit,
     onClose: () -> Unit
 ) {
     Row(
@@ -300,9 +307,15 @@ private fun CarHeader(
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatusPill(if (connected) "CONNECTED" else "CONNECTING", connected)
+            CarButton("CZ", language == TriviaGameEngine.Language.CS) {
+                onLanguageChange(TriviaGameEngine.Language.CS)
+            }
+            CarButton("EN", language == TriviaGameEngine.Language.EN) {
+                onLanguageChange(TriviaGameEngine.Language.EN)
+            }
             CarButton("CLOSE", false, onClose)
         }
     }
