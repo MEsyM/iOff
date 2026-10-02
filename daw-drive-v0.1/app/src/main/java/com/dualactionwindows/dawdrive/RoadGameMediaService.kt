@@ -10,6 +10,7 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -101,7 +102,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var fallbackNoticeSpoken = false
     private var englishWrongRetryUsed = false
     private var lastRecognitionFinishedAt = 0L
-    private var artworkRevision = 0L
+    private data class SpeechSegment(val text: String, val locale: Locale)
+
+    private val englishSpeechQueue = ArrayDeque<SpeechSegment>()
+    private var englishSpeechFinalUtteranceId: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -421,9 +425,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "TTS_DONE",
                     "id=" + utteranceId + " game=" + activeGame
                 )
-                if (!isChainedEnglishSegment(utteranceId)) {
-                    abandonAudioFocus("tts_done")
+                if (isChainedEnglishSegment(utteranceId)) {
+                    mainHandler.post { playNextEnglishSpeechSegment() }
+                    return
                 }
+
+                abandonAudioFocus("tts_done")
                 when (utteranceId) {
                     SESSION_INTRO_UTTERANCE_ID -> {
                         mainHandler.post {
@@ -2275,6 +2282,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val language = triviaEngine.language()
         val cs = language == TriviaGameEngine.Language.CS
         val artUri = artworkUri(activeGame, artworkState).toString()
+        val artBitmap = BitmapFactory.decodeResource(
+            resources,
+            artworkResId(activeGame, artworkState)
+        )
 
         if (activeGame == ActiveGame.FAMILY) {
             val q = familyEngine.currentQuestion(language)
@@ -2304,6 +2315,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .build()
             )
             return
@@ -2329,6 +2342,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .build()
             )
             return
@@ -2359,6 +2374,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                         (p.totalAnswered + 1).toLong()
@@ -2394,6 +2411,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                         (p.totalAnswered + 1).toLong()
@@ -2429,6 +2448,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                         (p.answered + 1).toLong()
@@ -2459,6 +2480,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 )
                 .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                 .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                 .putLong(
                     MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                     (p.totalAnswered + 1).toLong()
@@ -2467,8 +2490,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         )
     }
 
-    private fun artworkUri(game: ActiveGame, state: ArtworkState): Uri {
-        val resId = when (game) {
+    private fun artworkResId(game: ActiveGame, state: ArtworkState): Int {
+        return when (game) {
             ActiveGame.TRIVIA -> when (state) {
                 ArtworkState.IDLE -> R.drawable.trivia_idle
                 ArtworkState.LISTENING -> R.drawable.trivia_listening
@@ -2506,13 +2529,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 ArtworkState.WRONG -> R.drawable.trivia_wrong
             }
         }
-        artworkRevision += 1
-        return Uri.parse("android.resource://" + packageName + "/" + resId)
-            .buildUpon()
-            .appendQueryParameter("state", state.name.lowercase())
-            .appendQueryParameter("rev", artworkRevision.toString())
-            .build()
     }
+
+    private fun artworkUri(game: ActiveGame, state: ArtworkState): Uri =
+        Uri.parse("android.resource://" + packageName + "/" + artworkResId(game, state))
 
     private fun mediaItem(
         id: String,
@@ -2816,7 +2836,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val SYSTEM_UTTERANCE_ID = "trivia_system"
         private const val LANGUAGE_UTTERANCE_ID = "language_change"
         private const val ENGLISH_SEGMENT_PREFIX = "english_segment_"
-        private const val MIC_TO_TTS_GAP_MS = 280L
+        private const val MIC_TO_TTS_GAP_MS = 450L
         private const val FEEDBACK_ART_HOLD_MS = 900L
     }
 }
