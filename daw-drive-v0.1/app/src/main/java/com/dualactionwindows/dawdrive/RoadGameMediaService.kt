@@ -161,6 +161,15 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
                 override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
                     DawDebugLog.log(this@RoadGameMediaService, "MEDIA_PLAY_FROM_ID", "mediaId=" + mediaId)
+                    if (mediaId == MEDIA_ID_LANGUAGE_CS) {
+                        changeLanguage(TriviaGameEngine.Language.CS, announce = true)
+                        return
+                    }
+                    if (mediaId == MEDIA_ID_LANGUAGE_EN) {
+                        changeLanguage(TriviaGameEngine.Language.EN, announce = true)
+                        return
+                    }
+
                     tryEnableVoiceFromMediaSession()
                     when (mediaId) {
                         MEDIA_ID_SPELLING -> {
@@ -355,26 +364,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "en", "english" -> TriviaGameEngine.Language.EN
                     else -> null
                 }
-
                 if (language != null) {
-                    val previous = triviaEngine.language()
-                    if (previous != language) {
-                        triviaEngine.setLanguage(language)
-                        applyVoiceLanguage()
-                        updateMetadata()
-                        DawDebugLog.log(this, "LANGUAGE_CHANGED", "from=" + previous.code + " to=" + language.code)
-
-                        if (awaitingAnswer || sessionStarted) {
-                            stopListening()
-                            awaitingAnswer = true
-                            retryCount = 0
-                            speakSystem(
-                                en = "Language changed to English.",
-                                cs = "Jazyk přepnut na češtinu.",
-                                utteranceId = LANGUAGE_UTTERANCE_ID
-                            )
-                        }
-                    }
+                    changeLanguage(language, announce = true)
                 }
             }
         }
@@ -566,8 +557,32 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             "Ages 6–12 • Level " + kids.level + " • " + kids.xp + " XP"
         }
 
+        val language = triviaEngine.language()
+        val languageCsSubtitle = if (language == TriviaGameEngine.Language.CS) {
+            "✓ Aktivní jazyk"
+        } else {
+            "Přepnout hry do češtiny"
+        }
+        val languageEnSubtitle = if (language == TriviaGameEngine.Language.EN) {
+            "✓ Active language"
+        } else {
+            "Switch games to English"
+        }
+
         result.sendResult(
             mutableListOf(
+                mediaItem(
+                    MEDIA_ID_LANGUAGE_CS,
+                    "🇨🇿 Čeština",
+                    languageCsSubtitle,
+                    R.drawable.language_cz
+                ),
+                mediaItem(
+                    MEDIA_ID_LANGUAGE_EN,
+                    "🇬🇧 English",
+                    languageEnSubtitle,
+                    R.drawable.language_en
+                ),
                 mediaItem(
                     MEDIA_ID_TRIVIA,
                     "Quick Trivia",
@@ -1918,6 +1933,16 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val normalized = normalizeCommand(text)
 
         val command = when {
+            normalized in setOf(
+                "switch to english", "change language to english", "use english",
+                "prepni na anglictinu", "prepnout na anglictinu", "anglicky"
+            ) -> "language_en"
+
+            normalized in setOf(
+                "switch to czech", "change language to czech", "use czech",
+                "prepni na cestinu", "prepnout na cestinu", "cesky"
+            ) -> "language_cs"
+
             activeGame == ActiveGame.GUESS_WHO &&
                 normalized in setOf(
                     "next hint", "hint", "another hint", "give me a hint",
@@ -1947,6 +1972,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (dryRun) return true
 
         when (command) {
+            "language_en" -> changeLanguage(TriviaGameEngine.Language.EN, announce = true)
+            "language_cs" -> changeLanguage(TriviaGameEngine.Language.CS, announce = true)
             "repeat" -> repeatCurrentQuestion()
             "skip" -> skipCurrentQuestion()
             "hint" -> nextGuessWhoHint()
@@ -1992,6 +2019,59 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         return true
+    }
+
+    private fun changeLanguage(
+        language: TriviaGameEngine.Language,
+        announce: Boolean
+    ) {
+        val previous = triviaEngine.language()
+
+        if (previous == language) {
+            updateMetadata()
+            notifyChildrenChanged(ROOT_ID)
+            if (announce) {
+                speakSystem(
+                    en = if (language == TriviaGameEngine.Language.EN) {
+                        "English is already active."
+                    } else {
+                        "Czech is already active."
+                    },
+                    cs = if (language == TriviaGameEngine.Language.CS) {
+                        "Čeština už je aktivní."
+                    } else {
+                        "Angličtina už je aktivní."
+                    },
+                    utteranceId = LANGUAGE_UTTERANCE_ID
+                )
+            }
+            return
+        }
+
+        stopListening()
+        triviaEngine.setLanguage(language)
+        applyVoiceLanguage()
+        updateMetadata()
+        notifyChildrenChanged(ROOT_ID)
+
+        DawDebugLog.log(
+            this,
+            "LANGUAGE_CHANGED",
+            "from=" + previous.code + " to=" + language.code + " game=" + activeGame
+        )
+
+        if (!announce) return
+
+        if (sessionStarted) {
+            awaitingAnswer = true
+            retryCount = 0
+        }
+
+        if (language == TriviaGameEngine.Language.CS) {
+            speak("Jazyk přepnut na češtinu.", LANGUAGE_UTTERANCE_ID)
+        } else {
+            speak("Language changed to English.", LANGUAGE_UTTERANCE_ID)
+        }
     }
 
     private fun pauseGame() {
@@ -2676,6 +2756,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val MEDIA_ID_KIDS_TRIVIA = "kids_trivia"
         private const val MEDIA_ID_FAMILY = "family_game"
         private const val MEDIA_ID_ENGLISH = "english_lessons"
+        private const val MEDIA_ID_LANGUAGE_CS = "language_cs"
+        private const val MEDIA_ID_LANGUAGE_EN = "language_en"
 
         private const val CONTENT_STYLE_BROWSABLE_KEY =
             "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT"
