@@ -1167,18 +1167,28 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
         updateMetadata()
 
-        val prefix = when (item.type) {
-            EnglishLearningEngine.LessonType.VOCABULARY ->
-                if (cs) "Slovíčko. " else "Vocabulary. "
-            EnglishLearningEngine.LessonType.PHRASE ->
-                if (cs) "Fráze. " else "Phrase. "
-            EnglishLearningEngine.LessonType.TRANSLATION ->
-                if (cs) "Překlad. " else "Translation. "
-            EnglishLearningEngine.LessonType.REPEAT ->
-                if (cs) "Opakování. " else "Repeat. "
+        if (cs && item.type == EnglishLearningEngine.LessonType.REPEAT) {
+            speakEnglishSequence(
+                listOf(
+                    SpeechSegment("Opakování. Zopakuj anglicky.", Locale("cs", "CZ")),
+                    SpeechSegment(item.answers.first(), Locale.US)
+                ),
+                QUESTION_UTTERANCE_ID
+            )
+        } else {
+            val prefix = when (item.type) {
+                EnglishLearningEngine.LessonType.VOCABULARY ->
+                    if (cs) "Slovíčko. " else "Vocabulary. "
+                EnglishLearningEngine.LessonType.PHRASE ->
+                    if (cs) "Fráze. " else "Phrase. "
+                EnglishLearningEngine.LessonType.TRANSLATION ->
+                    if (cs) "Překlad. " else "Translation. "
+                EnglishLearningEngine.LessonType.REPEAT ->
+                    "Repeat. "
+            }
+            val prompt = if (cs) item.promptCs else item.promptEn
+            speak(prefix + prompt, QUESTION_UTTERANCE_ID)
         }
-        val prompt = if (cs) item.promptCs else item.promptEn
-        speak(prefix + prompt, QUESTION_UTTERANCE_ID)
     }
 
     private fun evaluateEnglishCandidates(candidates: List<String>) {
@@ -1210,38 +1220,55 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         updateMetadata()
 
         val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
-        val feedback = buildString {
-            if (result.correct) {
-                append(if (cs) "Správně." else "Correct.")
-                append(" +")
-                append(result.xpEarned)
-                append(" XP.")
-                if (result.streak >= 3) {
-                    append(if (cs) " Série " else " Streak ")
-                    append(result.streak)
+        val finalUtteranceId =
+            if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID else FEEDBACK_UTTERANCE_ID
+
+        if (cs && !result.correct) {
+            val intro = if (before.mode == EnglishLearningEngine.Mode.LEARN) {
+                "Správná odpověď je:"
+            } else {
+                "Špatně. Správně je:"
+            }
+            val outro = buildString {
+                append(" Zkus si tu větu zapamatovat.")
+                if (result.roundFinished) {
+                    append(" ")
+                    append(englishEngine.roundSummary())
+                }
+            }
+            speakEnglishSequence(
+                listOf(
+                    SpeechSegment(intro, Locale("cs", "CZ")),
+                    SpeechSegment(result.expected, Locale.US),
+                    SpeechSegment(outro, Locale("cs", "CZ"))
+                ),
+                finalUtteranceId
+            )
+        } else {
+            val feedback = buildString {
+                if (result.correct) {
+                    append(if (cs) "Správně." else "Correct.")
+                    append(" +")
+                    append(result.xpEarned)
+                    append(" XP.")
+                    if (result.streak >= 3) {
+                        append(if (cs) " Série " else " Streak ")
+                        append(result.streak)
+                        append(".")
+                    }
+                } else {
+                    append("Wrong. A good answer is: ")
+                    append(result.expected)
                     append(".")
                 }
-            } else if (before.mode == EnglishLearningEngine.Mode.LEARN) {
-                append(if (cs) "Správná odpověď je: " else "A good answer is: ")
-                append(result.expected)
-                append(". ")
-                append(result.teaching)
-            } else {
-                append(if (cs) "Špatně. Správně je: " else "Wrong. A good answer is: ")
-                append(result.expected)
-                append(".")
-            }
 
-            if (result.roundFinished) {
-                append(" ")
-                append(englishEngine.roundSummary())
+                if (result.roundFinished) {
+                    append(" ")
+                    append(englishEngine.roundSummary())
+                }
             }
+            speak(feedback, finalUtteranceId)
         }
-
-        speak(
-            feedback,
-            if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID else FEEDBACK_UTTERANCE_ID
-        )
     }
 
     private fun moveToNextEnglishItem() {
@@ -2660,6 +2687,54 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 }, 700)
             }
         }
+    }
+
+    private fun isChainedEnglishSegment(utteranceId: String?): Boolean =
+        utteranceId?.startsWith(ENGLISH_SEGMENT_PREFIX) == true
+
+    private fun speakEnglishSequence(
+        segments: List<SpeechSegment>,
+        finalUtteranceId: String
+    ) {
+        if (segments.isEmpty()) return
+        englishSpeechQueue.clear()
+        englishSpeechQueue.addAll(segments)
+        englishSpeechFinalUtteranceId = finalUtteranceId
+
+        val first = englishSpeechQueue.removeFirst()
+        val internalId =
+            if (englishSpeechQueue.isEmpty()) finalUtteranceId
+            else ENGLISH_SEGMENT_PREFIX + "0"
+
+        tts.language = first.locale
+        val focusResult = audioManager.requestAudioFocus(audioFocusRequest)
+        if (focusResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            hasAudioFocus = true
+            performTtsSpeak(first.text, internalId)
+        } else {
+            // Fall back to the normal path if focus cannot be acquired immediately.
+            englishSpeechQueue.clear()
+            englishSpeechFinalUtteranceId = null
+            tts.language = first.locale
+            speak(first.text, finalUtteranceId)
+        }
+    }
+
+    private fun playNextEnglishSpeechSegment() {
+        if (englishSpeechQueue.isEmpty()) return
+
+        val next = englishSpeechQueue.removeFirst()
+        val finalId = englishSpeechFinalUtteranceId ?: QUESTION_UTTERANCE_ID
+        val utteranceId =
+            if (englishSpeechQueue.isEmpty()) {
+                englishSpeechFinalUtteranceId = null
+                finalId
+            } else {
+                ENGLISH_SEGMENT_PREFIX + englishSpeechQueue.size
+            }
+
+        tts.language = next.locale
+        performTtsSpeak(next.text, utteranceId)
     }
 
     private fun performTtsSpeak(text: String, utteranceId: String) {
