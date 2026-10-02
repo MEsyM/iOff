@@ -103,6 +103,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var fallbackNoticeSpoken = false
     private var englishWrongRetryUsed = false
     private var lastRecognitionFinishedAt = 0L
+    private var metadataRevision = 0L
     private data class SpeechSegment(val text: String, val locale: Locale)
 
     private val englishSpeechQueue = ArrayDeque<SpeechSegment>()
@@ -1327,16 +1328,20 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, if (activeGame == ActiveGame.ENGLISH) 10 else 5)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 10)
 
-            if (activeGame == ActiveGame.ENGLISH) {
-                val expected = englishEngine.currentItem()?.answers.orEmpty()
-                if (expected.isNotEmpty()) {
-                    putStringArrayListExtra(
-                        RecognizerIntent.EXTRA_BIASING_STRINGS,
-                        ArrayList(expected)
-                    )
-                }
+            val expectedBias = when (activeGame) {
+                ActiveGame.ENGLISH -> englishEngine.currentItem()?.answers.orEmpty()
+                ActiveGame.TRIVIA -> triviaEngine.currentQuestion()?.answers.orEmpty()
+                ActiveGame.KIDS_TRIVIA ->
+                    kidsTriviaEngine.currentQuestion(triviaEngine.language())?.answers.orEmpty()
+                else -> emptyList()
+            }
+            if (expectedBias.isNotEmpty()) {
+                putStringArrayListExtra(
+                    RecognizerIntent.EXTRA_BIASING_STRINGS,
+                    ArrayList(expectedBias)
+                )
             }
             putExtra(
                 RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
@@ -1389,6 +1394,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         val result = triviaEngine.answerCandidates(candidates, responseMs)
+        DawDebugLog.log(
+            this,
+            "ANSWER_EVALUATED",
+            "game=TRIVIA correct=" + result.correct +
+                " heard=" + candidates.joinToString(" / ") +
+                " expected=" + result.expected
+        )
         artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
         updateMetadata()
 
@@ -1456,6 +1468,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val result = kidsTriviaEngine.answerCandidates(
             candidates,
             triviaEngine.language()
+        )
+        DawDebugLog.log(
+            this,
+            "ANSWER_EVALUATED",
+            "game=KIDS_TRIVIA correct=" + result.correct +
+                " heard=" + candidates.joinToString(" / ") +
+                " expected=" + result.expected
         )
         artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
         updateMetadata()
@@ -2311,6 +2330,15 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val cs = language == TriviaGameEngine.Language.CS
         val artUri = artworkUri(activeGame, artworkState).toString()
         val artBitmap = artworkBitmap(activeGame, artworkState)
+        metadataRevision += 1
+        val metadataId = activeGame.name.lowercase() + ":" +
+            artworkState.name.lowercase() + ":" + metadataRevision
+        val feedbackLabel = when (artworkState) {
+            ArtworkState.CORRECT -> if (cs) "✓ SPRÁVNĚ" else "✓ CORRECT"
+            ArtworkState.WRONG -> if (cs) "✕ ŠPATNĚ" else "✕ WRONG"
+            ArtworkState.LISTENING -> if (cs) "🎙 POSLOUCHÁM" else "🎙 LISTENING"
+            ArtworkState.IDLE -> null
+        }
 
         if (activeGame == ActiveGame.FAMILY) {
             val q = familyEngine.currentQuestion(language)
@@ -2318,6 +2346,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             val player = if (!battle) familyEngine.currentPlayer().name else familyEngine.lockedPlayer()?.name
             mediaSession.setMetadata(
                 MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_TITLE,
                         "Family • " + if (battle) "Battle" else "Round"
@@ -2328,7 +2357,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
-                        q?.prompt ?: if (cs) "Připraveno" else "Ready"
+                        feedbackLabel ?: feedbackLabel ?: q?.prompt ?: if (cs) "Připraveno" else "Ready"
                     )
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
@@ -2352,6 +2381,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             val q = kidsTriviaEngine.currentQuestion(language)
             mediaSession.setMetadata(
                 MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(MediaMetadataCompat.METADATA_KEY_TITLE, "Trivia Kids 6–12 • Level " + p.level)
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_ARTIST,
@@ -2359,7 +2389,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
-                        q?.prompt ?: if (cs) "Připraveno" else "Ready"
+                        feedbackLabel ?: q?.prompt ?: if (cs) "Připraveno" else "Ready"
                     )
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
@@ -2379,6 +2409,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             val hintNumber = guessWhoEngine.currentHintNumber()
             mediaSession.setMetadata(
                 MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_TITLE,
                         "Guess Who • Level " + p.level
@@ -2415,6 +2446,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             val word = spellingEngine.currentWord()
             mediaSession.setMetadata(
                 MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_TITLE,
                         "Spelling Bee • Level " + p.level
@@ -2453,6 +2485,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             val accuracy = if (p.answered == 0) 0 else p.correct * 100 / p.answered
             mediaSession.setMetadata(
                 MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_TITLE,
                         "English Lessons • " + p.playerName + " • " + p.level.label
@@ -2497,7 +2530,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
-                    q?.prompt ?: if (cs) "Připraveno" else "Ready"
+                    feedbackLabel ?: q?.prompt ?: if (cs) "Připraveno" else "Ready"
                 )
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
@@ -2771,6 +2804,16 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             null,
             utteranceId
         )
+        if (result == TextToSpeech.ERROR) {
+            DawDebugLog.log(
+                this,
+                "TTS_SPEAK_RETRY",
+                "id=" + utteranceId + " game=" + activeGame
+            )
+            mainHandler.postDelayed({
+                tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+            }, 250L)
+        }
         DawDebugLog.log(
             this,
             "TTS_SPEAK_CALL",
@@ -2938,6 +2981,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val LANGUAGE_UTTERANCE_ID = "language_change"
         private const val ENGLISH_SEGMENT_PREFIX = "english_segment_"
         private const val MIC_TO_TTS_GAP_MS = 450L
-        private const val FEEDBACK_ART_HOLD_MS = 900L
+        private const val FEEDBACK_ART_HOLD_MS = 1600L
     }
 }
