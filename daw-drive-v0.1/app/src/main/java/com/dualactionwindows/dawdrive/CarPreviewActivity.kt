@@ -29,6 +29,7 @@ class CarPreviewActivity : ComponentActivity() {
     private var question by mutableStateOf("Press Play to start")
     private var isPlaying by mutableStateOf(false)
     private var connected by mutableStateOf(false)
+    private var currentLanguage by mutableStateOf(TriviaGameEngine(this).language())
     private var selectedGame by mutableStateOf(Game.TRIVIA)
     private var pendingAfterPermission: (() -> Unit)? = null
 
@@ -123,6 +124,7 @@ class CarPreviewActivity : ComponentActivity() {
                 },
                 isPlaying = isPlaying,
                 connected = connected,
+                language = currentLanguage,
                 onSelectTrivia = {
                     selectGame(Game.TRIVIA)
                 },
@@ -140,6 +142,9 @@ class CarPreviewActivity : ComponentActivity() {
                 },
                 onSelectEnglish = {
                     selectGame(Game.ENGLISH)
+                },
+                onLanguageChange = { language ->
+                    setLanguage(language)
                 },
                 onFamilySetup = {
                     startActivity(Intent(this, FamilySetupActivity::class.java))
@@ -193,6 +198,16 @@ class CarPreviewActivity : ComponentActivity() {
             stopRoadVoiceCompletely()
         }
         super.onDestroy()
+    }
+
+    private fun setLanguage(language: TriviaGameEngine.Language) {
+        currentLanguage = language
+        TriviaGameEngine(this).setLanguage(language)
+        startService(
+            Intent(this, RoadGameMediaService::class.java)
+                .setAction(RoadGameMediaService.ACTION_SET_LANGUAGE)
+                .putExtra(RoadGameMediaService.EXTRA_LANGUAGE, language.code)
+        )
     }
 
     private fun selectGame(game: Game) {
