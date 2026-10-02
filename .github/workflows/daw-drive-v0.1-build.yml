@@ -7,7 +7,7 @@ concurrency:
 on:
   push:
     branches:
-      - codex/lone-rider-ui-v1
+      - codex/lone-rider-v1.6-build3
   workflow_dispatch:
 
 jobs:
