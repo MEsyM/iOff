@@ -347,6 +347,36 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ACTION_STOP_VOICE -> {
                 shutdownService()
             }
+
+            ACTION_SET_LANGUAGE -> {
+                val requested = intent.getStringExtra(EXTRA_LANGUAGE)
+                val language = when (requested?.lowercase()) {
+                    "cs", "cz", "czech" -> TriviaGameEngine.Language.CS
+                    "en", "english" -> TriviaGameEngine.Language.EN
+                    else -> null
+                }
+
+                if (language != null) {
+                    val previous = triviaEngine.language()
+                    if (previous != language) {
+                        triviaEngine.setLanguage(language)
+                        applyVoiceLanguage()
+                        updateMetadata()
+                        DawDebugLog.log(this, "LANGUAGE_CHANGED", "from=" + previous.code + " to=" + language.code)
+
+                        if (awaitingAnswer || sessionStarted) {
+                            stopListening()
+                            awaitingAnswer = true
+                            retryCount = 0
+                            speakSystem(
+                                en = "Language changed to English.",
+                                cs = "Jazyk přepnut na češtinu.",
+                                utteranceId = LANGUAGE_UTTERANCE_ID
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         return Service.START_NOT_STICKY
@@ -464,6 +494,23 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 startListeningForAnswer()
                             }, 200)
                         }
+                    }
+
+                    LANGUAGE_UTTERANCE_ID -> {
+                        mainHandler.postDelayed({
+                            if (sessionStarted) {
+                                when (activeGame) {
+                                    ActiveGame.SPELLING -> speakCurrentSpelling()
+                                    ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
+                                    ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
+                                    ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
+                                    ActiveGame.ENGLISH -> speakCurrentEnglishItem()
+                                    ActiveGame.TRIVIA -> speakCurrentQuestion()
+                                }
+                            } else {
+                                updateMetadata()
+                            }
+                        }, 250)
                     }
                 }
             }
@@ -2617,7 +2664,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             "com.dualactionwindows.dawdrive.START_ROAD_VOICE"
         const val ACTION_STOP_VOICE =
             "com.dualactionwindows.dawdrive.STOP_ROAD_VOICE"
+        const val ACTION_SET_LANGUAGE =
+            "com.dualactionwindows.dawdrive.SET_LANGUAGE"
         const val EXTRA_RESUME_GAME = "resume_game"
+        const val EXTRA_LANGUAGE = "language"
 
         private const val ROOT_ID = "road_games_root"
         private const val MEDIA_ID_TRIVIA = "trivia_career"
@@ -2647,5 +2697,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val COMMAND_UTTERANCE_ID = "trivia_command"
         private const val RETRY_UTTERANCE_ID = "trivia_retry"
         private const val SYSTEM_UTTERANCE_ID = "trivia_system"
+        private const val LANGUAGE_UTTERANCE_ID = "language_change"
     }
 }
