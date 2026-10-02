@@ -10,7 +10,8 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -2309,10 +2310,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val language = triviaEngine.language()
         val cs = language == TriviaGameEngine.Language.CS
         val artUri = artworkUri(activeGame, artworkState).toString()
-        val artBitmap = BitmapFactory.decodeResource(
-            resources,
-            artworkResId(activeGame, artworkState)
-        )
+        val artBitmap = artworkBitmap(activeGame, artworkState)
 
         if (activeGame == ActiveGame.FAMILY) {
             val q = familyEngine.currentQuestion(language)
@@ -2561,6 +2559,18 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private fun artworkUri(game: ActiveGame, state: ArtworkState): Uri =
         Uri.parse("android.resource://" + packageName + "/" + artworkResId(game, state))
 
+    private fun artworkBitmap(game: ActiveGame, state: ArtworkState): Bitmap {
+        val drawable = ContextCompat.getDrawable(this, artworkResId(game, state))
+            ?: error("Missing artwork for " + game + " / " + state)
+        val width = maxOf(1, drawable.intrinsicWidth)
+        val height = maxOf(1, drawable.intrinsicHeight)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bitmap
+    }
+
     private fun mediaItem(
         id: String,
         title: String,
@@ -2697,6 +2707,19 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         finalUtteranceId: String
     ) {
         if (segments.isEmpty()) return
+
+        val sinceRecognition = SystemClock.elapsedRealtime() - lastRecognitionFinishedAt
+        if (
+            finalUtteranceId in setOf(FEEDBACK_UTTERANCE_ID, ROUND_SUMMARY_UTTERANCE_ID) &&
+            sinceRecognition in 0 until MIC_TO_TTS_GAP_MS
+        ) {
+            mainHandler.postDelayed(
+                { speakEnglishSequence(segments, finalUtteranceId) },
+                MIC_TO_TTS_GAP_MS - sinceRecognition
+            )
+            return
+        }
+
         englishSpeechQueue.clear()
         englishSpeechQueue.addAll(segments)
         englishSpeechFinalUtteranceId = finalUtteranceId
@@ -2712,11 +2735,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             hasAudioFocus = true
             performTtsSpeak(first.text, internalId)
         } else {
-            // Fall back to the normal path if focus cannot be acquired immediately.
             englishSpeechQueue.clear()
             englishSpeechFinalUtteranceId = null
-            tts.language = first.locale
-            speak(first.text, finalUtteranceId)
+            mainHandler.postDelayed(
+                { speakEnglishSequence(segments, finalUtteranceId) },
+                350L
+            )
         }
     }
 
