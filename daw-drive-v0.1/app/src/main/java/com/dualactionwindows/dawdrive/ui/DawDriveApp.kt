@@ -57,6 +57,7 @@ private data class ModuleCard(
 
 @Composable
 fun DawDriveApp(
+    appVersion: String,
     profile: TriviaGameEngine.Profile,
     dashboard: TriviaGameEngine.DashboardData,
     achievementTitles: List<String>,
@@ -91,6 +92,7 @@ fun DawDriveApp(
         ) {
             when (screen) {
                 LoneScreen.HOME -> HomeScreen(
+                    appVersion = appVersion,
                     profile = profile,
                     onGames = { screen = LoneScreen.GAMES },
                     onDrive = onCarPreviewClick,
@@ -148,6 +150,7 @@ fun DawDriveApp(
 
 @Composable
 private fun HomeScreen(
+    appVersion: String,
     profile: TriviaGameEngine.Profile,
     onGames: () -> Unit,
     onDrive: () -> Unit,
@@ -269,11 +272,22 @@ private fun HomeScreen(
             }
         }
 
-        Text(
-            text = "Voice first • Family friendly • Distraction aware",
-            color = Color(0xFF708198),
-            fontSize = 12.sp
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Voice first • Family friendly • Distraction aware",
+                color = Color(0xFF708198),
+                fontSize = 12.sp
+            )
+            Text(
+                text = "v" + appVersion,
+                color = LoneRiderColors.Cyan.copy(alpha = 0.78f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
