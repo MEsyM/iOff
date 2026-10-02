@@ -79,6 +79,7 @@ class MainActivity : ComponentActivity() {
             }
 
             DawDriveApp(
+                appVersion = BuildConfig.VERSION_NAME,
                 profile = profile,
                 dashboard = dashboard,
                 achievementTitles = profile.achievements
