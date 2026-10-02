@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val triviaEngine = TriviaGameEngine(this)
+        val appVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "unknown"
         refreshPermissionState()
         drivingVoiceArmed = prefs.getBoolean(KEY_DRIVING_VOICE_ARMED, false)
 
@@ -79,7 +80,7 @@ class MainActivity : ComponentActivity() {
             }
 
             DawDriveApp(
-                appVersion = BuildConfig.VERSION_NAME,
+                appVersion = appVersion,
                 profile = profile,
                 dashboard = dashboard,
                 achievementTitles = profile.achievements
