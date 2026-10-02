@@ -12,8 +12,8 @@ android {
         applicationId = "com.dualactionwindows.dawdrive"
         minSdk = 35
         targetSdk = 36
-        versionCode = 30
-        versionName = "1.4-kids-random-language"
+        versionCode = 31
+        versionName = "1.5-feedback-english"
     }
 
     buildTypes {
