@@ -100,6 +100,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var pendingStartAfterTts = false
     private var fallbackNoticeSpoken = false
     private var englishWrongRetryUsed = false
+    private var lastRecognitionFinishedAt = 0L
+    private var artworkRevision = 0L
 
     override fun onCreate() {
         super.onCreate()
@@ -264,6 +266,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 override fun onEndOfSpeech() = Unit
 
                 override fun onError(error: Int) {
+                    lastRecognitionFinishedAt = SystemClock.elapsedRealtime()
                     DawDebugLog.log(
                         this@RoadGameMediaService,
                         "STT_ERROR",
@@ -291,6 +294,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 override fun onResults(results: Bundle?) {
                     listening = false
                     retryCount = 0
+                    lastRecognitionFinishedAt = SystemClock.elapsedRealtime()
 
                     val candidates = results
                         ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
@@ -406,7 +410,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "TTS_ERROR",
                     "id=" + utteranceId + " game=" + activeGame
                 )
-                abandonAudioFocus("tts_error")
+                if (!isChainedEnglishSegment(utteranceId)) {
+                    abandonAudioFocus("tts_error")
+                }
             }
 
             override fun onDone(utteranceId: String?) {
@@ -415,7 +421,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "TTS_DONE",
                     "id=" + utteranceId + " game=" + activeGame
                 )
-                abandonAudioFocus("tts_done")
+                if (!isChainedEnglishSegment(utteranceId)) {
+                    abandonAudioFocus("tts_done")
+                }
                 when (utteranceId) {
                     SESSION_INTRO_UTTERANCE_ID -> {
                         mainHandler.post {
@@ -447,7 +455,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     }
 
                     FEEDBACK_UTTERANCE_ID -> {
-                        mainHandler.post {
+                        mainHandler.postDelayed({
                             when (activeGame) {
                                 ActiveGame.SPELLING -> moveToNextSpellingWord()
                                 ActiveGame.GUESS_WHO -> moveToNextGuessWhoPerson()
@@ -456,7 +464,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 ActiveGame.ENGLISH -> moveToNextEnglishItem()
                                 ActiveGame.TRIVIA -> moveToNextQuestion()
                             }
-                        }
+                        }, FEEDBACK_ART_HOLD_MS)
                     }
 
                     ROUND_SUMMARY_UTTERANCE_ID -> {
@@ -1284,7 +1292,17 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, if (activeGame == ActiveGame.ENGLISH) 10 else 5)
+
+            if (activeGame == ActiveGame.ENGLISH) {
+                val expected = englishEngine.currentItem()?.answers.orEmpty()
+                if (expected.isNotEmpty()) {
+                    putStringArrayListExtra(
+                        RecognizerIntent.EXTRA_BIASING_STRINGS,
+                        ArrayList(expected)
+                    )
+                }
+            }
             putExtra(
                 RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
                 1200L
@@ -2488,7 +2506,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 ArtworkState.WRONG -> R.drawable.trivia_wrong
             }
         }
+        artworkRevision += 1
         return Uri.parse("android.resource://" + packageName + "/" + resId)
+            .buildUpon()
+            .appendQueryParameter("state", state.name.lowercase())
+            .appendQueryParameter("rev", artworkRevision.toString())
+            .build()
     }
 
     private fun mediaItem(
@@ -2545,6 +2568,18 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         text: String,
         utteranceId: String
     ) {
+        val sinceRecognition = SystemClock.elapsedRealtime() - lastRecognitionFinishedAt
+        if (
+            utteranceId in setOf(FEEDBACK_UTTERANCE_ID, ROUND_SUMMARY_UTTERANCE_ID) &&
+            sinceRecognition in 0 until MIC_TO_TTS_GAP_MS
+        ) {
+            mainHandler.postDelayed(
+                { speak(text, utteranceId) },
+                MIC_TO_TTS_GAP_MS - sinceRecognition
+            )
+            return
+        }
+
         if (!ttsReady) {
             DawDebugLog.log(
                 this,
@@ -2780,5 +2815,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val RETRY_UTTERANCE_ID = "trivia_retry"
         private const val SYSTEM_UTTERANCE_ID = "trivia_system"
         private const val LANGUAGE_UTTERANCE_ID = "language_change"
+        private const val ENGLISH_SEGMENT_PREFIX = "english_segment_"
+        private const val MIC_TO_TTS_GAP_MS = 280L
+        private const val FEEDBACK_ART_HOLD_MS = 900L
     }
 }
