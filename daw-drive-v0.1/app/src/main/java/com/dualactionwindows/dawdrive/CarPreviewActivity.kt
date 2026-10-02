@@ -29,7 +29,7 @@ class CarPreviewActivity : ComponentActivity() {
     private var question by mutableStateOf("Press Play to start")
     private var isPlaying by mutableStateOf(false)
     private var connected by mutableStateOf(false)
-    private var currentLanguage by mutableStateOf(TriviaGameEngine(this).language())
+    private var currentLanguage by mutableStateOf(TriviaGameEngine.Language.EN)
     private var selectedGame by mutableStateOf(Game.TRIVIA)
     private var pendingAfterPermission: (() -> Unit)? = null
 
@@ -76,6 +76,7 @@ class CarPreviewActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        currentLanguage = TriviaGameEngine(this).language()
         selectedGame = gameFromIntent(intent)
         title = selectedGameTitle()
         subtitle = "Lone Rider • Car Game Hub"
