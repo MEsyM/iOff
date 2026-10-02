@@ -319,18 +319,61 @@ class EnglishLearningEngine(context: Context) {
         if (a == e) return true
         if (e.length >= 4 && a.contains(e)) return true
         if (a.length >= 5 && e.contains(a)) return true
+
+        val aTokens = meaningfulTokens(a)
+        val eTokens = meaningfulTokens(e)
+        if (eTokens.isNotEmpty()) {
+            val shared = aTokens.intersect(eTokens).size
+            val recall = shared.toDouble() / eTokens.size.toDouble()
+            val precision = if (aTokens.isEmpty()) 0.0 else shared.toDouble() / aTokens.size.toDouble()
+
+            // Speech recognizers commonly add/drop articles and short helper words.
+            if (recall >= 0.82 && precision >= 0.72) return true
+            if (eTokens.size <= 3 && shared == eTokens.size) return true
+        }
+
+        val maxLen = maxOf(a.length, e.length)
+        if (maxLen >= 8) {
+            val distance = levenshtein(a, e)
+            val similarity = 1.0 - distance.toDouble() / maxLen.toDouble()
+            if (similarity >= 0.84) return true
+        }
+
         val tolerance = when {
             e.length <= 4 -> 0
             e.length <= 8 -> 1
-            else -> 2
+            e.length <= 16 -> 2
+            else -> 3
         }
         return levenshtein(a, e) <= tolerance
     }
 
+    private fun meaningfulTokens(value: String): Set<String> =
+        value.split(" ")
+            .filter { it.isNotBlank() }
+            .filterNot { it in SOFT_WORDS }
+            .toSet()
+
     private fun normalize(value: String): String {
         val s = Normalizer.normalize(value.lowercase(Locale.US), Normalizer.Form.NFD)
             .replace(Regex("\\p{M}+"), "")
-        return s.replace(Regex("[^a-z0-9\\s']"), " ")
+            .replace("i'm", "i am")
+            .replace("i’d", "i would")
+            .replace("i'd", "i would")
+            .replace("i’ll", "i will")
+            .replace("i'll", "i will")
+            .replace("i’ve", "i have")
+            .replace("i've", "i have")
+            .replace("don't", "do not")
+            .replace("doesn't", "does not")
+            .replace("can't", "cannot")
+            .replace("couldn't", "could not")
+            .replace("wouldn't", "would not")
+            .replace("it's", "it is")
+            .replace("we're", "we are")
+            .replace("you're", "you are")
+
+        return s.replace(Regex("[^a-z0-9\\s]"), " ")
             .replace(Regex("\\s+"), " ")
             .trim()
     }
@@ -376,6 +419,9 @@ class EnglishLearningEngine(context: Context) {
         private const val KEY_ROUND_CORRECT = "round_correct"
         private const val ROUND_SIZE = 10
         private const val RECENT_WINDOW = 8
+        private val SOFT_WORDS = setOf(
+            "a", "an", "the", "please", "just", "well", "uh", "um"
+        )
 
         val CONTENT = listOf(
             LessonItem("k001",Audience.KID,1,LessonType.VOCABULARY,"animals","Jak se anglicky řekne pes?","How do you say dog in Czech?",listOf("dog"),"Dog znamená pes."),
