@@ -527,19 +527,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
                     LANGUAGE_UTTERANCE_ID -> {
                         mainHandler.postDelayed({
-                            if (sessionStarted) {
-                                when (activeGame) {
-                                    ActiveGame.SPELLING -> speakCurrentSpelling()
-                                    ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
-                                    ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
-                                    ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
-                                    ActiveGame.ENGLISH -> speakCurrentEnglishItem()
-                                    ActiveGame.BRAIN -> speakCurrentBrainChallenge()
-                                    ActiveGame.TRIVIA -> speakCurrentQuestion()
-                                }
-                            } else {
-                                updateMetadata()
-                            }
+                            awaitingAnswer = false
+                            artworkState = ArtworkState.IDLE
+                            updateMetadata()
+                            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+                            notifyChildrenChanged(ROOT_ID)
                         }, 250)
                     }
                 }
@@ -626,31 +618,31 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     MEDIA_ID_TRIVIA,
                     "Quick Trivia",
                     triviaSubtitle,
-                    R.drawable.trivia_idle
+                    R.drawable.game_quick
                 ),
                 mediaItem(
                     MEDIA_ID_SPELLING,
                     "Spelling Bee",
                     spellingSubtitle,
-                    R.drawable.spelling_idle
+                    R.drawable.game_spelling
                 ),
                 mediaItem(
                     MEDIA_ID_GUESS_WHO,
                     "Guess Who",
                     guessWhoSubtitle,
-                    R.drawable.guesswho_idle
+                    R.drawable.game_guesswho
                 ),
                 mediaItem(
                     MEDIA_ID_KIDS_TRIVIA,
                     "Trivia Kids 6–12",
                     kidsSubtitle,
-                    R.drawable.kids_idle
+                    R.drawable.game_kids
                 ),
                 mediaItem(
                     MEDIA_ID_FAMILY,
                     "Family",
                     familySubtitle,
-                    R.drawable.kids_idle
+                    R.drawable.game_family
                 ),
                 mediaItem(
                     MEDIA_ID_ENGLISH,
@@ -658,13 +650,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     englishEngine.settings().playerName + " • " +
                         englishEngine.settings().level.label + " • " +
                         englishEngine.settings().mode.name.lowercase().replaceFirstChar { it.uppercase() },
-                    R.drawable.trivia_idle
+                    R.drawable.game_english
                 ),
                 mediaItem(
                     MEDIA_ID_BRAIN,
                     "Brain Trainer",
                     "Memory • sequences • math • logic • attention",
-                    R.drawable.trivia_idle
+                    R.drawable.game_brain
                 )
             )
         )
@@ -2299,10 +2291,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         if (!announce) return
 
-        if (sessionStarted) {
-            awaitingAnswer = true
-            retryCount = 0
-        }
+        awaitingAnswer = false
+        retryCount = 0
 
         if (language == TriviaGameEngine.Language.CS) {
             speak("Jazyk přepnut na češtinu.", LANGUAGE_UTTERANCE_ID)

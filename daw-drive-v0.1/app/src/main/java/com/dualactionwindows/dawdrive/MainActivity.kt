@@ -168,6 +168,11 @@ class MainActivity : ComponentActivity() {
                     profile = triviaEngine.profile()
                     dashboard = triviaEngine.dashboardData()
                 },
+                onTriviaCategoryToggle = { category, favorite ->
+                    triviaEngine.setCategoryFavorite(category, favorite)
+                    profile = triviaEngine.profile()
+                    dashboard = triviaEngine.dashboardData()
+                },
                 onRefreshProfile = {
                     profile = triviaEngine.profile()
                     dashboard = triviaEngine.dashboardData()

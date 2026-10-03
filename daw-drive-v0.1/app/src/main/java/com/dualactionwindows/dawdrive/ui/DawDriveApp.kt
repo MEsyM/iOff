@@ -1,6 +1,7 @@
 package com.dualactionwindows.dawdrive.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,12 +29,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dualactionwindows.dawdrive.R
@@ -78,6 +85,7 @@ fun DawDriveApp(
     onRoadVoiceStart: () -> Unit,
     onRoadVoiceStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
+    onTriviaCategoryToggle: (TriviaQuestionBank.Category, Boolean) -> Unit,
     onRefreshProfile: () -> Unit
 ) {
     var screen by remember { mutableStateOf(LoneScreen.HOME) }
@@ -134,6 +142,7 @@ fun DawDriveApp(
                     onOpenAppSettings = onOpenAppSettings,
                     onBack = { screen = LoneScreen.HOME },
                     onLanguageChange = onLanguageChange,
+                    onTriviaCategoryToggle = onTriviaCategoryToggle,
                     onFamilySetup = onFamilySetupClick,
                     onEnglishSetup = onEnglishSetupClick,
                     onDiagnostics = { screen = LoneScreen.DIAGNOSTICS }
@@ -180,11 +189,7 @@ private fun HomeScreen(
             onSettings = onSettings
         )
 
-        Text(
-            text = "Ready for the next adventure?",
-            color = LoneRiderColors.TextSecondary,
-            fontSize = 15.sp
-        )
+        AdventureHero(profile)
 
         if (compact) {
             Row(
@@ -294,6 +299,109 @@ private fun HomeScreen(
 }
 
 @Composable
+private fun AdventureHero(profile: TriviaGameEngine.Profile) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent,
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(1.dp, LoneRiderColors.Cyan.copy(alpha = 0.34f))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color(0xFF0D2033),
+                            Color(0xFF11172A),
+                            LoneRiderColors.Purple.copy(alpha = 0.24f)
+                        )
+                    )
+                )
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "ROAD MODE READY",
+                        color = LoneRiderColors.Cyan,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.8.sp
+                    )
+                    Text(
+                        "Ready for the next adventure?",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        "Voice-first games, family challenges and road tools.",
+                        color = LoneRiderColors.TextSecondary,
+                        fontSize = 12.sp
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        "LVL " + profile.level,
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        profile.xp.toString() + " XP",
+                        color = LoneRiderColors.Cyan,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+private object HexagonShape : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val path = Path().apply {
+            moveTo(size.width * 0.25f, 0f)
+            lineTo(size.width * 0.75f, 0f)
+            lineTo(size.width, size.height * 0.5f)
+            lineTo(size.width * 0.75f, size.height)
+            lineTo(size.width * 0.25f, size.height)
+            lineTo(0f, size.height * 0.5f)
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
+@Composable
+private fun HexIconBadge(
+    icon: String,
+    accent: Color,
+    size: androidx.compose.ui.unit.Dp
+) {
+    Surface(
+        modifier = Modifier.width(size).height(size),
+        color = accent.copy(alpha = 0.13f),
+        shape = HexagonShape,
+        border = BorderStroke(1.5.dp, accent.copy(alpha = 0.8f))
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(icon, fontSize = (size.value * 0.43f).sp)
+        }
+    }
+}
+
+@Composable
 private fun BrandHeader(
     eyebrow: String,
     onSettings: (() -> Unit)? = null
@@ -356,11 +464,12 @@ private fun HomeTile(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(150.dp),
-        shape = RoundedCornerShape(24.dp),
+        modifier = modifier.height(158.dp),
+        shape = RoundedCornerShape(26.dp),
+        border = BorderStroke(1.dp, card.accent.copy(alpha = 0.52f)),
         contentPadding = PaddingValues(18.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = card.accent.copy(alpha = 0.16f),
+            containerColor = LoneRiderColors.SurfaceRaised,
             contentColor = Color.White
         )
     ) {
@@ -369,14 +478,28 @@ private fun HomeTile(
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.Start
         ) {
-            Text(card.icon, fontSize = 30.sp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                HexIconBadge(card.icon, card.accent, 48.dp)
+                Text(
+                    "OPEN",
+                    color = card.accent,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp
+                )
+            }
             Column {
-                Text(card.title, fontSize = 25.sp, fontWeight = FontWeight.Bold)
+                Text(card.title, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                Spacer(Modifier.height(5.dp))
                 Text(
                     card.subtitle,
                     color = LoneRiderColors.TextSecondary,
-                    fontSize = 13.sp,
-                    lineHeight = 17.sp
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
                 )
             }
         }
@@ -391,7 +514,8 @@ private fun ProfileMiniCard(
     Surface(
         modifier = modifier.height(150.dp),
         color = LoneRiderColors.SurfaceRaised,
-        shape = RoundedCornerShape(24.dp)
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, LoneRiderColors.Cyan.copy(alpha = 0.34f))
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
@@ -622,9 +746,10 @@ private fun GameCard(
         onClick = onClick,
         modifier = modifier.fillMaxSize(),
         shape = RoundedCornerShape(26.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.58f)),
         contentPadding = PaddingValues(18.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = accent.copy(alpha = 0.16f),
+            containerColor = LoneRiderColors.SurfaceRaised,
             contentColor = Color.White
         )
     ) {
@@ -633,11 +758,36 @@ private fun GameCard(
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.Start
         ) {
-            Text(icon, fontSize = 36.sp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HexIconBadge(icon, accent, 58.dp)
+                Surface(
+                    color = accent.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.35f))
+                ) {
+                    Text(
+                        "VOICE",
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                        color = accent,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                }
+            }
             Column {
-                Text(title, fontSize = 23.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(6.dp))
-                Text(subtitle, color = LoneRiderColors.TextSecondary, fontSize = 13.sp)
+                Text(title, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    subtitle,
+                    color = LoneRiderColors.TextSecondary,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
             }
         }
     }
@@ -734,6 +884,7 @@ private fun SettingsScreen(
     onOpenAppSettings: () -> Unit,
     onBack: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
+    onTriviaCategoryToggle: (TriviaQuestionBank.Category, Boolean) -> Unit,
     onFamilySetup: () -> Unit,
     onEnglishSetup: () -> Unit,
     onDiagnostics: () -> Unit
@@ -761,6 +912,58 @@ private fun SettingsScreen(
                 }
             }
         )
+
+        SectionCard(
+            if (cs) "Oblíbené kategorie Quick Trivia" else "Favorite Quick Trivia categories"
+        ) {
+            Text(
+                if (cs) {
+                    "Označené kategorie dostanou vyšší prioritu. Ostatní zůstávají ve hře."
+                } else {
+                    "Favorites get higher priority. Other categories stay in the mix."
+                },
+                color = LoneRiderColors.TextSecondary,
+                fontSize = 12.sp
+            )
+
+            TriviaQuestionBank.Category.entries.chunked(2).forEach { rowCategories ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rowCategories.forEach { category ->
+                        val selected = category in profile.favoriteCategories
+                        Button(
+                            onClick = { onTriviaCategoryToggle(category, !selected) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                if (selected) LoneRiderColors.Cyan else LoneRiderColors.Border
+                            ),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (selected) {
+                                    LoneRiderColors.Cyan.copy(alpha = 0.16f)
+                                } else {
+                                    LoneRiderColors.SurfaceRaised
+                                }
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                (if (selected) "★ " else "☆ ") + localizedCategory(category, cs),
+                                color = if (selected) Color.White else LoneRiderColors.TextSecondary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                    if (rowCategories.size == 1) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+        }
 
         SettingsRow(
             title = if (cs) "Mikrofon" else "Microphone",
