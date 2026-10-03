@@ -36,6 +36,34 @@ object CloudAccountManager {
     )
 
     private val syncing = AtomicBoolean(false)
+    private val listeners = mutableListOf<Pair<android.content.SharedPreferences, android.content.SharedPreferences.OnSharedPreferenceChangeListener>>()
+    @Volatile private var initialized = false
+
+    @Synchronized
+    fun initialize(context: Context) {
+        if (initialized) {
+            syncProgressAsync(context)
+            return
+        }
+        initialized = true
+        val app = context.applicationContext
+        listOf("daw_trivia_profile","daw_kids_trivia","daw_guess_who","daw_spelling_bee","lone_rider_english").forEach { name ->
+            val prefs = app.getSharedPreferences(name, Context.MODE_PRIVATE)
+            val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                if (key != null && (
+                        key == "xp" || key == "total_answered" || key == "total_correct" ||
+                        key == "streak" || key == "current_streak" || key == "best_streak" ||
+                        key.endsWith("_xp") || key.endsWith("_answered") || key.endsWith("_correct") ||
+                        key.endsWith("_streak") || key.endsWith("_best_streak")
+                    )) {
+                    syncProgressAsync(app)
+                }
+            }
+            prefs.registerOnSharedPreferenceChangeListener(listener)
+            listeners += prefs to listener
+        }
+        syncProgressAsync(app)
+    }
 
     fun state(context: Context): AccountState {
         val p=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE)
