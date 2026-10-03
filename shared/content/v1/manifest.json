@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": "2026.10.01.1",
+  "minimumClientContentSchema": 1,
+  "games": {
+    "trivia": {
+      "path": "games/trivia.json",
+      "version": "2026.10.01.1"
+    },
+    "guessWho": {
+      "path": "games/guess-who.json",
+      "version": "2026.10.01.1"
+    },
+    "spellingBee": {
+      "path": "games/spelling-bee.json",
+      "version": "2026.10.01.1"
+    },
+    "family": {
+      "path": "games/family.json",
+      "version": "2026.10.01.1"
+    }
+  },
+  "cache": {
+    "maxAgeSeconds": 300,
+    "staleIfOfflineSeconds": 604800
+  }
+}

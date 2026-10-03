@@ -1,0 +1,2875 @@
+{
+  "schemaVersion": 1,
+  "game": "trivia",
+  "version": "2026.10.01.1",
+  "categories": [
+    "geography",
+    "science",
+    "history",
+    "general",
+    "technology",
+    "nature",
+    "sports",
+    "culture",
+    "cars",
+    "numbers"
+  ],
+  "items": [
+    {
+      "id": "geo001",
+      "difficulty": 1,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "What is the capital of France?",
+          "answers": [
+            "paris"
+          ],
+          "explanation": "Paris is the capital of France."
+        },
+        "cs": {
+          "prompt": "Jaké je hlavní město Francie?",
+          "answers": [
+            "pariz",
+            "paříž"
+          ],
+          "explanation": "Paříž je hlavní město Francie."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo002",
+      "difficulty": 1,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "What is the capital of Italy?",
+          "answers": [
+            "rome"
+          ],
+          "explanation": "Rome is the capital of Italy."
+        },
+        "cs": {
+          "prompt": "Jaké je hlavní město Itálie?",
+          "answers": [
+            "rim",
+            "řím"
+          ],
+          "explanation": "Řím je hlavní město Itálie."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo003",
+      "difficulty": 1,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "Which ocean is the largest?",
+          "answers": [
+            "pacific",
+            "pacific ocean"
+          ],
+          "explanation": "The Pacific is Earth's largest ocean."
+        },
+        "cs": {
+          "prompt": "Který oceán je největší?",
+          "answers": [
+            "tichy ocean",
+            "tichý oceán",
+            "pacifik"
+          ],
+          "explanation": "Tichý oceán je největší oceán na Zemi."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo004",
+      "difficulty": 1,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "Which country has the city of Barcelona?",
+          "answers": [
+            "spain"
+          ],
+          "explanation": "Barcelona is in Spain."
+        },
+        "cs": {
+          "prompt": "Ve které zemi leží Barcelona?",
+          "answers": [
+            "spanelsko",
+            "španělsko"
+          ],
+          "explanation": "Barcelona leží ve Španělsku."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo005",
+      "difficulty": 1,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "What is the capital of Germany?",
+          "answers": [
+            "berlin"
+          ],
+          "explanation": "Berlin is the capital of Germany."
+        },
+        "cs": {
+          "prompt": "Jaké je hlavní město Německa?",
+          "answers": [
+            "berlin"
+          ],
+          "explanation": "Berlín je hlavní město Německa."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo006",
+      "difficulty": 2,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "What is the capital of Australia?",
+          "answers": [
+            "canberra"
+          ],
+          "explanation": "Canberra is the capital of Australia."
+        },
+        "cs": {
+          "prompt": "Jaké je hlavní město Austrálie?",
+          "answers": [
+            "canberra"
+          ],
+          "explanation": "Canberra je hlavní město Austrálie."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo007",
+      "difficulty": 2,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "What is the capital of Canada?",
+          "answers": [
+            "ottawa"
+          ],
+          "explanation": "Ottawa is the capital of Canada."
+        },
+        "cs": {
+          "prompt": "Jaké je hlavní město Kanady?",
+          "answers": [
+            "ottawa"
+          ],
+          "explanation": "Ottawa je hlavní město Kanady."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo008",
+      "difficulty": 2,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "Which river runs through Budapest?",
+          "answers": [
+            "danube",
+            "danube river"
+          ],
+          "explanation": "The Danube runs through Budapest."
+        },
+        "cs": {
+          "prompt": "Která řeka protéká Budapeští?",
+          "answers": [
+            "dunaj"
+          ],
+          "explanation": "Budapeští protéká Dunaj."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo009",
+      "difficulty": 2,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "What is the capital of Portugal?",
+          "answers": [
+            "lisbon"
+          ],
+          "explanation": "Lisbon is the capital of Portugal."
+        },
+        "cs": {
+          "prompt": "Jaké je hlavní město Portugalska?",
+          "answers": [
+            "lisabon"
+          ],
+          "explanation": "Lisabon je hlavní město Portugalska."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo010",
+      "difficulty": 2,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "Which country has Amsterdam as its capital?",
+          "answers": [
+            "netherlands",
+            "the netherlands",
+            "holland"
+          ],
+          "explanation": "Amsterdam is the capital of the Netherlands."
+        },
+        "cs": {
+          "prompt": "Která země má hlavní město Amsterdam?",
+          "answers": [
+            "nizozemsko",
+            "holandsko"
+          ],
+          "explanation": "Amsterdam je hlavní město Nizozemska."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo011",
+      "difficulty": 3,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "What is the capital of New Zealand?",
+          "answers": [
+            "wellington"
+          ],
+          "explanation": "Wellington is the capital of New Zealand."
+        },
+        "cs": {
+          "prompt": "Jaké je hlavní město Nového Zélandu?",
+          "answers": [
+            "wellington"
+          ],
+          "explanation": "Wellington je hlavní město Nového Zélandu."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo012",
+      "difficulty": 3,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "Which country borders both Spain and France?",
+          "answers": [
+            "andorra"
+          ],
+          "explanation": "Andorra borders Spain and France."
+        },
+        "cs": {
+          "prompt": "Která země leží mezi Španělskem a Francií?",
+          "answers": [
+            "andorra"
+          ],
+          "explanation": "Andorra sousedí se Španělskem i Francií."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo013",
+      "difficulty": 3,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "What is the capital of Norway?",
+          "answers": [
+            "oslo"
+          ],
+          "explanation": "Oslo is the capital of Norway."
+        },
+        "cs": {
+          "prompt": "Jaké je hlavní město Norska?",
+          "answers": [
+            "oslo"
+          ],
+          "explanation": "Oslo je hlavní město Norska."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo014",
+      "difficulty": 3,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "Which sea separates Europe and Africa?",
+          "answers": [
+            "mediterranean",
+            "mediterranean sea"
+          ],
+          "explanation": "The Mediterranean separates much of Europe and Africa."
+        },
+        "cs": {
+          "prompt": "Které moře odděluje Evropu a Afriku?",
+          "answers": [
+            "stredozemni more",
+            "středozemní moře"
+          ],
+          "explanation": "Evropu a Afriku z velké části odděluje Středozemní moře."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo015",
+      "difficulty": 4,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "What is the capital of Kazakhstan?",
+          "answers": [
+            "astana"
+          ],
+          "explanation": "Astana is the capital of Kazakhstan."
+        },
+        "cs": {
+          "prompt": "Jaké je hlavní město Kazachstánu?",
+          "answers": [
+            "astana"
+          ],
+          "explanation": "Astana je hlavní město Kazachstánu."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo016",
+      "difficulty": 4,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "Which African country has Addis Ababa as its capital?",
+          "answers": [
+            "ethiopia"
+          ],
+          "explanation": "Addis Ababa is Ethiopia's capital."
+        },
+        "cs": {
+          "prompt": "Která africká země má hlavní město Addis Abeba?",
+          "answers": [
+            "etiopie"
+          ],
+          "explanation": "Addis Abeba je hlavní město Etiopie."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo017",
+      "difficulty": 4,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "Which river flows through Prague?",
+          "answers": [
+            "vltava",
+            "moldau"
+          ],
+          "explanation": "The Vltava flows through Prague."
+        },
+        "cs": {
+          "prompt": "Která řeka protéká Prahou?",
+          "answers": [
+            "vltava"
+          ],
+          "explanation": "Prahou protéká Vltava."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo018",
+      "difficulty": 5,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "What is the capital of Bhutan?",
+          "answers": [
+            "thimphu"
+          ],
+          "explanation": "Thimphu is the capital of Bhutan."
+        },
+        "cs": {
+          "prompt": "Jaké je hlavní město Bhútánu?",
+          "answers": [
+            "thimphu",
+            "thimpu"
+          ],
+          "explanation": "Thimphu je hlavní město Bhútánu."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo019",
+      "difficulty": 5,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "Which country contains the Atacama Desert?",
+          "answers": [
+            "chile"
+          ],
+          "explanation": "Most of the Atacama Desert lies in Chile."
+        },
+        "cs": {
+          "prompt": "Ve které zemi leží poušť Atacama?",
+          "answers": [
+            "chile"
+          ],
+          "explanation": "Většina pouště Atacama leží v Chile."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "geo020",
+      "difficulty": 5,
+      "category": "geography",
+      "localized": {
+        "en": {
+          "prompt": "Which strait separates Asia and North America?",
+          "answers": [
+            "bering strait",
+            "bering"
+          ],
+          "explanation": "The Bering Strait separates Asia and North America."
+        },
+        "cs": {
+          "prompt": "Který průliv odděluje Asii a Severní Ameriku?",
+          "answers": [
+            "beringuv pruliv",
+            "beringův průliv"
+          ],
+          "explanation": "Asii a Severní Ameriku odděluje Beringův průliv."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci001",
+      "difficulty": 1,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "Which planet is known as the Red Planet?",
+          "answers": [
+            "mars"
+          ],
+          "explanation": "Mars appears red because of iron oxides."
+        },
+        "cs": {
+          "prompt": "Která planeta je známá jako rudá planeta?",
+          "answers": [
+            "mars"
+          ],
+          "explanation": "Mars vypadá rudě kvůli oxidům železa."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci002",
+      "difficulty": 1,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What gas do humans need to breathe?",
+          "answers": [
+            "oxygen"
+          ],
+          "explanation": "Humans need oxygen for respiration."
+        },
+        "cs": {
+          "prompt": "Jaký plyn lidé potřebují k dýchání?",
+          "answers": [
+            "kyslik",
+            "kyslík"
+          ],
+          "explanation": "Lidé potřebují k dýchání kyslík."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci003",
+      "difficulty": 1,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "How many legs does an insect have?",
+          "answers": [
+            "6",
+            "six"
+          ],
+          "explanation": "Insects have six legs."
+        },
+        "cs": {
+          "prompt": "Kolik nohou má hmyz?",
+          "answers": [
+            "6",
+            "sest",
+            "šest"
+          ],
+          "explanation": "Hmyz má šest nohou."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci004",
+      "difficulty": 1,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What is H2O commonly called?",
+          "answers": [
+            "water"
+          ],
+          "explanation": "H2O is water."
+        },
+        "cs": {
+          "prompt": "Jak se běžně nazývá H2O?",
+          "answers": [
+            "voda"
+          ],
+          "explanation": "H2O je voda."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci005",
+      "difficulty": 2,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What is the chemical symbol for gold?",
+          "answers": [
+            "au"
+          ],
+          "explanation": "Gold has the symbol Au."
+        },
+        "cs": {
+          "prompt": "Jaká je chemická značka zlata?",
+          "answers": [
+            "au"
+          ],
+          "explanation": "Zlato má značku Au."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci006",
+      "difficulty": 2,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What force keeps planets in orbit?",
+          "answers": [
+            "gravity",
+            "gravitation"
+          ],
+          "explanation": "Gravity keeps planets in orbit."
+        },
+        "cs": {
+          "prompt": "Jaká síla udržuje planety na oběžné dráze?",
+          "answers": [
+            "gravitace",
+            "gravitacni sila",
+            "gravitační síla"
+          ],
+          "explanation": "Planety na oběžné dráze udržuje gravitace."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci007",
+      "difficulty": 2,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What is the largest organ in the human body?",
+          "answers": [
+            "skin",
+            "the skin"
+          ],
+          "explanation": "The skin is the body's largest organ."
+        },
+        "cs": {
+          "prompt": "Jaký je největší orgán lidského těla?",
+          "answers": [
+            "kuze",
+            "kůže"
+          ],
+          "explanation": "Kůže je největší orgán lidského těla."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci008",
+      "difficulty": 2,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What gas makes up most of Earth's atmosphere?",
+          "answers": [
+            "nitrogen"
+          ],
+          "explanation": "Nitrogen makes up about 78 percent of the atmosphere."
+        },
+        "cs": {
+          "prompt": "Který plyn tvoří největší část zemské atmosféry?",
+          "answers": [
+            "dusik",
+            "dusík"
+          ],
+          "explanation": "Dusík tvoří asi 78 procent atmosféry."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci009",
+      "difficulty": 3,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What is the atomic number of carbon?",
+          "answers": [
+            "6",
+            "six"
+          ],
+          "explanation": "Carbon has atomic number 6."
+        },
+        "cs": {
+          "prompt": "Jaké je protonové číslo uhlíku?",
+          "answers": [
+            "6",
+            "sest",
+            "šest"
+          ],
+          "explanation": "Uhlík má protonové číslo 6."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci010",
+      "difficulty": 3,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What part of a cell contains most genetic material?",
+          "answers": [
+            "nucleus",
+            "the nucleus"
+          ],
+          "explanation": "Most genetic material is in the nucleus."
+        },
+        "cs": {
+          "prompt": "Která část buňky obsahuje většinu genetické informace?",
+          "answers": [
+            "jadro",
+            "jádro"
+          ],
+          "explanation": "Většina genetické informace je v buněčném jádře."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci011",
+      "difficulty": 3,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What is the SI unit of electrical resistance?",
+          "answers": [
+            "ohm",
+            "ohms"
+          ],
+          "explanation": "Resistance is measured in ohms."
+        },
+        "cs": {
+          "prompt": "Jaká je jednotka elektrického odporu?",
+          "answers": [
+            "ohm",
+            "omy"
+          ],
+          "explanation": "Elektrický odpor se měří v ohmech."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci012",
+      "difficulty": 3,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What is the speed of light approximately in kilometers per second?",
+          "answers": [
+            "300000",
+            "three hundred thousand"
+          ],
+          "explanation": "Light travels about 300,000 kilometers per second."
+        },
+        "cs": {
+          "prompt": "Jaká je přibližná rychlost světla v kilometrech za sekundu?",
+          "answers": [
+            "300000",
+            "tri sta tisic",
+            "tři sta tisíc"
+          ],
+          "explanation": "Světlo se šíří přibližně 300 tisíc kilometrů za sekundu."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci013",
+      "difficulty": 4,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "Which scientist formulated the three laws of motion?",
+          "answers": [
+            "isaac newton",
+            "newton"
+          ],
+          "explanation": "Isaac Newton formulated the three laws of motion."
+        },
+        "cs": {
+          "prompt": "Který vědec formuloval tři pohybové zákony?",
+          "answers": [
+            "isaac newton",
+            "newton"
+          ],
+          "explanation": "Tři pohybové zákony formuloval Isaac Newton."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci014",
+      "difficulty": 4,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What particle has a negative electric charge?",
+          "answers": [
+            "electron"
+          ],
+          "explanation": "The electron has negative charge."
+        },
+        "cs": {
+          "prompt": "Která částice má záporný elektrický náboj?",
+          "answers": [
+            "elektron"
+          ],
+          "explanation": "Elektron má záporný náboj."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci015",
+      "difficulty": 4,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What is the pH of pure water at room temperature?",
+          "answers": [
+            "7",
+            "seven"
+          ],
+          "explanation": "Pure water is approximately pH 7."
+        },
+        "cs": {
+          "prompt": "Jaké pH má čistá voda při pokojové teplotě?",
+          "answers": [
+            "7",
+            "sedm"
+          ],
+          "explanation": "Čistá voda má přibližně pH 7."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci016",
+      "difficulty": 4,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "Which blood cells primarily carry oxygen?",
+          "answers": [
+            "red blood cells",
+            "erythrocytes"
+          ],
+          "explanation": "Red blood cells carry oxygen using hemoglobin."
+        },
+        "cs": {
+          "prompt": "Které krevní buňky hlavně přenášejí kyslík?",
+          "answers": [
+            "cervene krvinky",
+            "červené krvinky",
+            "erytrocyty"
+          ],
+          "explanation": "Červené krvinky přenášejí kyslík pomocí hemoglobinu."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci017",
+      "difficulty": 5,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What is Avogadro's constant approximately?",
+          "answers": [
+            "6.022 times 10 to the 23",
+            "6.022e23",
+            "6.02e23"
+          ],
+          "explanation": "Avogadro's constant is about 6.022 times 10 to the 23 per mole."
+        },
+        "cs": {
+          "prompt": "Jaká je přibližná hodnota Avogadrovy konstanty?",
+          "answers": [
+            "6.022 krat 10 na 23",
+            "6.02 krat 10 na 23"
+          ],
+          "explanation": "Avogadrova konstanta je přibližně 6,022 krát 10 na 23 na mol."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci018",
+      "difficulty": 5,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "Which law relates pressure and volume of a gas at constant temperature?",
+          "answers": [
+            "boyle's law",
+            "boyle law"
+          ],
+          "explanation": "Boyle's law relates pressure and volume at constant temperature."
+        },
+        "cs": {
+          "prompt": "Který zákon popisuje vztah tlaku a objemu plynu při stálé teplotě?",
+          "answers": [
+            "boyleuv zakon",
+            "boylův zákon"
+          ],
+          "explanation": "Boylův zákon popisuje vztah tlaku a objemu při stálé teplotě."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci019",
+      "difficulty": 5,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "Which organelle produces most ATP in eukaryotic cells?",
+          "answers": [
+            "mitochondria",
+            "mitochondrion"
+          ],
+          "explanation": "Mitochondria generate most cellular ATP."
+        },
+        "cs": {
+          "prompt": "Která organela vytváří většinu ATP v eukaryotické buňce?",
+          "answers": [
+            "mitochondrie"
+          ],
+          "explanation": "Většinu ATP vytvářejí mitochondrie."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sci020",
+      "difficulty": 5,
+      "category": "science",
+      "localized": {
+        "en": {
+          "prompt": "What is the name of the boundary around a black hole beyond which light cannot escape?",
+          "answers": [
+            "event horizon"
+          ],
+          "explanation": "That boundary is the event horizon."
+        },
+        "cs": {
+          "prompt": "Jak se nazývá hranice kolem černé díry, za kterou nemůže uniknout světlo?",
+          "answers": [
+            "horizont udalosti",
+            "horizont událostí"
+          ],
+          "explanation": "Tato hranice se nazývá horizont událostí."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist001",
+      "difficulty": 1,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "The pyramids of Giza are in which country?",
+          "answers": [
+            "egypt"
+          ],
+          "explanation": "The Giza pyramids are in Egypt."
+        },
+        "cs": {
+          "prompt": "V které zemi stojí pyramidy v Gíze?",
+          "answers": [
+            "egypt"
+          ],
+          "explanation": "Pyramidy v Gíze jsou v Egyptě."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist002",
+      "difficulty": 1,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Who was the first person to walk on the Moon?",
+          "answers": [
+            "neil armstrong",
+            "armstrong"
+          ],
+          "explanation": "Neil Armstrong walked on the Moon in 1969."
+        },
+        "cs": {
+          "prompt": "Kdo byl první člověk na Měsíci?",
+          "answers": [
+            "neil armstrong",
+            "armstrong"
+          ],
+          "explanation": "Neil Armstrong vstoupil na Měsíc v roce 1969."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist003",
+      "difficulty": 1,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "In which century did World War Two occur?",
+          "answers": [
+            "20th",
+            "twentieth",
+            "20"
+          ],
+          "explanation": "World War Two occurred in the twentieth century."
+        },
+        "cs": {
+          "prompt": "Ve kterém století proběhla druhá světová válka?",
+          "answers": [
+            "20",
+            "dvacate",
+            "dvacáté"
+          ],
+          "explanation": "Druhá světová válka proběhla ve dvacátém století."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist004",
+      "difficulty": 2,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "In which year did World War Two end?",
+          "answers": [
+            "1945",
+            "nineteen forty five"
+          ],
+          "explanation": "World War Two ended in 1945."
+        },
+        "cs": {
+          "prompt": "V kterém roce skončila druhá světová válka?",
+          "answers": [
+            "1945",
+            "tisic devet set ctyricet pet",
+            "tisíc devět set čtyřicet pět"
+          ],
+          "explanation": "Druhá světová válka skončila v roce 1945."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist005",
+      "difficulty": 2,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Which civilization built Machu Picchu?",
+          "answers": [
+            "inca",
+            "incas",
+            "the inca"
+          ],
+          "explanation": "Machu Picchu was built by the Inca."
+        },
+        "cs": {
+          "prompt": "Která civilizace vybudovala Machu Picchu?",
+          "answers": [
+            "inkove",
+            "inkové",
+            "inka"
+          ],
+          "explanation": "Machu Picchu vybudovali Inkové."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist006",
+      "difficulty": 2,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Who wrote the Declaration of Independence draft in the United States?",
+          "answers": [
+            "thomas jefferson",
+            "jefferson"
+          ],
+          "explanation": "Thomas Jefferson wrote the principal draft."
+        },
+        "cs": {
+          "prompt": "Kdo napsal hlavní návrh americké Deklarace nezávislosti?",
+          "answers": [
+            "thomas jefferson",
+            "jefferson"
+          ],
+          "explanation": "Hlavní návrh napsal Thomas Jefferson."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist007",
+      "difficulty": 3,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Which city was buried by Mount Vesuvius in 79 AD?",
+          "answers": [
+            "pompeii"
+          ],
+          "explanation": "Pompeii was buried by the eruption."
+        },
+        "cs": {
+          "prompt": "Které město pohřbil Vesuv v roce 79 našeho letopočtu?",
+          "answers": [
+            "pompeje"
+          ],
+          "explanation": "Erupce pohřbila Pompeje."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist008",
+      "difficulty": 3,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Who was the first emperor of Rome?",
+          "answers": [
+            "augustus",
+            "octavian",
+            "octavian augustus"
+          ],
+          "explanation": "Augustus was the first Roman emperor."
+        },
+        "cs": {
+          "prompt": "Kdo byl prvním římským císařem?",
+          "answers": [
+            "augustus",
+            "oktavian",
+            "octavianus"
+          ],
+          "explanation": "Prvním římským císařem byl Augustus."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist009",
+      "difficulty": 3,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Which war was fought between the North and South regions of the United States?",
+          "answers": [
+            "american civil war",
+            "civil war"
+          ],
+          "explanation": "It was the American Civil War."
+        },
+        "cs": {
+          "prompt": "Jaká válka proběhla mezi severem a jihem Spojených států?",
+          "answers": [
+            "americka obcanska valka",
+            "americká občanská válka",
+            "obcanska valka"
+          ],
+          "explanation": "Byla to americká občanská válka."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist010",
+      "difficulty": 4,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Which treaty ended World War One between Germany and the Allied powers?",
+          "answers": [
+            "treaty of versailles",
+            "versailles"
+          ],
+          "explanation": "The Treaty of Versailles was signed in 1919."
+        },
+        "cs": {
+          "prompt": "Která smlouva ukončila první světovou válku mezi Německem a spojenci?",
+          "answers": [
+            "versailleska smlouva",
+            "versailleská smlouva",
+            "versailles"
+          ],
+          "explanation": "Versailleská smlouva byla podepsána v roce 1919."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist011",
+      "difficulty": 4,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Who was the British prime minister for most of World War Two?",
+          "answers": [
+            "winston churchill",
+            "churchill"
+          ],
+          "explanation": "Winston Churchill led Britain for most of the war."
+        },
+        "cs": {
+          "prompt": "Kdo byl britským premiérem po většinu druhé světové války?",
+          "answers": [
+            "winston churchill",
+            "churchill"
+          ],
+          "explanation": "Británii po většinu války vedl Winston Churchill."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist012",
+      "difficulty": 4,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "What empire was ruled by Mansa Musa?",
+          "answers": [
+            "mali empire",
+            "mali"
+          ],
+          "explanation": "Mansa Musa ruled the Mali Empire."
+        },
+        "cs": {
+          "prompt": "Které říši vládl Mansa Musa?",
+          "answers": [
+            "rise mali",
+            "říše mali",
+            "mali"
+          ],
+          "explanation": "Mansa Musa vládl říši Mali."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist013",
+      "difficulty": 5,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Which battle in 1815 ended Napoleon's rule?",
+          "answers": [
+            "waterloo",
+            "battle of waterloo"
+          ],
+          "explanation": "Napoleon was defeated at Waterloo."
+        },
+        "cs": {
+          "prompt": "Která bitva v roce 1815 ukončila Napoleonovu vládu?",
+          "answers": [
+            "waterloo",
+            "bitva u waterloo"
+          ],
+          "explanation": "Napoleon byl poražen u Waterloo."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist014",
+      "difficulty": 5,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Who issued the Edict of Milan in 313 with Licinius?",
+          "answers": [
+            "constantine",
+            "constantine the great"
+          ],
+          "explanation": "Constantine issued the Edict of Milan with Licinius."
+        },
+        "cs": {
+          "prompt": "Kdo spolu s Liciniem vydal Milánský edikt roku 313?",
+          "answers": [
+            "konstantin",
+            "konstantin veliky",
+            "konstantin veliký"
+          ],
+          "explanation": "Milánský edikt vydal s Liciniem Konstantin."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "hist015",
+      "difficulty": 5,
+      "category": "history",
+      "localized": {
+        "en": {
+          "prompt": "Which dynasty built much of the current Great Wall of China?",
+          "answers": [
+            "ming",
+            "ming dynasty"
+          ],
+          "explanation": "Much of today's wall dates to the Ming dynasty."
+        },
+        "cs": {
+          "prompt": "Která dynastie vybudovala velkou část dnešní Velké čínské zdi?",
+          "answers": [
+            "ming",
+            "dynastie ming"
+          ],
+          "explanation": "Velká část dnešní zdi pochází z dynastie Ming."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen001",
+      "difficulty": 1,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "How many days are in a leap year?",
+          "answers": [
+            "366",
+            "three hundred sixty six",
+            "three hundred and sixty six"
+          ],
+          "explanation": "A leap year has 366 days."
+        },
+        "cs": {
+          "prompt": "Kolik dní má přestupný rok?",
+          "answers": [
+            "366",
+            "tri sta sedesat sest",
+            "tři sta šedesát šest"
+          ],
+          "explanation": "Přestupný rok má 366 dní."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen002",
+      "difficulty": 1,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "How many sides does a hexagon have?",
+          "answers": [
+            "6",
+            "six"
+          ],
+          "explanation": "A hexagon has six sides."
+        },
+        "cs": {
+          "prompt": "Kolik stran má šestiúhelník?",
+          "answers": [
+            "6",
+            "sest",
+            "šest"
+          ],
+          "explanation": "Šestiúhelník má šest stran."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen003",
+      "difficulty": 1,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "How many minutes are in one hour?",
+          "answers": [
+            "60",
+            "sixty"
+          ],
+          "explanation": "One hour has 60 minutes."
+        },
+        "cs": {
+          "prompt": "Kolik minut má jedna hodina?",
+          "answers": [
+            "60",
+            "sedesat",
+            "šedesát"
+          ],
+          "explanation": "Jedna hodina má 60 minut."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen004",
+      "difficulty": 2,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "What is the square root of 144?",
+          "answers": [
+            "12",
+            "twelve"
+          ],
+          "explanation": "The square root of 144 is 12."
+        },
+        "cs": {
+          "prompt": "Jaká je odmocnina ze 144?",
+          "answers": [
+            "12",
+            "dvanact",
+            "dvanáct"
+          ],
+          "explanation": "Odmocnina ze 144 je 12."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen005",
+      "difficulty": 2,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "What is 25 percent of 200?",
+          "answers": [
+            "50",
+            "fifty"
+          ],
+          "explanation": "Twenty-five percent of 200 is 50."
+        },
+        "cs": {
+          "prompt": "Kolik je 25 procent z 200?",
+          "answers": [
+            "50",
+            "padesat",
+            "padesát"
+          ],
+          "explanation": "Dvacet pět procent z 200 je 50."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen006",
+      "difficulty": 2,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "How many degrees are in a right angle?",
+          "answers": [
+            "90",
+            "ninety"
+          ],
+          "explanation": "A right angle is 90 degrees."
+        },
+        "cs": {
+          "prompt": "Kolik stupňů má pravý úhel?",
+          "answers": [
+            "90",
+            "devadesat",
+            "devadesát"
+          ],
+          "explanation": "Pravý úhel má 90 stupňů."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen007",
+      "difficulty": 3,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "What is 17 squared?",
+          "answers": [
+            "289",
+            "two hundred eighty nine",
+            "two hundred and eighty nine"
+          ],
+          "explanation": "Seventeen squared is 289."
+        },
+        "cs": {
+          "prompt": "Kolik je 17 na druhou?",
+          "answers": [
+            "289",
+            "dve ste osmdesat devet",
+            "dvě stě osmdesát devět"
+          ],
+          "explanation": "Sedmnáct na druhou je 289."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen008",
+      "difficulty": 3,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "How many prime numbers are below 10?",
+          "answers": [
+            "4",
+            "four"
+          ],
+          "explanation": "They are 2, 3, 5 and 7."
+        },
+        "cs": {
+          "prompt": "Kolik prvočísel je menších než 10?",
+          "answers": [
+            "4",
+            "ctyri",
+            "čtyři"
+          ],
+          "explanation": "Jsou to 2, 3, 5 a 7."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen009",
+      "difficulty": 4,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "What is 15 percent of 200?",
+          "answers": [
+            "30",
+            "thirty"
+          ],
+          "explanation": "Fifteen percent of 200 is 30."
+        },
+        "cs": {
+          "prompt": "Kolik je 15 procent z 200?",
+          "answers": [
+            "30",
+            "tricet",
+            "třicet"
+          ],
+          "explanation": "Patnáct procent z 200 je 30."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen010",
+      "difficulty": 4,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "What is the next prime number after 19?",
+          "answers": [
+            "23",
+            "twenty three"
+          ],
+          "explanation": "The next prime after 19 is 23."
+        },
+        "cs": {
+          "prompt": "Jaké je další prvočíslo po 19?",
+          "answers": [
+            "23",
+            "dvacet tri",
+            "dvacet tři"
+          ],
+          "explanation": "Další prvočíslo po 19 je 23."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen011",
+      "difficulty": 5,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "What is 12 factorial divided by 11 factorial?",
+          "answers": [
+            "12",
+            "twelve"
+          ],
+          "explanation": "The factorials cancel to 12."
+        },
+        "cs": {
+          "prompt": "Kolik je 12 faktoriál děleno 11 faktoriál?",
+          "answers": [
+            "12",
+            "dvanact",
+            "dvanáct"
+          ],
+          "explanation": "Faktoriály se zkrátí na 12."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "gen012",
+      "difficulty": 5,
+      "category": "general",
+      "localized": {
+        "en": {
+          "prompt": "What is the binary representation of decimal ten?",
+          "answers": [
+            "1010",
+            "one zero one zero"
+          ],
+          "explanation": "Decimal ten is binary 1010."
+        },
+        "cs": {
+          "prompt": "Jak se zapíše desítka v binární soustavě?",
+          "answers": [
+            "1010",
+            "jedna nula jedna nula"
+          ],
+          "explanation": "Desítka je v binární soustavě 1010."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "tech001",
+      "difficulty": 1,
+      "category": "technology",
+      "localized": {
+        "en": {
+          "prompt": "What does GPS stand for?",
+          "answers": [
+            "global positioning system"
+          ],
+          "explanation": "GPS means Global Positioning System."
+        },
+        "cs": {
+          "prompt": "Co znamená zkratka GPS?",
+          "answers": [
+            "global positioning system",
+            "globalni polohovy system"
+          ],
+          "explanation": "GPS znamená Global Positioning System."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "tech002",
+      "difficulty": 1,
+      "category": "technology",
+      "localized": {
+        "en": {
+          "prompt": "Which company develops Android?",
+          "answers": [
+            "google"
+          ],
+          "explanation": "Android is developed by Google and the Open Handset Alliance."
+        },
+        "cs": {
+          "prompt": "Která společnost vyvíjí Android?",
+          "answers": [
+            "google"
+          ],
+          "explanation": "Android vyvíjí Google a Open Handset Alliance."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "tech003",
+      "difficulty": 2,
+      "category": "technology",
+      "localized": {
+        "en": {
+          "prompt": "What does CPU stand for?",
+          "answers": [
+            "central processing unit"
+          ],
+          "explanation": "CPU means Central Processing Unit."
+        },
+        "cs": {
+          "prompt": "Co znamená zkratka CPU?",
+          "answers": [
+            "central processing unit",
+            "centralni procesorova jednotka"
+          ],
+          "explanation": "CPU znamená Central Processing Unit."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "tech004",
+      "difficulty": 2,
+      "category": "technology",
+      "localized": {
+        "en": {
+          "prompt": "What protocol is commonly used to securely browse websites?",
+          "answers": [
+            "https"
+          ],
+          "explanation": "HTTPS encrypts web traffic."
+        },
+        "cs": {
+          "prompt": "Jaký protokol se běžně používá pro bezpečné prohlížení webu?",
+          "answers": [
+            "https"
+          ],
+          "explanation": "HTTPS šifruje webový provoz."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "tech005",
+      "difficulty": 3,
+      "category": "technology",
+      "localized": {
+        "en": {
+          "prompt": "What does RAM stand for?",
+          "answers": [
+            "random access memory"
+          ],
+          "explanation": "RAM means Random Access Memory."
+        },
+        "cs": {
+          "prompt": "Co znamená zkratka RAM?",
+          "answers": [
+            "random access memory"
+          ],
+          "explanation": "RAM znamená Random Access Memory."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "tech006",
+      "difficulty": 3,
+      "category": "technology",
+      "localized": {
+        "en": {
+          "prompt": "Which version control system was created by Linus Torvalds?",
+          "answers": [
+            "git"
+          ],
+          "explanation": "Linus Torvalds created Git."
+        },
+        "cs": {
+          "prompt": "Který systém pro správu verzí vytvořil Linus Torvalds?",
+          "answers": [
+            "git"
+          ],
+          "explanation": "Linus Torvalds vytvořil Git."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "tech007",
+      "difficulty": 4,
+      "category": "technology",
+      "localized": {
+        "en": {
+          "prompt": "What port does HTTPS use by default?",
+          "answers": [
+            "443",
+            "four hundred forty three"
+          ],
+          "explanation": "HTTPS normally uses port 443."
+        },
+        "cs": {
+          "prompt": "Jaký port standardně používá HTTPS?",
+          "answers": [
+            "443",
+            "ctyri sta ctyricet tri",
+            "čtyři sta čtyřicet tři"
+          ],
+          "explanation": "HTTPS standardně používá port 443."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "tech008",
+      "difficulty": 4,
+      "category": "technology",
+      "localized": {
+        "en": {
+          "prompt": "What does SQL stand for?",
+          "answers": [
+            "structured query language"
+          ],
+          "explanation": "SQL means Structured Query Language."
+        },
+        "cs": {
+          "prompt": "Co znamená zkratka SQL?",
+          "answers": [
+            "structured query language"
+          ],
+          "explanation": "SQL znamená Structured Query Language."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "tech009",
+      "difficulty": 5,
+      "category": "technology",
+      "localized": {
+        "en": {
+          "prompt": "Which data structure uses first in, first out ordering?",
+          "answers": [
+            "queue"
+          ],
+          "explanation": "A queue is FIFO."
+        },
+        "cs": {
+          "prompt": "Která datová struktura používá pořadí první dovnitř, první ven?",
+          "answers": [
+            "fronta",
+            "queue"
+          ],
+          "explanation": "Fronta používá princip FIFO."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "tech010",
+      "difficulty": 5,
+      "category": "technology",
+      "localized": {
+        "en": {
+          "prompt": "What is the time complexity of binary search?",
+          "answers": [
+            "o log n",
+            "log n",
+            "logarithmic"
+          ],
+          "explanation": "Binary search runs in logarithmic time."
+        },
+        "cs": {
+          "prompt": "Jaká je časová složitost binárního vyhledávání?",
+          "answers": [
+            "o log n",
+            "log n",
+            "logaritmicka",
+            "logaritmická"
+          ],
+          "explanation": "Binární vyhledávání má logaritmickou časovou složitost."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "nat001",
+      "difficulty": 1,
+      "category": "nature",
+      "localized": {
+        "en": {
+          "prompt": "What is the largest land animal?",
+          "answers": [
+            "african elephant",
+            "elephant"
+          ],
+          "explanation": "The African elephant is the largest land animal."
+        },
+        "cs": {
+          "prompt": "Jaké je největší suchozemské zvíře?",
+          "answers": [
+            "slon africký",
+            "slon"
+          ],
+          "explanation": "Slon africký je největší suchozemské zvíře."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "nat002",
+      "difficulty": 1,
+      "category": "nature",
+      "localized": {
+        "en": {
+          "prompt": "What do bees collect from flowers to make honey?",
+          "answers": [
+            "nectar"
+          ],
+          "explanation": "Bees collect nectar."
+        },
+        "cs": {
+          "prompt": "Co včely sbírají z květů pro výrobu medu?",
+          "answers": [
+            "nektar"
+          ],
+          "explanation": "Včely sbírají nektar."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "nat003",
+      "difficulty": 2,
+      "category": "nature",
+      "localized": {
+        "en": {
+          "prompt": "What is the fastest land animal?",
+          "answers": [
+            "cheetah"
+          ],
+          "explanation": "The cheetah is the fastest land animal."
+        },
+        "cs": {
+          "prompt": "Jaké je nejrychlejší suchozemské zvíře?",
+          "answers": [
+            "gepard"
+          ],
+          "explanation": "Gepard je nejrychlejší suchozemské zvíře."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "nat004",
+      "difficulty": 2,
+      "category": "nature",
+      "localized": {
+        "en": {
+          "prompt": "Which tree produces acorns?",
+          "answers": [
+            "oak",
+            "oak tree"
+          ],
+          "explanation": "Oak trees produce acorns."
+        },
+        "cs": {
+          "prompt": "Který strom má žaludy?",
+          "answers": [
+            "dub"
+          ],
+          "explanation": "Žaludy rostou na dubu."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "nat005",
+      "difficulty": 3,
+      "category": "nature",
+      "localized": {
+        "en": {
+          "prompt": "What is the largest species of shark?",
+          "answers": [
+            "whale shark"
+          ],
+          "explanation": "The whale shark is the largest shark."
+        },
+        "cs": {
+          "prompt": "Jaký je největší druh žraloka?",
+          "answers": [
+            "zralok obrovsky",
+            "žralok obrovský"
+          ],
+          "explanation": "Žralok obrovský je největší žralok."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "nat006",
+      "difficulty": 3,
+      "category": "nature",
+      "localized": {
+        "en": {
+          "prompt": "Which mammal is capable of true sustained flight?",
+          "answers": [
+            "bat",
+            "bats"
+          ],
+          "explanation": "Bats are the only mammals capable of sustained powered flight."
+        },
+        "cs": {
+          "prompt": "Který savec je schopný skutečného aktivního letu?",
+          "answers": [
+            "netopyr",
+            "netopýr"
+          ],
+          "explanation": "Netopýři jsou jediní savci schopní trvalého aktivního letu."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "nat007",
+      "difficulty": 4,
+      "category": "nature",
+      "localized": {
+        "en": {
+          "prompt": "What process do plants use to convert light into chemical energy?",
+          "answers": [
+            "photosynthesis"
+          ],
+          "explanation": "Plants use photosynthesis."
+        },
+        "cs": {
+          "prompt": "Jakým procesem rostliny mění světlo na chemickou energii?",
+          "answers": [
+            "fotosynteza",
+            "fotosyntéza"
+          ],
+          "explanation": "Rostliny používají fotosyntézu."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "nat008",
+      "difficulty": 4,
+      "category": "nature",
+      "localized": {
+        "en": {
+          "prompt": "Which animal has the highest blood pressure?",
+          "answers": [
+            "giraffe"
+          ],
+          "explanation": "Giraffes have exceptionally high blood pressure."
+        },
+        "cs": {
+          "prompt": "Které zvíře má nejvyšší krevní tlak?",
+          "answers": [
+            "zirafa",
+            "žirafa"
+          ],
+          "explanation": "Žirafy mají mimořádně vysoký krevní tlak."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sport001",
+      "difficulty": 1,
+      "category": "sports",
+      "localized": {
+        "en": {
+          "prompt": "How many players does a soccer team have on the field at kickoff?",
+          "answers": [
+            "11",
+            "eleven"
+          ],
+          "explanation": "A soccer team fields eleven players."
+        },
+        "cs": {
+          "prompt": "Kolik hráčů má fotbalový tým na hřišti při výkopu?",
+          "answers": [
+            "11",
+            "jedenact",
+            "jedenáct"
+          ],
+          "explanation": "Fotbalový tým má na hřišti jedenáct hráčů."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sport002",
+      "difficulty": 1,
+      "category": "sports",
+      "localized": {
+        "en": {
+          "prompt": "In tennis, what score comes after thirty?",
+          "answers": [
+            "40",
+            "forty"
+          ],
+          "explanation": "Tennis scoring goes 15, 30, 40."
+        },
+        "cs": {
+          "prompt": "Jaké skóre následuje v tenise po třiceti?",
+          "answers": [
+            "40",
+            "ctyricet",
+            "čtyřicet"
+          ],
+          "explanation": "Tenisové skóre jde 15, 30, 40."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sport003",
+      "difficulty": 2,
+      "category": "sports",
+      "localized": {
+        "en": {
+          "prompt": "How many rings are on the Olympic symbol?",
+          "answers": [
+            "5",
+            "five"
+          ],
+          "explanation": "The Olympic symbol has five rings."
+        },
+        "cs": {
+          "prompt": "Kolik kruhů má olympijský symbol?",
+          "answers": [
+            "5",
+            "pet",
+            "pět"
+          ],
+          "explanation": "Olympijský symbol má pět kruhů."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sport004",
+      "difficulty": 2,
+      "category": "sports",
+      "localized": {
+        "en": {
+          "prompt": "Which sport uses a shuttlecock?",
+          "answers": [
+            "badminton"
+          ],
+          "explanation": "Badminton uses a shuttlecock."
+        },
+        "cs": {
+          "prompt": "Ve kterém sportu se používá košíček neboli shuttlecock?",
+          "answers": [
+            "badminton"
+          ],
+          "explanation": "Košíček se používá v badmintonu."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sport005",
+      "difficulty": 3,
+      "category": "sports",
+      "localized": {
+        "en": {
+          "prompt": "How long is a marathon in kilometers approximately?",
+          "answers": [
+            "42.195",
+            "42",
+            "forty two point one nine five"
+          ],
+          "explanation": "A marathon is 42.195 kilometers."
+        },
+        "cs": {
+          "prompt": "Kolik kilometrů měří maraton přibližně?",
+          "answers": [
+            "42.195",
+            "42",
+            "ctyricet dva cela jedna devet pet"
+          ],
+          "explanation": "Maraton měří 42,195 kilometru."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sport006",
+      "difficulty": 3,
+      "category": "sports",
+      "localized": {
+        "en": {
+          "prompt": "How many points is a touchdown worth before the extra point?",
+          "answers": [
+            "6",
+            "six"
+          ],
+          "explanation": "A touchdown is worth six points."
+        },
+        "cs": {
+          "prompt": "Kolik bodů má touchdown před extra bodem?",
+          "answers": [
+            "6",
+            "sest",
+            "šest"
+          ],
+          "explanation": "Touchdown má hodnotu šesti bodů."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sport007",
+      "difficulty": 4,
+      "category": "sports",
+      "localized": {
+        "en": {
+          "prompt": "Which country won the first FIFA World Cup in 1930?",
+          "answers": [
+            "uruguay"
+          ],
+          "explanation": "Uruguay won the first World Cup."
+        },
+        "cs": {
+          "prompt": "Která země vyhrála první mistrovství světa ve fotbale v roce 1930?",
+          "answers": [
+            "uruguay"
+          ],
+          "explanation": "První mistrovství světa vyhrála Uruguay."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "sport008",
+      "difficulty": 4,
+      "category": "sports",
+      "localized": {
+        "en": {
+          "prompt": "What is the maximum break in snooker under normal rules?",
+          "answers": [
+            "147",
+            "one hundred forty seven"
+          ],
+          "explanation": "The standard maximum break is 147."
+        },
+        "cs": {
+          "prompt": "Jaký je maximální break ve snookeru za běžných pravidel?",
+          "answers": [
+            "147",
+            "sto ctyricet sedm",
+            "sto čtyřicet sedm"
+          ],
+          "explanation": "Standardní maximální break je 147."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "cult001",
+      "difficulty": 1,
+      "category": "culture",
+      "localized": {
+        "en": {
+          "prompt": "Who wrote Romeo and Juliet?",
+          "answers": [
+            "william shakespeare",
+            "shakespeare"
+          ],
+          "explanation": "Shakespeare wrote Romeo and Juliet."
+        },
+        "cs": {
+          "prompt": "Kdo napsal Romea a Julii?",
+          "answers": [
+            "william shakespeare",
+            "shakespeare"
+          ],
+          "explanation": "Romea a Julii napsal William Shakespeare."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "cult002",
+      "difficulty": 1,
+      "category": "culture",
+      "localized": {
+        "en": {
+          "prompt": "Who painted the Mona Lisa?",
+          "answers": [
+            "leonardo da vinci",
+            "da vinci",
+            "leonardo"
+          ],
+          "explanation": "Leonardo da Vinci painted the Mona Lisa."
+        },
+        "cs": {
+          "prompt": "Kdo namaloval Monu Lisu?",
+          "answers": [
+            "leonardo da vinci",
+            "da vinci",
+            "leonardo"
+          ],
+          "explanation": "Monu Lisu namaloval Leonardo da Vinci."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "cult003",
+      "difficulty": 2,
+      "category": "culture",
+      "localized": {
+        "en": {
+          "prompt": "Which composer wrote the Fifth Symphony with the famous four-note opening?",
+          "answers": [
+            "beethoven",
+            "ludwig van beethoven"
+          ],
+          "explanation": "Beethoven wrote the famous Fifth Symphony."
+        },
+        "cs": {
+          "prompt": "Který skladatel napsal Pátou symfonii se známým čtyřtónovým úvodem?",
+          "answers": [
+            "beethoven",
+            "ludwig van beethoven"
+          ],
+          "explanation": "Slavnou Pátou symfonii napsal Beethoven."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "cult004",
+      "difficulty": 2,
+      "category": "culture",
+      "localized": {
+        "en": {
+          "prompt": "Who wrote The Hobbit?",
+          "answers": [
+            "j r r tolkien",
+            "tolkien"
+          ],
+          "explanation": "J. R. R. Tolkien wrote The Hobbit."
+        },
+        "cs": {
+          "prompt": "Kdo napsal Hobita?",
+          "answers": [
+            "j r r tolkien",
+            "tolkien"
+          ],
+          "explanation": "Hobita napsal J. R. R. Tolkien."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "cult005",
+      "difficulty": 3,
+      "category": "culture",
+      "localized": {
+        "en": {
+          "prompt": "Which artist painted The Starry Night?",
+          "answers": [
+            "vincent van gogh",
+            "van gogh"
+          ],
+          "explanation": "Vincent van Gogh painted The Starry Night."
+        },
+        "cs": {
+          "prompt": "Který malíř namaloval Hvězdnou noc?",
+          "answers": [
+            "vincent van gogh",
+            "van gogh"
+          ],
+          "explanation": "Hvězdnou noc namaloval Vincent van Gogh."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "cult006",
+      "difficulty": 3,
+      "category": "culture",
+      "localized": {
+        "en": {
+          "prompt": "Who composed The Four Seasons?",
+          "answers": [
+            "vivaldi",
+            "antonio vivaldi"
+          ],
+          "explanation": "Antonio Vivaldi composed The Four Seasons."
+        },
+        "cs": {
+          "prompt": "Kdo složil Čtvero ročních dob?",
+          "answers": [
+            "vivaldi",
+            "antonio vivaldi"
+          ],
+          "explanation": "Čtvero ročních dob složil Antonio Vivaldi."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "cult007",
+      "difficulty": 4,
+      "category": "culture",
+      "localized": {
+        "en": {
+          "prompt": "Who wrote One Hundred Years of Solitude?",
+          "answers": [
+            "gabriel garcia marquez",
+            "garcia marquez",
+            "marquez"
+          ],
+          "explanation": "Gabriel García Márquez wrote the novel."
+        },
+        "cs": {
+          "prompt": "Kdo napsal Sto roků samoty?",
+          "answers": [
+            "gabriel garcia marquez",
+            "marquez"
+          ],
+          "explanation": "Román napsal Gabriel García Márquez."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "cult008",
+      "difficulty": 4,
+      "category": "culture",
+      "localized": {
+        "en": {
+          "prompt": "Which architect designed Fallingwater?",
+          "answers": [
+            "frank lloyd wright",
+            "wright"
+          ],
+          "explanation": "Frank Lloyd Wright designed Fallingwater."
+        },
+        "cs": {
+          "prompt": "Který architekt navrhl Fallingwater?",
+          "answers": [
+            "frank lloyd wright",
+            "wright"
+          ],
+          "explanation": "Fallingwater navrhl Frank Lloyd Wright."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "car001",
+      "difficulty": 1,
+      "category": "cars",
+      "localized": {
+        "en": {
+          "prompt": "What does ABS stand for in a car?",
+          "answers": [
+            "anti lock braking system",
+            "antilock braking system"
+          ],
+          "explanation": "ABS helps prevent wheel lock under braking."
+        },
+        "cs": {
+          "prompt": "Co znamená zkratka ABS u auta?",
+          "answers": [
+            "anti lock braking system",
+            "protiblokovaci system",
+            "protiblokovací systém"
+          ],
+          "explanation": "ABS pomáhá zabránit zablokování kol při brzdění."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "car002",
+      "difficulty": 1,
+      "category": "cars",
+      "localized": {
+        "en": {
+          "prompt": "Which pedal is normally on the far left in a manual car?",
+          "answers": [
+            "clutch"
+          ],
+          "explanation": "The clutch pedal is on the left."
+        },
+        "cs": {
+          "prompt": "Který pedál je u manuálního auta úplně vlevo?",
+          "answers": [
+            "spojka"
+          ],
+          "explanation": "Vlevo je spojkový pedál."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "car003",
+      "difficulty": 2,
+      "category": "cars",
+      "localized": {
+        "en": {
+          "prompt": "What does EV stand for?",
+          "answers": [
+            "electric vehicle"
+          ],
+          "explanation": "EV means electric vehicle."
+        },
+        "cs": {
+          "prompt": "Co znamená zkratka EV?",
+          "answers": [
+            "electric vehicle",
+            "elektricke vozidlo",
+            "elektrické vozidlo"
+          ],
+          "explanation": "EV znamená elektrické vozidlo."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "car004",
+      "difficulty": 2,
+      "category": "cars",
+      "localized": {
+        "en": {
+          "prompt": "What does RPM measure in an engine?",
+          "answers": [
+            "revolutions per minute",
+            "engine speed"
+          ],
+          "explanation": "RPM is revolutions per minute."
+        },
+        "cs": {
+          "prompt": "Co u motoru měří RPM?",
+          "answers": [
+            "otacky za minutu",
+            "otáčky za minutu",
+            "otacky motoru"
+          ],
+          "explanation": "RPM jsou otáčky za minutu."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "car005",
+      "difficulty": 3,
+      "category": "cars",
+      "localized": {
+        "en": {
+          "prompt": "What device converts AC to DC when charging many EV batteries?",
+          "answers": [
+            "onboard charger",
+            "charger",
+            "rectifier"
+          ],
+          "explanation": "The onboard charger rectifies AC into DC."
+        },
+        "cs": {
+          "prompt": "Jaké zařízení převádí střídavý proud na stejnosměrný při nabíjení mnoha elektromobilů?",
+          "answers": [
+            "palubni nabijecka",
+            "palubní nabíječka",
+            "usmernovac",
+            "usměrňovač"
+          ],
+          "explanation": "Palubní nabíječka převádí AC na DC."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "car006",
+      "difficulty": 3,
+      "category": "cars",
+      "localized": {
+        "en": {
+          "prompt": "What does regenerative braking recover?",
+          "answers": [
+            "energy",
+            "electrical energy",
+            "kinetic energy"
+          ],
+          "explanation": "Regenerative braking converts kinetic energy back into electrical energy."
+        },
+        "cs": {
+          "prompt": "Co získává rekuperační brzdění?",
+          "answers": [
+            "energii",
+            "elektrickou energii",
+            "kinetickou energii"
+          ],
+          "explanation": "Rekuperace mění část kinetické energie zpět na elektrickou."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "car007",
+      "difficulty": 4,
+      "category": "cars",
+      "localized": {
+        "en": {
+          "prompt": "What is torque measured in under the SI system?",
+          "answers": [
+            "newton metres",
+            "newton meters",
+            "newton metre",
+            "newton meter"
+          ],
+          "explanation": "Torque is measured in newton-metres."
+        },
+        "cs": {
+          "prompt": "V čem se v soustavě SI měří točivý moment?",
+          "answers": [
+            "newtonmetr",
+            "newtonmetry",
+            "newton metry"
+          ],
+          "explanation": "Točivý moment se měří v newtonmetrech."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "car008",
+      "difficulty": 4,
+      "category": "cars",
+      "localized": {
+        "en": {
+          "prompt": "What does a differential allow driven wheels to do in a turn?",
+          "answers": [
+            "rotate at different speeds",
+            "turn at different speeds",
+            "different speeds"
+          ],
+          "explanation": "A differential lets wheels rotate at different speeds."
+        },
+        "cs": {
+          "prompt": "Co umožňuje diferenciál hnacím kolům v zatáčce?",
+          "answers": [
+            "tocit se ruznou rychlosti",
+            "otáčet se různou rychlostí",
+            "rozdilne otacky"
+          ],
+          "explanation": "Diferenciál umožňuje kolům otáčet se různou rychlostí."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "num001",
+      "difficulty": 1,
+      "category": "numbers",
+      "localized": {
+        "en": {
+          "prompt": "What is 7 plus 8?",
+          "answers": [
+            "15",
+            "fifteen"
+          ],
+          "explanation": "Seven plus eight is fifteen."
+        },
+        "cs": {
+          "prompt": "Kolik je 7 plus 8?",
+          "answers": [
+            "15",
+            "patnact",
+            "patnáct"
+          ],
+          "explanation": "Sedm plus osm je patnáct."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "num002",
+      "difficulty": 1,
+      "category": "numbers",
+      "localized": {
+        "en": {
+          "prompt": "What is 12 times 5?",
+          "answers": [
+            "60",
+            "sixty"
+          ],
+          "explanation": "Twelve times five is sixty."
+        },
+        "cs": {
+          "prompt": "Kolik je 12 krát 5?",
+          "answers": [
+            "60",
+            "sedesat",
+            "šedesát"
+          ],
+          "explanation": "Dvanáct krát pět je šedesát."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "num003",
+      "difficulty": 2,
+      "category": "numbers",
+      "localized": {
+        "en": {
+          "prompt": "What is 150 minus 67?",
+          "answers": [
+            "83",
+            "eighty three"
+          ],
+          "explanation": "The answer is 83."
+        },
+        "cs": {
+          "prompt": "Kolik je 150 minus 67?",
+          "answers": [
+            "83",
+            "osmdesat tri",
+            "osmdesát tři"
+          ],
+          "explanation": "Výsledek je 83."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "num004",
+      "difficulty": 2,
+      "category": "numbers",
+      "localized": {
+        "en": {
+          "prompt": "What is half of 246?",
+          "answers": [
+            "123",
+            "one hundred twenty three",
+            "one hundred and twenty three"
+          ],
+          "explanation": "Half of 246 is 123."
+        },
+        "cs": {
+          "prompt": "Kolik je polovina z 246?",
+          "answers": [
+            "123",
+            "sto dvacet tri",
+            "sto dvacet tři"
+          ],
+          "explanation": "Polovina z 246 je 123."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "num005",
+      "difficulty": 3,
+      "category": "numbers",
+      "localized": {
+        "en": {
+          "prompt": "What is 18 times 7?",
+          "answers": [
+            "126",
+            "one hundred twenty six"
+          ],
+          "explanation": "Eighteen times seven is 126."
+        },
+        "cs": {
+          "prompt": "Kolik je 18 krát 7?",
+          "answers": [
+            "126",
+            "sto dvacet sest",
+            "sto dvacet šest"
+          ],
+          "explanation": "Osmnáct krát sedm je 126."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "num006",
+      "difficulty": 3,
+      "category": "numbers",
+      "localized": {
+        "en": {
+          "prompt": "What is 640 divided by 8?",
+          "answers": [
+            "80",
+            "eighty"
+          ],
+          "explanation": "640 divided by 8 is 80."
+        },
+        "cs": {
+          "prompt": "Kolik je 640 děleno 8?",
+          "answers": [
+            "80",
+            "osmdesat",
+            "osmdesát"
+          ],
+          "explanation": "640 děleno 8 je 80."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "num007",
+      "difficulty": 4,
+      "category": "numbers",
+      "localized": {
+        "en": {
+          "prompt": "What is 13 squared?",
+          "answers": [
+            "169",
+            "one hundred sixty nine"
+          ],
+          "explanation": "Thirteen squared is 169."
+        },
+        "cs": {
+          "prompt": "Kolik je 13 na druhou?",
+          "answers": [
+            "169",
+            "sto sedesat devet",
+            "sto šedesát devět"
+          ],
+          "explanation": "Třináct na druhou je 169."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "num008",
+      "difficulty": 4,
+      "category": "numbers",
+      "localized": {
+        "en": {
+          "prompt": "What is 7 cubed?",
+          "answers": [
+            "343",
+            "three hundred forty three"
+          ],
+          "explanation": "Seven cubed is 343."
+        },
+        "cs": {
+          "prompt": "Kolik je 7 na třetí?",
+          "answers": [
+            "343",
+            "tri sta ctyricet tri",
+            "tři sta čtyřicet tři"
+          ],
+          "explanation": "Sedm na třetí je 343."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "num009",
+      "difficulty": 5,
+      "category": "numbers",
+      "localized": {
+        "en": {
+          "prompt": "What is 17 times 19?",
+          "answers": [
+            "323",
+            "three hundred twenty three"
+          ],
+          "explanation": "Seventeen times nineteen is 323."
+        },
+        "cs": {
+          "prompt": "Kolik je 17 krát 19?",
+          "answers": [
+            "323",
+            "tri sta dvacet tri",
+            "tři sta dvacet tři"
+          ],
+          "explanation": "Sedmnáct krát devatenáct je 323."
+        }
+      },
+      "enabled": true
+    },
+    {
+      "id": "num010",
+      "difficulty": 5,
+      "category": "numbers",
+      "localized": {
+        "en": {
+          "prompt": "What is 15 percent of 360?",
+          "answers": [
+            "54",
+            "fifty four"
+          ],
+          "explanation": "Fifteen percent of 360 is 54."
+        },
+        "cs": {
+          "prompt": "Kolik je 15 procent z 360?",
+          "answers": [
+            "54",
+            "padesat ctyri",
+            "padesát čtyři"
+          ],
+          "explanation": "Patnáct procent z 360 je 54."
+        }
+      },
+      "enabled": true
+    }
+  ]
+}

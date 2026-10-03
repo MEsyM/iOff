@@ -1,0 +1,1612 @@
+{
+  "schemaVersion": 1,
+  "game": "guessWho",
+  "version": "2026.10.01.1",
+  "items": [
+    {
+      "id": "cz001",
+      "name": "Karel Gott",
+      "aliases": [
+        "Gott",
+        "Kája Gott"
+      ],
+      "region": "czech",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was one of the best-known Czech singers.",
+          "I repeatedly won the Golden Nightingale music poll.",
+          "I was nicknamed the Sinatra of the East."
+        ],
+        "cs": [
+          "Patřím mezi nejznámější české zpěváky.",
+          "Mnohokrát jsem vyhrál anketu Zlatý slavík.",
+          "Přezdívalo se mi Sinatra východu."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz002",
+      "name": "Jaromír Jágr",
+      "aliases": [
+        "Jagr",
+        "Jaromir Jagr"
+      ],
+      "region": "czech",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am a famous Czech ice hockey player.",
+          "I wore number 68 for most of my career.",
+          "I played many seasons in the NHL and for Kladno."
+        ],
+        "cs": [
+          "Jsem slavný český hokejista.",
+          "Většinu kariéry jsem nosil číslo 68.",
+          "Hrál jsem dlouhé roky v NHL a také za Kladno."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz003",
+      "name": "Emil Zátopek",
+      "aliases": [
+        "Zatopek",
+        "Emil Zatopek"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Czech long-distance runner.",
+          "I won three gold medals at the 1952 Helsinki Olympics.",
+          "I was known as the Czech Locomotive."
+        ],
+        "cs": [
+          "Byl jsem český vytrvalostní běžec.",
+          "Na olympiádě v Helsinkách 1952 jsem získal tři zlaté medaile.",
+          "Přezdívalo se mi Česká lokomotiva."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz004",
+      "name": "Věra Čáslavská",
+      "aliases": [
+        "Caslavska",
+        "Vera Caslavska"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Czech gymnast.",
+          "I won seven Olympic gold medals.",
+          "I became one of the most successful Czech Olympians."
+        ],
+        "cs": [
+          "Byla jsem česká gymnastka.",
+          "Získala jsem sedm olympijských zlatých medailí.",
+          "Patřím mezi nejúspěšnější české olympioniky."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz005",
+      "name": "Martina Navrátilová",
+      "aliases": [
+        "Navratilova",
+        "Martina Navratilova"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was born in Czechoslovakia and became a tennis legend.",
+          "I won Wimbledon singles nine times.",
+          "I was famous for an attacking serve-and-volley style."
+        ],
+        "cs": [
+          "Narodila jsem se v Československu a stala se tenisovou legendou.",
+          "Wimbledonskou dvouhru jsem vyhrála devětkrát.",
+          "Byla jsem známá útočným stylem servis-volej."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz006",
+      "name": "Petr Čech",
+      "aliases": [
+        "Petr Cech",
+        "Cech"
+      ],
+      "region": "czech",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am a Czech former football goalkeeper.",
+          "I played for Chelsea and Arsenal.",
+          "I often played wearing protective headgear."
+        ],
+        "cs": [
+          "Jsem bývalý český fotbalový brankář.",
+          "Hrál jsem za Chelsea a Arsenal.",
+          "Často jsem chytal v ochranné helmě."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz007",
+      "name": "Ivan Lendl",
+      "aliases": [
+        "Lendl",
+        "Ivan Lendl"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I am a Czech-born tennis champion.",
+          "I won eight Grand Slam singles titles.",
+          "I later coached Andy Murray."
+        ],
+        "cs": [
+          "Jsem tenisový šampion narozený v Československu.",
+          "Vyhrál jsem osm grandslamových titulů ve dvouhře.",
+          "Později jsem trénoval Andyho Murrayho."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz008",
+      "name": "Jiří Procházka",
+      "aliases": [
+        "Jiri Prochazka",
+        "Prochazka"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I am a Czech mixed martial artist.",
+          "I became a UFC light heavyweight champion.",
+          "My nickname is BJP."
+        ],
+        "cs": [
+          "Jsem český zápasník MMA.",
+          "Stal jsem se šampionem UFC v polotěžké váze.",
+          "Moje přezdívka je BJP."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz009",
+      "name": "Ester Ledecká",
+      "aliases": [
+        "Ester Ledecka",
+        "Ledecka"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I am a Czech winter sports athlete.",
+          "I compete in both alpine skiing and snowboarding.",
+          "At the 2018 Olympics I won gold in two different sports."
+        ],
+        "cs": [
+          "Jsem česká závodnice v zimních sportech.",
+          "Závodím v alpském lyžování i snowboardingu.",
+          "Na olympiádě 2018 jsem vyhrála zlato ve dvou různých sportech."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz010",
+      "name": "Jan Železný",
+      "aliases": [
+        "Jan Zelezny",
+        "Zelezny"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I am a Czech track and field legend.",
+          "My discipline was the javelin throw.",
+          "I won three Olympic gold medals."
+        ],
+        "cs": [
+          "Jsem česká atletická legenda.",
+          "Mou disciplínou byl hod oštěpem.",
+          "Vyhrál jsem tři olympijské zlaté medaile."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz011",
+      "name": "Tomáš Baťa",
+      "aliases": [
+        "Tomas Bata",
+        "Bata"
+      ],
+      "region": "czech",
+      "difficulty": 3,
+      "clues": {
+        "en": [
+          "I was a Czech entrepreneur.",
+          "My company became famous for making shoes.",
+          "My name is strongly connected with the city of Zlín."
+        ],
+        "cs": [
+          "Byl jsem český podnikatel.",
+          "Moje firma se proslavila výrobou obuvi.",
+          "Moje jméno je silně spojené se Zlínem."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz012",
+      "name": "Antonín Dvořák",
+      "aliases": [
+        "Antonin Dvorak",
+        "Dvorak"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Czech classical composer.",
+          "I composed the New World Symphony.",
+          "I spent part of my career in the United States."
+        ],
+        "cs": [
+          "Byl jsem český skladatel klasické hudby.",
+          "Složil jsem Novosvětskou symfonii.",
+          "Část kariéry jsem strávil ve Spojených státech."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz013",
+      "name": "Bedřich Smetana",
+      "aliases": [
+        "Bedrich Smetana",
+        "Smetana"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Czech composer.",
+          "I composed the cycle Má vlast.",
+          "One of my best-known works depicts the Vltava river."
+        ],
+        "cs": [
+          "Byl jsem český skladatel.",
+          "Složil jsem cyklus Má vlast.",
+          "Jedna z mých nejslavnějších skladeb znázorňuje řeku Vltavu."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz014",
+      "name": "Alfons Mucha",
+      "aliases": [
+        "Mucha",
+        "Alphonse Mucha"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Czech artist associated with Art Nouveau.",
+          "I became famous for decorative posters in Paris.",
+          "I created the Slav Epic."
+        ],
+        "cs": [
+          "Byl jsem český umělec spojený se secesí.",
+          "Proslavily mě dekorativní plakáty v Paříži.",
+          "Vytvořil jsem Slovanskou epopej."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz015",
+      "name": "Miloš Forman",
+      "aliases": [
+        "Milos Forman",
+        "Forman"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Czech-born film director.",
+          "I directed One Flew Over the Cuckoo's Nest.",
+          "I also directed Amadeus."
+        ],
+        "cs": [
+          "Byl jsem filmový režisér narozený v Československu.",
+          "Režíroval jsem Přelet nad kukaččím hnízdem.",
+          "Režíroval jsem také film Amadeus."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz016",
+      "name": "Karel Čapek",
+      "aliases": [
+        "Karel Capek",
+        "Capek"
+      ],
+      "region": "czech",
+      "difficulty": 3,
+      "clues": {
+        "en": [
+          "I was a Czech writer and playwright.",
+          "My play R.U.R. helped popularize a famous word.",
+          "That word was robot."
+        ],
+        "cs": [
+          "Byl jsem český spisovatel a dramatik.",
+          "Moje hra R.U.R. proslavila jedno známé slovo.",
+          "Tím slovem je robot."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz017",
+      "name": "Jaroslav Hašek",
+      "aliases": [
+        "Jaroslav Hasek",
+        "Hasek"
+      ],
+      "region": "czech",
+      "difficulty": 3,
+      "clues": {
+        "en": [
+          "I was a Czech writer.",
+          "My most famous character is a soldier during World War One.",
+          "I wrote The Good Soldier Švejk."
+        ],
+        "cs": [
+          "Byl jsem český spisovatel.",
+          "Mou nejslavnější postavou je voják z první světové války.",
+          "Napsal jsem Osudy dobrého vojáka Švejka."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz018",
+      "name": "Ewa Farna",
+      "aliases": [
+        "Farna",
+        "Ewa Farna"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I am a singer active in the Czech and Polish music scenes.",
+          "I began my career as a teenager.",
+          "I perform in both Czech and Polish."
+        ],
+        "cs": [
+          "Jsem zpěvačka působící na české i polské scéně.",
+          "Kariéru jsem začala už jako teenager.",
+          "Zpívám česky i polsky."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz019",
+      "name": "Lucie Bílá",
+      "aliases": [
+        "Lucie Bila",
+        "Bila"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I am a well-known Czech singer.",
+          "I have repeatedly won the Czech Nightingale poll.",
+          "My stage surname means white in Czech."
+        ],
+        "cs": [
+          "Jsem známá česká zpěvačka.",
+          "Mnohokrát jsem vyhrála Českého slavíka.",
+          "Moje umělecké příjmení znamená bílou barvu."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "cz020",
+      "name": "Jiřina Bohdalová",
+      "aliases": [
+        "Jirina Bohdalova",
+        "Bohdalova"
+      ],
+      "region": "czech",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I am a Czech actress with a very long career.",
+          "I have worked extensively in film, television and fairy tales.",
+          "My first name is Jiřina."
+        ],
+        "cs": [
+          "Jsem česká herečka s velmi dlouhou kariérou.",
+          "Hrála jsem ve filmu, televizi i mnoha pohádkách.",
+          "Jmenuji se Jiřina."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w001",
+      "name": "Albert Einstein",
+      "aliases": [
+        "Einstein"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was a theoretical physicist.",
+          "I developed the theory of relativity.",
+          "My name is strongly associated with E equals m c squared."
+        ],
+        "cs": [
+          "Byl jsem teoretický fyzik.",
+          "Vytvořil jsem teorii relativity.",
+          "Moje jméno je spojené s rovnicí E rovná se m c na druhou."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w002",
+      "name": "Marie Curie",
+      "aliases": [
+        "Curie",
+        "Maria Sklodowska Curie"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was a pioneering scientist in radioactivity.",
+          "I won Nobel Prizes in two different sciences.",
+          "I discovered polonium and radium with my husband."
+        ],
+        "cs": [
+          "Byla jsem průkopnicí výzkumu radioaktivity.",
+          "Získala jsem Nobelovy ceny ve dvou různých vědních oborech.",
+          "S manželem jsem objevila polonium a radium."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w003",
+      "name": "Isaac Newton",
+      "aliases": [
+        "Newton"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was an English scientist and mathematician.",
+          "I formulated laws of motion and universal gravitation.",
+          "A famous story links me with a falling apple."
+        ],
+        "cs": [
+          "Byl jsem anglický vědec a matematik.",
+          "Formuloval jsem zákony pohybu a gravitace.",
+          "Známý příběh mě spojuje s padajícím jablkem."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w004",
+      "name": "Nikola Tesla",
+      "aliases": [
+        "Tesla"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was an inventor and electrical engineer.",
+          "My work is closely associated with alternating current systems.",
+          "A modern electric car company uses my surname."
+        ],
+        "cs": [
+          "Byl jsem vynálezce a elektrotechnický inženýr.",
+          "Moje práce je úzce spojená se střídavým proudem.",
+          "Moderní automobilka s elektromobily používá moje příjmení."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w005",
+      "name": "Leonardo da Vinci",
+      "aliases": [
+        "Leonardo",
+        "Da Vinci"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was an Italian Renaissance polymath.",
+          "I painted The Last Supper.",
+          "I painted the Mona Lisa."
+        ],
+        "cs": [
+          "Byl jsem italský renesanční všeuměl.",
+          "Namaloval jsem Poslední večeři.",
+          "Namaloval jsem Monu Lisu."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w006",
+      "name": "Vincent van Gogh",
+      "aliases": [
+        "Van Gogh",
+        "Vincent"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Dutch painter.",
+          "I painted The Starry Night.",
+          "A famous story about me involves my ear."
+        ],
+        "cs": [
+          "Byl jsem nizozemský malíř.",
+          "Namaloval jsem Hvězdnou noc.",
+          "Známý příběh o mně se týká mého ucha."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w007",
+      "name": "Pablo Picasso",
+      "aliases": [
+        "Picasso"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Spanish artist.",
+          "I co-founded the Cubist movement.",
+          "I painted Guernica."
+        ],
+        "cs": [
+          "Byl jsem španělský umělec.",
+          "Patřil jsem k zakladatelům kubismu.",
+          "Namaloval jsem Guernicu."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w008",
+      "name": "William Shakespeare",
+      "aliases": [
+        "Shakespeare"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was an English playwright and poet.",
+          "I wrote Macbeth.",
+          "I also wrote Romeo and Juliet."
+        ],
+        "cs": [
+          "Byl jsem anglický dramatik a básník.",
+          "Napsal jsem Macbetha.",
+          "Napsal jsem také Romea a Julii."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w009",
+      "name": "Wolfgang Amadeus Mozart",
+      "aliases": [
+        "Mozart",
+        "Wolfgang Mozart"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was an Austrian classical composer.",
+          "I was a famous child prodigy.",
+          "I composed The Magic Flute."
+        ],
+        "cs": [
+          "Byl jsem rakouský skladatel klasické hudby.",
+          "Byl jsem známé zázračné dítě.",
+          "Složil jsem Kouzelnou flétnu."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w010",
+      "name": "Ludwig van Beethoven",
+      "aliases": [
+        "Beethoven"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was a German composer.",
+          "I continued composing despite severe hearing loss.",
+          "My Ninth Symphony includes Ode to Joy."
+        ],
+        "cs": [
+          "Byl jsem německý skladatel.",
+          "Skládal jsem i přes vážnou ztrátu sluchu.",
+          "Moje Devátá symfonie obsahuje Ódu na radost."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w011",
+      "name": "Michael Jackson",
+      "aliases": [
+        "Jackson",
+        "Michael Jackson"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was an American pop singer.",
+          "I was known for the moonwalk.",
+          "My album Thriller became one of the best-selling albums ever."
+        ],
+        "cs": [
+          "Byl jsem americký popový zpěvák.",
+          "Proslavil mě moonwalk.",
+          "Moje album Thriller patří k nejprodávanějším albům historie."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w012",
+      "name": "Freddie Mercury",
+      "aliases": [
+        "Mercury",
+        "Freddie Mercury"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was the lead singer of a British rock band.",
+          "I performed at Live Aid in 1985.",
+          "My band was Queen."
+        ],
+        "cs": [
+          "Byl jsem zpěvák britské rockové kapely.",
+          "Vystupoval jsem na Live Aid v roce 1985.",
+          "Mou kapelou byli Queen."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w013",
+      "name": "Elvis Presley",
+      "aliases": [
+        "Elvis",
+        "Presley"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was an American singer and actor.",
+          "I became a symbol of early rock and roll.",
+          "I was called the King of Rock and Roll."
+        ],
+        "cs": [
+          "Byl jsem americký zpěvák a herec.",
+          "Stal jsem se symbolem raného rock and rollu.",
+          "Říkalo se mi Král rock and rollu."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w014",
+      "name": "Taylor Swift",
+      "aliases": [
+        "Taylor",
+        "Swift"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am an American singer-songwriter.",
+          "My career began strongly in country music before expanding into pop.",
+          "My fans are often called Swifties."
+        ],
+        "cs": [
+          "Jsem americká zpěvačka a autorka písní.",
+          "Kariéru jsem začínala hlavně v country a později přešla i k popu.",
+          "Mým fanouškům se často říká Swifties."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w015",
+      "name": "Adele",
+      "aliases": [
+        "Adele Adkins"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am a British singer.",
+          "My albums include 19, 21, 25 and 30.",
+          "One of my biggest songs is Someone Like You."
+        ],
+        "cs": [
+          "Jsem britská zpěvačka.",
+          "Moje alba mají názvy 19, 21, 25 a 30.",
+          "Jedním z mých největších hitů je Someone Like You."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w016",
+      "name": "Tom Hanks",
+      "aliases": [
+        "Hanks",
+        "Tom Hanks"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am an American actor.",
+          "I played the title character in Forrest Gump.",
+          "I also starred in Cast Away."
+        ],
+        "cs": [
+          "Jsem americký herec.",
+          "Hrál jsem hlavní roli ve Forrestu Gumpovi.",
+          "Hrál jsem také ve filmu Trosečník."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w017",
+      "name": "Leonardo DiCaprio",
+      "aliases": [
+        "DiCaprio",
+        "Leonardo Dicaprio"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am an American actor.",
+          "I starred in Titanic.",
+          "I won an acting Oscar for The Revenant."
+        ],
+        "cs": [
+          "Jsem americký herec.",
+          "Hrál jsem ve filmu Titanic.",
+          "Oscara za herectví jsem získal za Revenant."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w018",
+      "name": "Arnold Schwarzenegger",
+      "aliases": [
+        "Schwarzenegger",
+        "Arnold"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I became famous as a bodybuilder and actor.",
+          "I starred in The Terminator.",
+          "I was born in Austria."
+        ],
+        "cs": [
+          "Proslavil jsem se jako kulturista a herec.",
+          "Hrál jsem v Terminátorovi.",
+          "Narodil jsem se v Rakousku."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w019",
+      "name": "Keanu Reeves",
+      "aliases": [
+        "Reeves",
+        "Keanu"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I am a Canadian actor.",
+          "I played Neo in a science-fiction film series.",
+          "That series is The Matrix."
+        ],
+        "cs": [
+          "Jsem kanadský herec.",
+          "Hrál jsem Nea ve slavné sci-fi filmové sérii.",
+          "Tou sérií je Matrix."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w020",
+      "name": "Morgan Freeman",
+      "aliases": [
+        "Freeman",
+        "Morgan Freeman"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I am an American actor known for a distinctive voice.",
+          "I starred in The Shawshank Redemption.",
+          "I played God in Bruce Almighty."
+        ],
+        "cs": [
+          "Jsem americký herec známý výrazným hlasem.",
+          "Hrál jsem ve Vykoupení z věznice Shawshank.",
+          "Hrál jsem Boha ve filmu Božský Bruce."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w021",
+      "name": "Cristiano Ronaldo",
+      "aliases": [
+        "Ronaldo",
+        "Cristiano"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am a Portuguese footballer.",
+          "I wore number 7 at clubs including Manchester United and Real Madrid.",
+          "My first name is Cristiano."
+        ],
+        "cs": [
+          "Jsem portugalský fotbalista.",
+          "Nosil jsem číslo 7 například v Manchesteru United a Realu Madrid.",
+          "Jmenuji se Cristiano."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w022",
+      "name": "Lionel Messi",
+      "aliases": [
+        "Messi",
+        "Leo Messi"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am an Argentine footballer.",
+          "I spent most of my club career at Barcelona.",
+          "I captained Argentina to the 2022 World Cup title."
+        ],
+        "cs": [
+          "Jsem argentinský fotbalista.",
+          "Většinu klubové kariéry jsem strávil v Barceloně.",
+          "Jako kapitán jsem dovedl Argentinu k titulu mistra světa 2022."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w023",
+      "name": "Michael Jordan",
+      "aliases": [
+        "Jordan",
+        "Michael Jordan"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am an American basketball legend.",
+          "I wore number 23 for the Chicago Bulls.",
+          "My surname became a famous Nike shoe brand."
+        ],
+        "cs": [
+          "Jsem americká basketbalová legenda.",
+          "Za Chicago Bulls jsem nosil číslo 23.",
+          "Moje příjmení se stalo známou značkou bot Nike."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w024",
+      "name": "LeBron James",
+      "aliases": [
+        "LeBron",
+        "Lebron James"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am an American basketball player.",
+          "I have played for Cleveland, Miami and Los Angeles.",
+          "My nickname is King James."
+        ],
+        "cs": [
+          "Jsem americký basketbalista.",
+          "Hrál jsem za Cleveland, Miami a Los Angeles.",
+          "Přezdívá se mi King James."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w025",
+      "name": "Roger Federer",
+      "aliases": [
+        "Federer",
+        "Roger Federer"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am a Swiss tennis legend.",
+          "I won Wimbledon men's singles eight times.",
+          "I was known for an elegant one-handed backhand."
+        ],
+        "cs": [
+          "Jsem švýcarská tenisová legenda.",
+          "Wimbledonskou dvouhru jsem vyhrál osmkrát.",
+          "Byl jsem známý elegantním jednoručným bekhendem."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w026",
+      "name": "Rafael Nadal",
+      "aliases": [
+        "Nadal",
+        "Rafa Nadal"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am a Spanish tennis legend.",
+          "I am especially associated with clay courts.",
+          "I won the French Open a record number of times."
+        ],
+        "cs": [
+          "Jsem španělská tenisová legenda.",
+          "Jsem spojený hlavně s antukou.",
+          "French Open jsem vyhrál rekordně mnohokrát."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w027",
+      "name": "Usain Bolt",
+      "aliases": [
+        "Bolt",
+        "Usain"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am a Jamaican sprinter.",
+          "I won Olympic gold medals in the 100 and 200 meters.",
+          "I became known as the fastest man in the world."
+        ],
+        "cs": [
+          "Jsem jamajský sprinter.",
+          "Vyhrál jsem olympijské zlato na 100 i 200 metrů.",
+          "Proslavil jsem se jako nejrychlejší muž světa."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w028",
+      "name": "Serena Williams",
+      "aliases": [
+        "Serena",
+        "Williams"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am an American tennis champion.",
+          "I won 23 Grand Slam singles titles.",
+          "My sister Venus is also a tennis champion."
+        ],
+        "cs": [
+          "Jsem americká tenisová šampionka.",
+          "Vyhrála jsem 23 grandslamových titulů ve dvouhře.",
+          "Moje sestra Venus je také tenisová šampionka."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w029",
+      "name": "Tiger Woods",
+      "aliases": [
+        "Tiger",
+        "Woods",
+        "Tiger Woods"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am an American golfer.",
+          "I became one of the most successful golfers in history.",
+          "My first name is actually Eldrick, but I am known by a feline nickname."
+        ],
+        "cs": [
+          "Jsem americký golfista.",
+          "Patřím mezi nejúspěšnější golfisty historie.",
+          "Jmenuji se Eldrick, ale známý jsem pod kočičí přezdívkou."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w030",
+      "name": "Michael Schumacher",
+      "aliases": [
+        "Schumacher",
+        "Michael Schumacher"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am a German racing driver.",
+          "I won seven Formula One world championships.",
+          "I became strongly associated with Ferrari."
+        ],
+        "cs": [
+          "Jsem německý automobilový závodník.",
+          "Vyhrál jsem sedm titulů mistra světa Formule 1.",
+          "Silně jsem spojený s Ferrari."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w031",
+      "name": "Ayrton Senna",
+      "aliases": [
+        "Senna",
+        "Ayrton Senna"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Brazilian racing driver.",
+          "I won three Formula One world championships.",
+          "I died after a crash at Imola in 1994."
+        ],
+        "cs": [
+          "Byl jsem brazilský automobilový závodník.",
+          "Vyhrál jsem tři tituly mistra světa Formule 1.",
+          "Zemřel jsem po nehodě v Imole v roce 1994."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w032",
+      "name": "Muhammad Ali",
+      "aliases": [
+        "Ali",
+        "Cassius Clay"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was an American heavyweight boxer.",
+          "My original name was Cassius Clay.",
+          "I said I float like a butterfly and sting like a bee."
+        ],
+        "cs": [
+          "Byl jsem americký boxer těžké váhy.",
+          "Původně jsem se jmenoval Cassius Clay.",
+          "Říkal jsem, že plavu jako motýl a bodám jako včela."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w033",
+      "name": "Bruce Lee",
+      "aliases": [
+        "Lee",
+        "Bruce Lee"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was a martial artist and actor.",
+          "I helped popularize martial arts cinema worldwide.",
+          "I developed Jeet Kune Do."
+        ],
+        "cs": [
+          "Byl jsem mistr bojových umění a herec.",
+          "Pomohl jsem celosvětově proslavit filmy s bojovými uměními.",
+          "Vytvořil jsem Jeet Kune Do."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w034",
+      "name": "Steve Jobs",
+      "aliases": [
+        "Jobs",
+        "Steve Jobs"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was an American technology entrepreneur.",
+          "I co-founded Apple.",
+          "I introduced products including the iPhone on stage."
+        ],
+        "cs": [
+          "Byl jsem americký technologický podnikatel.",
+          "Spoluzaložil jsem Apple.",
+          "Na pódiu jsem představoval produkty včetně iPhonu."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w035",
+      "name": "Bill Gates",
+      "aliases": [
+        "Gates",
+        "Bill Gates"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am an American technology entrepreneur.",
+          "I co-founded Microsoft.",
+          "I later became known for large-scale philanthropy."
+        ],
+        "cs": [
+          "Jsem americký technologický podnikatel.",
+          "Spoluzaložil jsem Microsoft.",
+          "Později jsem se proslavil také rozsáhlou filantropií."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w036",
+      "name": "Mark Zuckerberg",
+      "aliases": [
+        "Zuckerberg",
+        "Mark Zuckerberg"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I am an American technology entrepreneur.",
+          "I launched a social network while at Harvard.",
+          "I co-founded Facebook."
+        ],
+        "cs": [
+          "Jsem americký technologický podnikatel.",
+          "Během studia na Harvardu jsem spustil sociální síť.",
+          "Spoluzaložil jsem Facebook."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w037",
+      "name": "Stephen Hawking",
+      "aliases": [
+        "Hawking",
+        "Stephen Hawking"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a British theoretical physicist.",
+          "I wrote A Brief History of Time.",
+          "I became famous for work on black holes."
+        ],
+        "cs": [
+          "Byl jsem britský teoretický fyzik.",
+          "Napsal jsem Stručnou historii času.",
+          "Proslavil jsem se výzkumem černých děr."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w038",
+      "name": "Neil Armstrong",
+      "aliases": [
+        "Armstrong",
+        "Neil Armstrong"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was an American astronaut.",
+          "I flew on Apollo 11.",
+          "I became the first person to walk on the Moon."
+        ],
+        "cs": [
+          "Byl jsem americký astronaut.",
+          "Letěl jsem v misi Apollo 11.",
+          "Stal jsem se prvním člověkem, který vstoupil na Měsíc."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w039",
+      "name": "Yuri Gagarin",
+      "aliases": [
+        "Gagarin",
+        "Jurij Gagarin"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Soviet cosmonaut.",
+          "I flew aboard Vostok 1 in 1961.",
+          "I became the first human in outer space."
+        ],
+        "cs": [
+          "Byl jsem sovětský kosmonaut.",
+          "V roce 1961 jsem letěl lodí Vostok 1.",
+          "Stal jsem se prvním člověkem ve vesmíru."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w040",
+      "name": "Amelia Earhart",
+      "aliases": [
+        "Earhart",
+        "Amelia Earhart"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was an American aviation pioneer.",
+          "I was the first woman to fly solo across the Atlantic.",
+          "I disappeared during an attempt to fly around the world."
+        ],
+        "cs": [
+          "Byla jsem americká průkopnice letectví.",
+          "Jako první žena jsem sama přeletěla Atlantik.",
+          "Zmizela jsem při pokusu obletět svět."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w041",
+      "name": "Charlie Chaplin",
+      "aliases": [
+        "Chaplin",
+        "Charlie Chaplin"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a British actor and filmmaker.",
+          "I became an icon of silent cinema.",
+          "My famous character wore a bowler hat and carried a cane."
+        ],
+        "cs": [
+          "Byl jsem britský herec a filmař.",
+          "Stal jsem se ikonou němého filmu.",
+          "Moje slavná postava nosila buřinku a hůlku."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w042",
+      "name": "Audrey Hepburn",
+      "aliases": [
+        "Hepburn",
+        "Audrey Hepburn"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a British actress and humanitarian.",
+          "I starred in Roman Holiday.",
+          "I am closely associated with Breakfast at Tiffany's."
+        ],
+        "cs": [
+          "Byla jsem britská herečka a humanitární pracovnice.",
+          "Hrála jsem v Prázdninách v Římě.",
+          "Silně jsem spojená s filmem Snídaně u Tiffanyho."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w043",
+      "name": "Marilyn Monroe",
+      "aliases": [
+        "Monroe",
+        "Marilyn Monroe"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was an American actress and model.",
+          "I became a major Hollywood icon of the 1950s.",
+          "I starred in Some Like It Hot."
+        ],
+        "cs": [
+          "Byla jsem americká herečka a modelka.",
+          "Stala jsem se hollywoodskou ikonou padesátých let.",
+          "Hrála jsem ve filmu Někdo to rád horké."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w044",
+      "name": "Walt Disney",
+      "aliases": [
+        "Disney",
+        "Walt Disney"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I was an American animator and entrepreneur.",
+          "My company created Mickey Mouse.",
+          "My surname became the name of a global entertainment company and theme parks."
+        ],
+        "cs": [
+          "Byl jsem americký animátor a podnikatel.",
+          "Moje společnost vytvořila Mickey Mouse.",
+          "Moje příjmení nese globální zábavní společnost i zábavní parky."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w045",
+      "name": "J. K. Rowling",
+      "aliases": [
+        "Rowling",
+        "JK Rowling",
+        "Joanne Rowling"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am a British author.",
+          "I wrote a bestselling fantasy series about a young wizard.",
+          "That wizard is Harry Potter."
+        ],
+        "cs": [
+          "Jsem britská spisovatelka.",
+          "Napsala jsem slavnou fantasy sérii o mladém kouzelníkovi.",
+          "Tím kouzelníkem je Harry Potter."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w046",
+      "name": "Agatha Christie",
+      "aliases": [
+        "Christie",
+        "Agatha Christie"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a British mystery writer.",
+          "I created Hercule Poirot.",
+          "I also created Miss Marple."
+        ],
+        "cs": [
+          "Byla jsem britská autorka detektivek.",
+          "Vytvořila jsem Hercula Poirota.",
+          "Vytvořila jsem také slečnu Marplovou."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w047",
+      "name": "Ernest Hemingway",
+      "aliases": [
+        "Hemingway",
+        "Ernest Hemingway"
+      ],
+      "region": "world",
+      "difficulty": 3,
+      "clues": {
+        "en": [
+          "I was an American writer.",
+          "I wrote The Old Man and the Sea.",
+          "I won the Nobel Prize in Literature in 1954."
+        ],
+        "cs": [
+          "Byl jsem americký spisovatel.",
+          "Napsal jsem Stařec a moře.",
+          "V roce 1954 jsem získal Nobelovu cenu za literaturu."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w048",
+      "name": "Frida Kahlo",
+      "aliases": [
+        "Kahlo",
+        "Frida Kahlo"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a Mexican painter.",
+          "I became famous for many self-portraits.",
+          "My work often explored identity, pain and Mexican culture."
+        ],
+        "cs": [
+          "Byla jsem mexická malířka.",
+          "Proslavila jsem se mnoha autoportréty.",
+          "Má tvorba často zkoumala identitu, bolest a mexickou kulturu."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w049",
+      "name": "Coco Chanel",
+      "aliases": [
+        "Chanel",
+        "Coco Chanel"
+      ],
+      "region": "world",
+      "difficulty": 2,
+      "clues": {
+        "en": [
+          "I was a French fashion designer.",
+          "My brand became famous for a fragrance called Number Five.",
+          "My surname is one of the world's best-known fashion labels."
+        ],
+        "cs": [
+          "Byla jsem francouzská módní návrhářka.",
+          "Má značka se proslavila parfémem číslo pět.",
+          "Moje příjmení patří k nejslavnějším módním značkám světa."
+        ]
+      },
+      "enabled": true
+    },
+    {
+      "id": "w050",
+      "name": "Gordon Ramsay",
+      "aliases": [
+        "Ramsay",
+        "Gordon Ramsay"
+      ],
+      "region": "world",
+      "difficulty": 1,
+      "clues": {
+        "en": [
+          "I am a British chef and television personality.",
+          "I am known for a fiery style on cooking shows.",
+          "I host shows including Hell's Kitchen."
+        ],
+        "cs": [
+          "Jsem britský šéfkuchař a televizní osobnost.",
+          "Jsem známý výbušným stylem v kuchařských pořadech.",
+          "Moderuji pořady včetně Hell's Kitchen."
+        ]
+      },
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "game": "family",
+  "version": "2026.10.01.1",
+  "questionSource": "trivia",
+  "modes": {
+    "round": {
+      "minPlayers": 2,
+      "maxPlayers": 6,
+      "basePoints": 100,
+      "streakBonus": [
+        {
+          "from": 3,
+          "points": 25
+        },
+        {
+          "from": 5,
+          "points": 50
+        },
+        {
+          "from": 10,
+          "points": 100
+        }
+      ]
+    },
+    "battle": {
+      "minPlayers": 2,
+      "maxPlayers": 6,
+      "values": [
+        100,
+        200,
+        300
+      ],
+      "wrongAnswerPenalty": true,
+      "allowSteal": true
+    }
+  }
+}

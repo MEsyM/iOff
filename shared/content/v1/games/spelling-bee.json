@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 1,
+  "game": "spellingBee",
+  "version": "2026.10.01.1",
+  "items": [
+    {
+      "id": "s001",
+      "difficulty": 1,
+      "word": "cat",
+      "hints": {
+        "en": "a small domesticated animal",
+        "cs": "malé domácí zvíře"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s002",
+      "difficulty": 1,
+      "word": "dog",
+      "hints": {
+        "en": "a common domesticated animal",
+        "cs": "běžné domácí zvíře"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s003",
+      "difficulty": 1,
+      "word": "sun",
+      "hints": {
+        "en": "the star at the center of our solar system",
+        "cs": "hvězda ve středu sluneční soustavy"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s004",
+      "difficulty": 1,
+      "word": "book",
+      "hints": {
+        "en": "a set of written or printed pages",
+        "cs": "soubor psaných nebo tištěných stránek"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s005",
+      "difficulty": 1,
+      "word": "road",
+      "hints": {
+        "en": "a route for vehicles",
+        "cs": "cesta pro vozidla"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s006",
+      "difficulty": 1,
+      "word": "green",
+      "hints": {
+        "en": "a color between blue and yellow",
+        "cs": "barva mezi modrou a žlutou"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s007",
+      "difficulty": 1,
+      "word": "water",
+      "hints": {
+        "en": "a clear liquid essential for life",
+        "cs": "čirá kapalina nezbytná pro život"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s008",
+      "difficulty": 1,
+      "word": "house",
+      "hints": {
+        "en": "a building used as a home",
+        "cs": "budova používaná jako domov"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s101",
+      "difficulty": 2,
+      "word": "window",
+      "hints": {
+        "en": "an opening in a wall fitted with glass",
+        "cs": "otvor ve stěně osazený sklem"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s102",
+      "difficulty": 2,
+      "word": "garden",
+      "hints": {
+        "en": "an area where plants are grown",
+        "cs": "místo, kde se pěstují rostliny"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s103",
+      "difficulty": 2,
+      "word": "planet",
+      "hints": {
+        "en": "a large body orbiting a star",
+        "cs": "velké těleso obíhající kolem hvězdy"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s104",
+      "difficulty": 2,
+      "word": "school",
+      "hints": {
+        "en": "a place for education",
+        "cs": "místo pro vzdělávání"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s105",
+      "difficulty": 2,
+      "word": "bridge",
+      "hints": {
+        "en": "a structure carrying a route over an obstacle",
+        "cs": "stavba vedoucí cestu přes překážku"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s106",
+      "difficulty": 2,
+      "word": "silver",
+      "hints": {
+        "en": "a precious metallic element",
+        "cs": "drahý kovový prvek"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s107",
+      "difficulty": 2,
+      "word": "engine",
+      "hints": {
+        "en": "a machine that converts energy into motion",
+        "cs": "stroj převádějící energii na pohyb"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s108",
+      "difficulty": 2,
+      "word": "travel",
+      "hints": {
+        "en": "to go from one place to another",
+        "cs": "přesun z jednoho místa na jiné"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s201",
+      "difficulty": 3,
+      "word": "science",
+      "hints": {
+        "en": "the systematic study of the natural world",
+        "cs": "systematické studium přírodního světa"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s202",
+      "difficulty": 3,
+      "word": "country",
+      "hints": {
+        "en": "a nation with its own government",
+        "cs": "země s vlastní vládou"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s203",
+      "difficulty": 3,
+      "word": "electric",
+      "hints": {
+        "en": "relating to electricity",
+        "cs": "související s elektřinou"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s204",
+      "difficulty": 3,
+      "word": "language",
+      "hints": {
+        "en": "a system of human communication",
+        "cs": "systém lidské komunikace"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s205",
+      "difficulty": 3,
+      "word": "traffic",
+      "hints": {
+        "en": "vehicles moving on a road",
+        "cs": "vozidla pohybující se po silnici"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s206",
+      "difficulty": 3,
+      "word": "weather",
+      "hints": {
+        "en": "the state of the atmosphere",
+        "cs": "stav atmosféry"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s207",
+      "difficulty": 3,
+      "word": "history",
+      "hints": {
+        "en": "the study of past events",
+        "cs": "studium minulých událostí"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s208",
+      "difficulty": 3,
+      "word": "battery",
+      "hints": {
+        "en": "a device that stores electrical energy",
+        "cs": "zařízení ukládající elektrickou energii"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s301",
+      "difficulty": 4,
+      "word": "necessary",
+      "hints": {
+        "en": "required or essential",
+        "cs": "nutný nebo nezbytný"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s302",
+      "difficulty": 4,
+      "word": "separate",
+      "hints": {
+        "en": "to keep or place apart",
+        "cs": "oddělit nebo držet zvlášť"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s303",
+      "difficulty": 4,
+      "word": "calendar",
+      "hints": {
+        "en": "a system for organizing days and months",
+        "cs": "systém pro organizaci dnů a měsíců"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s304",
+      "difficulty": 4,
+      "word": "business",
+      "hints": {
+        "en": "commercial activity",
+        "cs": "obchodní činnost"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s305",
+      "difficulty": 4,
+      "word": "temperature",
+      "hints": {
+        "en": "a measure of how hot or cold something is",
+        "cs": "míra teploty"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s306",
+      "difficulty": 4,
+      "word": "environment",
+      "hints": {
+        "en": "the surroundings in which something exists",
+        "cs": "prostředí, ve kterém něco existuje"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s307",
+      "difficulty": 4,
+      "word": "maintenance",
+      "hints": {
+        "en": "the process of keeping something in good condition",
+        "cs": "udržování něčeho v dobrém stavu"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s308",
+      "difficulty": 4,
+      "word": "available",
+      "hints": {
+        "en": "able to be used or obtained",
+        "cs": "dostupný k použití nebo získání"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s401",
+      "difficulty": 5,
+      "word": "accommodation",
+      "hints": {
+        "en": "a place to stay or live",
+        "cs": "místo k pobytu nebo bydlení"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s402",
+      "difficulty": 5,
+      "word": "conscientious",
+      "hints": {
+        "en": "careful and responsible",
+        "cs": "pečlivý a zodpovědný"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s403",
+      "difficulty": 5,
+      "word": "entrepreneur",
+      "hints": {
+        "en": "a person who starts and runs a business",
+        "cs": "člověk, který zakládá a vede podnik"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s404",
+      "difficulty": 5,
+      "word": "miscellaneous",
+      "hints": {
+        "en": "consisting of varied items",
+        "cs": "složený z různorodých položek"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s405",
+      "difficulty": 5,
+      "word": "rhythm",
+      "hints": {
+        "en": "a repeated pattern of sound or movement",
+        "cs": "opakující se vzorec zvuku nebo pohybu"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s406",
+      "difficulty": 5,
+      "word": "maintenance",
+      "hints": {
+        "en": "the process of preserving good condition",
+        "cs": "proces udržování dobrého stavu"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s407",
+      "difficulty": 5,
+      "word": "questionnaire",
+      "hints": {
+        "en": "a written set of questions",
+        "cs": "písemný soubor otázek"
+      },
+      "enabled": true
+    },
+    {
+      "id": "s408",
+      "difficulty": 5,
+      "word": "recommendation",
+      "hints": {
+        "en": "a suggestion that something is suitable",
+        "cs": "doporučení, že je něco vhodné"
+      },
+      "enabled": true
+    }
+  ]
+}
