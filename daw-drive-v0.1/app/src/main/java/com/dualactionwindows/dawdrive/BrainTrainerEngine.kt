@@ -361,14 +361,41 @@ class BrainTrainerEngine(context: Context) {
         value.toIntOrNull()?.let { return it }
         val compact = value.replace(" ", "")
         if (compact.isNotEmpty() && compact.all { it.isDigit() }) return compact.toIntOrNull()
+
         val map = if (language == TriviaGameEngine.Language.CS) CZ_NUMBERS else EN_NUMBERS
         map[value]?.let { return it }
-        val tokens = value.split(" ")
-        val digits = tokens.mapNotNull { map[it] }
-        if (digits.size == tokens.size && digits.all { it in 0..9 }) {
-            return digits.joinToString("").toIntOrNull()
+
+        val tokens = value.split(" ").filter { it.isNotBlank() }
+        val values = tokens.map { map[it] ?: return null }
+
+        if (values.all { it in 0..9 }) {
+            return values.joinToString("").toIntOrNull()
         }
-        return null
+
+        if (language == TriviaGameEngine.Language.EN) {
+            var total = 0
+            var current = 0
+            values.forEach { n ->
+                if (n == 100) {
+                    current = maxOf(1, current) * 100
+                } else {
+                    current += n
+                }
+            }
+            total += current
+            return total.takeIf { it >= 0 }
+        }
+
+        // Czech recognizer commonly returns forms like "dvacet ctyri" or "sto pet".
+        var total = 0
+        values.forEach { n ->
+            if (n == 100 && total in 1..9) {
+                total *= 100
+            } else {
+                total += n
+            }
+        }
+        return total.takeIf { it >= 0 }
     }
 
     private fun levelForXp(xp: Int): Int = (xp / 180 + 1).coerceAtMost(MAX_LEVEL)
