@@ -83,14 +83,20 @@ def item_json(x):
 
 def seed_content_if_empty():
     with SessionLocal() as db:
-        if db.scalar(select(func.count()).select_from(ContentItem)) > 0:
-            return
         payload=json.loads(Path(__file__).with_name("seed_content.json").read_text(encoding="utf-8"))
+        existing=set(db.execute(select(ContentItem.kind, ContentItem.public_id)).all())
+        added=0
         for row in payload["items"]:
+            key=(row["kind"], row["public_id"])
+            if key in existing:
+                continue
             db.add(ContentItem(public_id=row["public_id"],kind=row["kind"],category=row.get("category"),
                                difficulty=row.get("difficulty"),enabled=row.get("enabled",True),status="draft",data=row["data"]))
-        audit(db,"initial_seed",data={"count":len(payload["items"])})
-        db.commit()
+            existing.add(key)
+            added += 1
+        if added:
+            audit(db,"seed_missing_content",data={"count":added})
+            db.commit()
 
 @router.get("/admin",response_class=HTMLResponse)
 def admin_page():
