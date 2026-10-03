@@ -1,18 +1,17 @@
 import json
-import os
-import secrets
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import Boolean, DateTime, Integer, JSON, String, UniqueConstraint, func, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.main import Base, SessionLocal
+from app.admin_auth import AdminPrincipal, require_viewer, require_editor_write, require_admin_write
 
 def utcnow():
     return datetime.now(timezone.utc)
@@ -71,14 +70,12 @@ class PublishIn(BaseModel):
     note: str | None = None
 
 router = APIRouter()
-ADMIN_TOKEN = os.getenv("ADMIN_TOKEN","")
-
-def require_admin(token: str | None):
-    if not ADMIN_TOKEN or not token or not secrets.compare_digest(token, ADMIN_TOKEN):
-        raise HTTPException(401,"Invalid admin token")
-
-def audit(db, action, item=None, data=None):
-    db.add(ContentAudit(action=action,item_kind=getattr(item,"kind",None),item_public_id=getattr(item,"public_id",None),data=data or {}))
+def audit(db, action, item=None, data=None, principal=None):
+    payload = dict(data or {})
+    if principal is not None:
+        payload["actor_admin_id"] = str(principal.user.id)
+        payload["actor_email"] = principal.user.email
+    db.add(ContentAudit(action=action,item_kind=getattr(item,"kind",None),item_public_id=getattr(item,"public_id",None),data=payload)
 
 def item_json(x):
     return {"id":str(x.id),"public_id":x.public_id,"kind":x.kind,"category":x.category,"difficulty":x.difficulty,
@@ -100,8 +97,7 @@ def admin_page():
     return Path(__file__).with_name("admin.html").read_text(encoding="utf-8")
 
 @router.get("/v1/admin/content/summary")
-def summary(token=Header(default=None,alias="X-Admin-Token")):
-    require_admin(token)
+def summary(principal: AdminPrincipal = Depends(require_viewer)):
     with SessionLocal() as db:
         rows=db.execute(select(ContentItem.kind,func.count(ContentItem.id)).group_by(ContentItem.kind)).all()
         drafts=db.scalar(select(func.count()).select_from(ContentItem).where(ContentItem.status=="draft"))
@@ -110,8 +106,7 @@ def summary(token=Header(default=None,alias="X-Admin-Token")):
 
 @router.get("/v1/admin/content")
 def list_content(kind:str|None=None,q:str|None=None,category:str|None=None,enabled:bool|None=None,page:int=1,page_size:int=50,
-                 token=Header(default=None,alias="X-Admin-Token")):
-    require_admin(token)
+                 principal: AdminPrincipal = Depends(require_viewer)):
     page=max(1,page); page_size=min(200,max(1,page_size))
     with SessionLocal() as db:
         filters=[]
@@ -128,39 +123,34 @@ def list_content(kind:str|None=None,q:str|None=None,category:str|None=None,enabl
         return {"items":[item_json(x) for x in rows],"total":total,"page":page,"page_size":page_size}
 
 @router.post("/v1/admin/content",status_code=201)
-def create_content(body:ItemIn,token=Header(default=None,alias="X-Admin-Token")):
-    require_admin(token)
+def create_content(body:ItemIn, principal: AdminPrincipal = Depends(require_editor_write)):
     with SessionLocal() as db:
         x=ContentItem(**body.model_dump(),status="draft")
-        db.add(x); audit(db,"create",x); db.commit(); db.refresh(x); return item_json(x)
+        db.add(x); audit(db,"create",x,principal=principal); db.commit(); db.refresh(x); return item_json(x)
 
 @router.patch("/v1/admin/content/{item_id}")
-def patch_content(item_id:uuid.UUID,body:ItemPatch,token=Header(default=None,alias="X-Admin-Token")):
-    require_admin(token)
+def patch_content(item_id:uuid.UUID,body:ItemPatch, principal: AdminPrincipal = Depends(require_editor_write)):
     with SessionLocal() as db:
         x=db.get(ContentItem,item_id)
         if not x: raise HTTPException(404,"Item not found")
         for k,v in body.model_dump(exclude_unset=True).items(): setattr(x,k,v)
-        x.status="draft"; x.updated_at=utcnow(); audit(db,"update",x); db.commit(); db.refresh(x); return item_json(x)
+        x.status="draft"; x.updated_at=utcnow(); audit(db,"update",x,principal=principal); db.commit(); db.refresh(x); return item_json(x)
 
 @router.delete("/v1/admin/content/{item_id}",status_code=204)
-def archive_content(item_id:uuid.UUID,token=Header(default=None,alias="X-Admin-Token")):
-    require_admin(token)
+def archive_content(item_id:uuid.UUID, principal: AdminPrincipal = Depends(require_editor_write)):
     with SessionLocal() as db:
         x=db.get(ContentItem,item_id)
         if not x: raise HTTPException(404,"Item not found")
-        x.enabled=False; x.status="archived"; audit(db,"archive",x); db.commit()
+        x.enabled=False; x.status="archived"; audit(db,"archive",x,principal=principal); db.commit()
 
 @router.get("/v1/admin/releases")
-def releases(token=Header(default=None,alias="X-Admin-Token")):
-    require_admin(token)
+def releases(principal: AdminPrincipal = Depends(require_viewer)):
     with SessionLocal() as db:
         rows=db.scalars(select(ContentRelease).order_by(ContentRelease.published_at.desc()).limit(50)).all()
         return [{"id":str(x.id),"version":x.version,"note":x.note,"active":x.active,"item_count":x.item_count,"published_at":x.published_at} for x in rows]
 
 @router.post("/v1/admin/publish")
-def publish(body:PublishIn,token=Header(default=None,alias="X-Admin-Token")):
-    require_admin(token)
+def publish(body:PublishIn, principal: AdminPrincipal = Depends(require_admin_write)):
     with SessionLocal() as db:
         rows=db.scalars(select(ContentItem).where(ContentItem.enabled==True,ContentItem.status!="archived").order_by(ContentItem.kind,ContentItem.public_id)).all()
         today=datetime.now(timezone.utc).strftime("%Y.%m.%d")
@@ -172,18 +162,17 @@ def publish(body:PublishIn,token=Header(default=None,alias="X-Admin-Token")):
         db.query(ContentRelease).update({ContentRelease.active:False})
         db.add(ContentRelease(version=version,note=body.note,active=True,item_count=len(rows),snapshot=snapshot))
         for x in rows: x.status="published"
-        audit(db,"publish",data={"version":version,"count":len(rows)})
+        audit(db,"publish",data={"version":version,"count":len(rows)},principal=principal)
         db.commit()
         return {"version":version,"item_count":len(rows)}
 
 @router.post("/v1/admin/releases/{release_id}/activate")
-def activate_release(release_id:uuid.UUID,token=Header(default=None,alias="X-Admin-Token")):
-    require_admin(token)
+def activate_release(release_id:uuid.UUID, principal: AdminPrincipal = Depends(require_admin_write)):
     with SessionLocal() as db:
         rel=db.get(ContentRelease,release_id)
         if not rel: raise HTTPException(404,"Release not found")
         db.query(ContentRelease).update({ContentRelease.active:False}); rel.active=True
-        audit(db,"rollback",data={"version":rel.version}); db.commit(); return {"active":rel.version}
+        audit(db,"rollback",data={"version":rel.version},principal=principal); db.commit(); return {"active":rel.version}
 
 @router.get("/v1/content/manifest")
 def public_manifest():
