@@ -8,6 +8,10 @@ import kotlin.random.Random
 
 class KidsTriviaEngine(context: Context) {
 
+    init {
+        LiveContentRepository.initialize(context)
+    }
+
     enum class Category(val key: String) {
         ANIMALS("animals"),
         MOVIES("movies"),
@@ -466,7 +470,7 @@ class KidsTriviaEngine(context: Context) {
             answersEn, answersCs, explanationEn, explanationCs
         )
 
-        private val questions = listOf(
+        private val bundledQuestions = listOf(
             // Animals
             q("ka001",1,Category.ANIMALS,"Which animal says meow?","Které zvíře dělá mňau?",listOf("cat"),listOf("kocka","kočka"),"A cat meows.","Kočka dělá mňau."),
             q("ka002",1,Category.ANIMALS,"Which animal is known as man's best friend?","Kterému zvířeti se říká nejlepší přítel člověka?",listOf("dog"),listOf("pes"),"The dog is often called man's best friend.","Pes je často označován jako nejlepší přítel člověka."),
@@ -605,5 +609,9 @@ class KidsTriviaEngine(context: Context) {
             q("kl014",3,Category.LOGIC,"Which number is larger: 0.5 or 0.8?","Které číslo je větší: 0,5 nebo 0,8?",listOf("0.8","zero point eight"),listOf("0.8","0,8","nula cela osm"),"Zero point eight is larger.","Nula celá osm je větší."),
             q("kl015",3,Category.LOGIC,"If you double 15, what number do you get?","Když zdvojnásobíš 15, kolik dostaneš?",listOf("30","thirty"),listOf("30","tricet","třicet"),"Double fifteen is thirty.","Dvojnásobek patnácti je třicet.")
         )
+
+
+        private val questions: List<Question>
+            get() = LiveContentRepository.kidsGameQuestions().ifEmpty { bundledQuestions }
     }
 }
