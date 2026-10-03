@@ -29,6 +29,7 @@ object LiveContentRepository {
     private val kinds = listOf(
         "trivia",
         "kids_trivia",
+        "kids_game",
         "guess_who",
         "spelling_bee",
         "english_lesson",
@@ -46,6 +47,9 @@ object LiveContentRepository {
 
     @Volatile
     private var kidsTriviaCache: List<KidsTriviaQuestionBank.Question> = emptyList()
+
+    @Volatile
+    private var kidsGameCache: List<KidsTriviaEngine.Question> = emptyList()
 
     @Volatile
     private var guessWhoCache: List<GuessWhoEngine.Person> = emptyList()
@@ -131,6 +135,8 @@ object LiveContentRepository {
 
     fun kidsTriviaQuestions(): List<KidsTriviaQuestionBank.Question> = kidsTriviaCache
 
+    fun kidsGameQuestions(): List<KidsTriviaEngine.Question> = kidsGameCache
+
     fun guessWhoPeople(): List<GuessWhoEngine.Person> = guessWhoCache
 
     fun spellingWords(): List<SpellingBeeEngine.Word> = spellingCache
@@ -143,6 +149,7 @@ object LiveContentRepository {
 
         triviaCache = parseTrivia(prefs.getString(KEY_PREFIX + "trivia", null))
         kidsTriviaCache = parseKidsTrivia(prefs.getString(KEY_PREFIX + "kids_trivia", null))
+        kidsGameCache = parseKidsGame(prefs.getString(KEY_PREFIX + "kids_game", null))
         guessWhoCache = parseGuessWho(prefs.getString(KEY_PREFIX + "guess_who", null))
         spellingCache = parseSpelling(prefs.getString(KEY_PREFIX + "spelling_bee", null))
         englishCache = parseEnglish(prefs.getString(KEY_PREFIX + "english_lesson", null))
@@ -152,7 +159,8 @@ object LiveContentRepository {
             "CONTENT_CACHE_LOADED",
             "v=" + (currentVersion() ?: "bundled") +
                 " trivia=" + triviaCache.size +
-                " kids=" + kidsTriviaCache.size +
+                " kidsCz=" + kidsTriviaCache.size +
+                " kidsGame=" + kidsGameCache.size +
                 " guess=" + guessWhoCache.size +
                 " spelling=" + spellingCache.size +
                 " english=" + englishCache.size
@@ -232,6 +240,37 @@ object LiveContentRepository {
                     prompt = data.getString("prompt"),
                     answers = data.getJSONArray("answers").toStringList(),
                     explanation = data.optString("explanation")
+                )
+            }
+        }
+        return result
+    }
+
+    private fun parseKidsGame(raw: String?): List<KidsTriviaEngine.Question> {
+        val items = items(raw) ?: return emptyList()
+        val result = ArrayList<KidsTriviaEngine.Question>(items.length())
+        for (i in 0 until items.length()) {
+            runCatching {
+                val wrapper = items.getJSONObject(i)
+                val data = wrapper.optJSONObject("data") ?: wrapper
+                val localized = data.getJSONObject("localized")
+                val en = localized.getJSONObject("en")
+                val cs = localized.getJSONObject("cs")
+                val categoryKey = wrapper.optString("category", data.optString("category"))
+                val category = KidsTriviaEngine.Category.entries.firstOrNull {
+                    it.key.equals(categoryKey, ignoreCase = true)
+                } ?: return@runCatching
+
+                result += KidsTriviaEngine.Question(
+                    id = wrapper.optString("id", data.getString("id")),
+                    difficulty = wrapper.optInt("difficulty", data.optInt("difficulty", 1)),
+                    category = category,
+                    promptEn = en.getString("prompt"),
+                    promptCs = cs.getString("prompt"),
+                    answersEn = en.getJSONArray("answers").toStringList(),
+                    answersCs = cs.getJSONArray("answers").toStringList(),
+                    explanationEn = en.optString("explanation"),
+                    explanationCs = cs.optString("explanation")
                 )
             }
         }
