@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedFrom": "Android Lone Rider content 2026-10-01",
+  "generatedFrom": "Android Lone Rider content incl. bilingual Kids Trivia 2026-10-03",
   "items": [
     {
       "public_id": "geo001",
@@ -14271,6 +14271,3639 @@
           "school",
           "czechia"
         ]
+      }
+    },
+    {
+      "public_id": "ka001",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ka001",
+        "difficulty": 1,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which animal says meow?",
+            "answers": [
+              "cat"
+            ],
+            "explanation": "A cat meows."
+          },
+          "cs": {
+            "prompt": "Které zvíře dělá mňau?",
+            "answers": [
+              "kocka",
+              "kočka"
+            ],
+            "explanation": "Kočka dělá mňau."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka002",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ka002",
+        "difficulty": 1,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which animal is known as man's best friend?",
+            "answers": [
+              "dog"
+            ],
+            "explanation": "The dog is often called man's best friend."
+          },
+          "cs": {
+            "prompt": "Kterému zvířeti se říká nejlepší přítel člověka?",
+            "answers": [
+              "pes"
+            ],
+            "explanation": "Pes je často označován jako nejlepší přítel člověka."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka003",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ka003",
+        "difficulty": 1,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which animal has a very long neck?",
+            "answers": [
+              "giraffe"
+            ],
+            "explanation": "A giraffe has a very long neck."
+          },
+          "cs": {
+            "prompt": "Které zvíře má velmi dlouhý krk?",
+            "answers": [
+              "zirafa",
+              "žirafa"
+            ],
+            "explanation": "Žirafa má velmi dlouhý krk."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka004",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ka004",
+        "difficulty": 1,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which animal has black and white stripes?",
+            "answers": [
+              "zebra"
+            ],
+            "explanation": "A zebra has black and white stripes."
+          },
+          "cs": {
+            "prompt": "Které zvíře má černobílé pruhy?",
+            "answers": [
+              "zebra"
+            ],
+            "explanation": "Zebra má černobílé pruhy."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka005",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ka005",
+        "difficulty": 1,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which animal carries its baby in a pouch?",
+            "answers": [
+              "kangaroo"
+            ],
+            "explanation": "A kangaroo carries its young in a pouch."
+          },
+          "cs": {
+            "prompt": "Které zvíře nosí mládě ve vaku?",
+            "answers": [
+              "klokan"
+            ],
+            "explanation": "Klokan nosí mládě ve vaku."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka006",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ka006",
+        "difficulty": 1,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which bird cannot fly and lives in Antarctica?",
+            "answers": [
+              "penguin"
+            ],
+            "explanation": "Penguins cannot fly and many live in Antarctica."
+          },
+          "cs": {
+            "prompt": "Který pták neumí létat a žije v Antarktidě?",
+            "answers": [
+              "tucnak",
+              "tučňák"
+            ],
+            "explanation": "Tučňáci neumí létat a mnoho z nich žije v Antarktidě."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka007",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ka007",
+        "difficulty": 1,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "What is the largest land animal?",
+            "answers": [
+              "elephant",
+              "african elephant"
+            ],
+            "explanation": "The African elephant is the largest land animal."
+          },
+          "cs": {
+            "prompt": "Jaké je největší suchozemské zvíře?",
+            "answers": [
+              "slon",
+              "slon africky",
+              "slon africký"
+            ],
+            "explanation": "Slon africký je největší suchozemské zvíře."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka008",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ka008",
+        "difficulty": 1,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which animal is famous for changing color to blend in?",
+            "answers": [
+              "chameleon"
+            ],
+            "explanation": "A chameleon can change its colors."
+          },
+          "cs": {
+            "prompt": "Které zvíře je známé tím, že mění barvu a splývá s okolím?",
+            "answers": [
+              "chameleon"
+            ],
+            "explanation": "Chameleon umí měnit své zbarvení."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka009",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ka009",
+        "difficulty": 1,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "How many legs does a spider have?",
+            "answers": [
+              "8",
+              "eight"
+            ],
+            "explanation": "A spider has eight legs."
+          },
+          "cs": {
+            "prompt": "Kolik nohou má pavouk?",
+            "answers": [
+              "8",
+              "osm"
+            ],
+            "explanation": "Pavouk má osm nohou."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka010",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ka010",
+        "difficulty": 1,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which sea animal has eight arms?",
+            "answers": [
+              "octopus"
+            ],
+            "explanation": "An octopus has eight arms."
+          },
+          "cs": {
+            "prompt": "Který mořský živočich má osm ramen?",
+            "answers": [
+              "chobotnice"
+            ],
+            "explanation": "Chobotnice má osm ramen."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka011",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ka011",
+        "difficulty": 2,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which mammal can truly fly?",
+            "answers": [
+              "bat"
+            ],
+            "explanation": "Bats are mammals capable of true flight."
+          },
+          "cs": {
+            "prompt": "Který savec umí skutečně létat?",
+            "answers": [
+              "netopyr",
+              "netopýr"
+            ],
+            "explanation": "Netopýři jsou savci schopní skutečného letu."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka012",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ka012",
+        "difficulty": 2,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "What do pandas mainly eat?",
+            "answers": [
+              "bamboo"
+            ],
+            "explanation": "Giant pandas mainly eat bamboo."
+          },
+          "cs": {
+            "prompt": "Co převážně jedí pandy?",
+            "answers": [
+              "bambus"
+            ],
+            "explanation": "Pandy velké se živí hlavně bambusem."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka013",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ka013",
+        "difficulty": 2,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which animal is the fastest on land?",
+            "answers": [
+              "cheetah"
+            ],
+            "explanation": "The cheetah is the fastest land animal."
+          },
+          "cs": {
+            "prompt": "Které zvíře je nejrychlejší na souši?",
+            "answers": [
+              "gepard"
+            ],
+            "explanation": "Gepard je nejrychlejší suchozemské zvíře."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka014",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ka014",
+        "difficulty": 2,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "What is a baby frog called?",
+            "answers": [
+              "tadpole"
+            ],
+            "explanation": "A young frog before adulthood is a tadpole."
+          },
+          "cs": {
+            "prompt": "Jak se anglicky říká larvě žáby?",
+            "answers": [
+              "pulec"
+            ],
+            "explanation": "Larva žáby se česky nazývá pulec."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka015",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ka015",
+        "difficulty": 2,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which animal builds dams in rivers?",
+            "answers": [
+              "beaver"
+            ],
+            "explanation": "Beavers build dams."
+          },
+          "cs": {
+            "prompt": "Které zvíře staví hráze v řekách?",
+            "answers": [
+              "bobr"
+            ],
+            "explanation": "Bobři staví hráze."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka016",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ka016",
+        "difficulty": 2,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which animal has a shell and can pull its head inside?",
+            "answers": [
+              "turtle",
+              "tortoise"
+            ],
+            "explanation": "Turtles and tortoises have protective shells."
+          },
+          "cs": {
+            "prompt": "Které zvíře má krunýř a může do něj schovat hlavu?",
+            "answers": [
+              "zelva",
+              "želva"
+            ],
+            "explanation": "Želvy mají ochranný krunýř."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka017",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ka017",
+        "difficulty": 2,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "What is the largest animal on Earth?",
+            "answers": [
+              "blue whale"
+            ],
+            "explanation": "The blue whale is the largest known animal."
+          },
+          "cs": {
+            "prompt": "Jaké je největší zvíře na Zemi?",
+            "answers": [
+              "plejtvak obrovsky",
+              "plejtvák obrovský"
+            ],
+            "explanation": "Plejtvák obrovský je největší známé zvíře."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka018",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ka018",
+        "difficulty": 2,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which animal sleeps hanging upside down?",
+            "answers": [
+              "bat"
+            ],
+            "explanation": "Many bats roost upside down."
+          },
+          "cs": {
+            "prompt": "Které zvíře často spí zavěšené hlavou dolů?",
+            "answers": [
+              "netopyr",
+              "netopýr"
+            ],
+            "explanation": "Mnoho netopýrů odpočívá hlavou dolů."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka019",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "ka019",
+        "difficulty": 3,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "What type of animal is an axolotl?",
+            "answers": [
+              "salamander",
+              "amphibian"
+            ],
+            "explanation": "An axolotl is a salamander and an amphibian."
+          },
+          "cs": {
+            "prompt": "Jaký druh živočicha je axolotl?",
+            "answers": [
+              "mlok",
+              "obojzivelnik",
+              "obojživelník"
+            ],
+            "explanation": "Axolotl je mlok a obojživelník."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ka020",
+      "kind": "kids_game",
+      "category": "animals",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "ka020",
+        "difficulty": 3,
+        "category": "animals",
+        "localized": {
+          "en": {
+            "prompt": "Which bird is famous for copying human speech?",
+            "answers": [
+              "parrot"
+            ],
+            "explanation": "Parrots are famous for mimicking sounds and speech."
+          },
+          "cs": {
+            "prompt": "Který pták je známý napodobováním lidské řeči?",
+            "answers": [
+              "papousek",
+              "papoušek"
+            ],
+            "explanation": "Papoušci jsou známí napodobováním zvuků a řeči."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km001",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "km001",
+        "difficulty": 1,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "What is the name of the snowman in Frozen?",
+            "answers": [
+              "olaf"
+            ],
+            "explanation": "The snowman's name is Olaf."
+          },
+          "cs": {
+            "prompt": "Jak se jmenuje sněhulák z Ledového království?",
+            "answers": [
+              "olaf"
+            ],
+            "explanation": "Sněhulák se jmenuje Olaf."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km002",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "km002",
+        "difficulty": 1,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "Who is Simba's father in The Lion King?",
+            "answers": [
+              "mufasa"
+            ],
+            "explanation": "Simba's father is Mufasa."
+          },
+          "cs": {
+            "prompt": "Jak se jmenuje Simbův otec ve Lvím králi?",
+            "answers": [
+              "mufasa"
+            ],
+            "explanation": "Simbův otec je Mufasa."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km003",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "km003",
+        "difficulty": 1,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "What kind of fish is Nemo?",
+            "answers": [
+              "clownfish",
+              "clown fish"
+            ],
+            "explanation": "Nemo is a clownfish."
+          },
+          "cs": {
+            "prompt": "Jaký druh ryby je Nemo?",
+            "answers": [
+              "klaun ocellaris",
+              "klaun",
+              "klauni ryba"
+            ],
+            "explanation": "Nemo je klaun očkatý."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km004",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "km004",
+        "difficulty": 1,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "What is the name of the cowboy toy in Toy Story?",
+            "answers": [
+              "woody"
+            ],
+            "explanation": "The cowboy is Woody."
+          },
+          "cs": {
+            "prompt": "Jak se jmenuje kovbojská hračka v Toy Story?",
+            "answers": [
+              "woody"
+            ],
+            "explanation": "Kovboj se jmenuje Woody."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km005",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "km005",
+        "difficulty": 1,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "What is the name of the space ranger in Toy Story?",
+            "answers": [
+              "buzz lightyear",
+              "buzz"
+            ],
+            "explanation": "The space ranger is Buzz Lightyear."
+          },
+          "cs": {
+            "prompt": "Jak se jmenuje vesmírný ranger v Toy Story?",
+            "answers": [
+              "buzz raketak",
+              "buzz lightyear",
+              "buzz"
+            ],
+            "explanation": "Vesmírný ranger je Buzz Rakeťák."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km006",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "km006",
+        "difficulty": 1,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "Which superhero uses a shield with a star?",
+            "answers": [
+              "captain america"
+            ],
+            "explanation": "Captain America carries the star shield."
+          },
+          "cs": {
+            "prompt": "Který superhrdina používá štít s hvězdou?",
+            "answers": [
+              "captain america",
+              "kapitan amerika"
+            ],
+            "explanation": "Štít s hvězdou používá Captain America."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km007",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "km007",
+        "difficulty": 1,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "What is the name of Harry Potter's school?",
+            "answers": [
+              "hogwarts"
+            ],
+            "explanation": "Harry attends Hogwarts."
+          },
+          "cs": {
+            "prompt": "Jak se jmenuje škola Harryho Pottera?",
+            "answers": [
+              "bradavice",
+              "hogwarts"
+            ],
+            "explanation": "Harry chodí do Bradavic."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km008",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "km008",
+        "difficulty": 1,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "Which character lives in a pineapple under the sea?",
+            "answers": [
+              "spongebob",
+              "spongebob squarepants"
+            ],
+            "explanation": "SpongeBob lives in a pineapple under the sea."
+          },
+          "cs": {
+            "prompt": "Která postava žije v ananasu pod mořem?",
+            "answers": [
+              "spongebob",
+              "spongebob v kalhotach"
+            ],
+            "explanation": "SpongeBob žije v ananasu pod mořem."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km009",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "km009",
+        "difficulty": 1,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "What color is Lightning McQueen?",
+            "answers": [
+              "red"
+            ],
+            "explanation": "Lightning McQueen is red."
+          },
+          "cs": {
+            "prompt": "Jakou barvu má Blesk McQueen?",
+            "answers": [
+              "cervena",
+              "červená"
+            ],
+            "explanation": "Blesk McQueen je červený."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km010",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "km010",
+        "difficulty": 1,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "What is the name of the green ogre in Shrek?",
+            "answers": [
+              "shrek"
+            ],
+            "explanation": "The green ogre is Shrek."
+          },
+          "cs": {
+            "prompt": "Jak se jmenuje zelený zlobr ve filmu Shrek?",
+            "answers": [
+              "shrek"
+            ],
+            "explanation": "Zelený zlobr se jmenuje Shrek."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km011",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "km011",
+        "difficulty": 2,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "Who plays Iron Man in the Marvel movies?",
+            "answers": [
+              "robert downey junior",
+              "robert downey jr"
+            ],
+            "explanation": "Robert Downey Jr. plays Iron Man."
+          },
+          "cs": {
+            "prompt": "Který herec hraje Iron Mana ve filmech Marvel?",
+            "answers": [
+              "robert downey junior",
+              "robert downey jr"
+            ],
+            "explanation": "Iron Mana hraje Robert Downey Jr."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km012",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "km012",
+        "difficulty": 2,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "Who plays Jack Sparrow in Pirates of the Caribbean?",
+            "answers": [
+              "johnny depp"
+            ],
+            "explanation": "Johnny Depp plays Jack Sparrow."
+          },
+          "cs": {
+            "prompt": "Který herec hraje Jacka Sparrowa v Pirátech z Karibiku?",
+            "answers": [
+              "johnny depp"
+            ],
+            "explanation": "Jacka Sparrowa hraje Johnny Depp."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km013",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "km013",
+        "difficulty": 2,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "What is Darth Vader's relationship to Luke Skywalker?",
+            "answers": [
+              "father",
+              "his father"
+            ],
+            "explanation": "Darth Vader is Luke's father."
+          },
+          "cs": {
+            "prompt": "Jaký vztah má Darth Vader k Luku Skywalkerovi?",
+            "answers": [
+              "otec",
+              "jeho otec"
+            ],
+            "explanation": "Darth Vader je Lukův otec."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km014",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "km014",
+        "difficulty": 2,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "What type of animal is Po in Kung Fu Panda?",
+            "answers": [
+              "panda"
+            ],
+            "explanation": "Po is a giant panda."
+          },
+          "cs": {
+            "prompt": "Jaké zvíře je Po z Kung Fu Pandy?",
+            "answers": [
+              "panda"
+            ],
+            "explanation": "Po je panda velká."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km015",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "km015",
+        "difficulty": 2,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "Which actor plays Spider-Man in the Marvel Cinematic Universe movies such as Homecoming?",
+            "answers": [
+              "tom holland"
+            ],
+            "explanation": "Tom Holland plays Spider-Man in those films."
+          },
+          "cs": {
+            "prompt": "Který herec hraje Spider-Mana ve filmech Marvel jako Homecoming?",
+            "answers": [
+              "tom holland"
+            ],
+            "explanation": "V těchto filmech hraje Spider-Mana Tom Holland."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km016",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "km016",
+        "difficulty": 2,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "What is the name of the dragon in How to Train Your Dragon?",
+            "answers": [
+              "toothless"
+            ],
+            "explanation": "The dragon is Toothless."
+          },
+          "cs": {
+            "prompt": "Jak se jmenuje drak v Jak vycvičit draka?",
+            "answers": [
+              "bezzubka"
+            ],
+            "explanation": "Drak se jmenuje Bezzubka."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km017",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "km017",
+        "difficulty": 2,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "Which actor plays Willy Wonka in the 2005 movie Charlie and the Chocolate Factory?",
+            "answers": [
+              "johnny depp"
+            ],
+            "explanation": "Johnny Depp plays Willy Wonka in that film."
+          },
+          "cs": {
+            "prompt": "Který herec hraje Willyho Wonku ve filmu Karlík a továrna na čokoládu z roku 2005?",
+            "answers": [
+              "johnny depp"
+            ],
+            "explanation": "Willyho Wonku v tomto filmu hraje Johnny Depp."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km018",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "km018",
+        "difficulty": 3,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "Who directed Jurassic Park?",
+            "answers": [
+              "steven spielberg"
+            ],
+            "explanation": "Steven Spielberg directed Jurassic Park."
+          },
+          "cs": {
+            "prompt": "Kdo režíroval Jurský park?",
+            "answers": [
+              "steven spielberg"
+            ],
+            "explanation": "Jurský park režíroval Steven Spielberg."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km019",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "km019",
+        "difficulty": 3,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "Who directed the first Home Alone movie?",
+            "answers": [
+              "chris columbus"
+            ],
+            "explanation": "Chris Columbus directed the first Home Alone."
+          },
+          "cs": {
+            "prompt": "Kdo režíroval první film Sám doma?",
+            "answers": [
+              "chris columbus"
+            ],
+            "explanation": "První film Sám doma režíroval Chris Columbus."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "km020",
+      "kind": "kids_game",
+      "category": "movies",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "km020",
+        "difficulty": 3,
+        "category": "movies",
+        "localized": {
+          "en": {
+            "prompt": "Who voices Woody in the original English Toy Story movies?",
+            "answers": [
+              "tom hanks"
+            ],
+            "explanation": "Tom Hanks voices Woody."
+          },
+          "cs": {
+            "prompt": "Který herec namluvil Woodyho v původním anglickém znění Toy Story?",
+            "answers": [
+              "tom hanks"
+            ],
+            "explanation": "Woodyho v angličtině namluvil Tom Hanks."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc001",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kc001",
+        "difficulty": 1,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "How many wheels does a normal car usually have?",
+            "answers": [
+              "4",
+              "four"
+            ],
+            "explanation": "A normal car has four wheels."
+          },
+          "cs": {
+            "prompt": "Kolik kol má běžné auto?",
+            "answers": [
+              "4",
+              "ctyri",
+              "čtyři"
+            ],
+            "explanation": "Běžné auto má čtyři kola."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc002",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kc002",
+        "difficulty": 1,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which part of a car do you turn to steer?",
+            "answers": [
+              "steering wheel"
+            ],
+            "explanation": "You steer with the steering wheel."
+          },
+          "cs": {
+            "prompt": "Čím v autě otáčíš, když chceš zatáčet?",
+            "answers": [
+              "volant"
+            ],
+            "explanation": "Auto řídíš volantem."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc003",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kc003",
+        "difficulty": 1,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "What color usually means stop at a traffic light?",
+            "answers": [
+              "red"
+            ],
+            "explanation": "Red means stop."
+          },
+          "cs": {
+            "prompt": "Která barva na semaforu znamená stůj?",
+            "answers": [
+              "cervena",
+              "červená"
+            ],
+            "explanation": "Červená znamená stůj."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc004",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kc004",
+        "difficulty": 1,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which vehicle travels on rails?",
+            "answers": [
+              "train",
+              "tram"
+            ],
+            "explanation": "Trains and trams travel on rails."
+          },
+          "cs": {
+            "prompt": "Které vozidlo jezdí po kolejích?",
+            "answers": [
+              "vlak",
+              "tramvaj"
+            ],
+            "explanation": "Po kolejích jezdí vlak nebo tramvaj."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc005",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kc005",
+        "difficulty": 1,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which vehicle flies in the sky and has wings?",
+            "answers": [
+              "airplane",
+              "plane"
+            ],
+            "explanation": "An airplane has wings and flies."
+          },
+          "cs": {
+            "prompt": "Který dopravní prostředek létá na obloze a má křídla?",
+            "answers": [
+              "letadlo"
+            ],
+            "explanation": "Letadlo má křídla a létá."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc006",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kc006",
+        "difficulty": 1,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which car brand uses a star with three points as its logo?",
+            "answers": [
+              "mercedes",
+              "mercedes benz"
+            ],
+            "explanation": "Mercedes-Benz uses the three-pointed star."
+          },
+          "cs": {
+            "prompt": "Která automobilka má ve znaku třícípou hvězdu?",
+            "answers": [
+              "mercedes",
+              "mercedes benz"
+            ],
+            "explanation": "Mercedes-Benz používá třícípou hvězdu."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc007",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kc007",
+        "difficulty": 1,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which car brand has four rings in its logo?",
+            "answers": [
+              "audi"
+            ],
+            "explanation": "Audi uses four rings."
+          },
+          "cs": {
+            "prompt": "Která automobilka má ve znaku čtyři kruhy?",
+            "answers": [
+              "audi"
+            ],
+            "explanation": "Audi má ve znaku čtyři kruhy."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc008",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kc008",
+        "difficulty": 1,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which car brand makes the Model 3?",
+            "answers": [
+              "tesla"
+            ],
+            "explanation": "Tesla makes the Model 3."
+          },
+          "cs": {
+            "prompt": "Která automobilka vyrábí Model 3?",
+            "answers": [
+              "tesla"
+            ],
+            "explanation": "Model 3 vyrábí Tesla."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc009",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kc009",
+        "difficulty": 2,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which car brand makes the 911 sports car?",
+            "answers": [
+              "porsche"
+            ],
+            "explanation": "Porsche makes the 911."
+          },
+          "cs": {
+            "prompt": "Která automobilka vyrábí sportovní model 911?",
+            "answers": [
+              "porsche"
+            ],
+            "explanation": "Model 911 vyrábí Porsche."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc010",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kc010",
+        "difficulty": 2,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which car brand uses a prancing horse as its symbol?",
+            "answers": [
+              "ferrari"
+            ],
+            "explanation": "Ferrari uses the prancing horse."
+          },
+          "cs": {
+            "prompt": "Která automobilka má ve znaku vzpínajícího se koně?",
+            "answers": [
+              "ferrari"
+            ],
+            "explanation": "Ferrari používá znak vzpínajícího se koně."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc011",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kc011",
+        "difficulty": 2,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which is usually faster: a bicycle or a Formula One car?",
+            "answers": [
+              "formula one car",
+              "formula one",
+              "f1 car"
+            ],
+            "explanation": "A Formula One car is much faster."
+          },
+          "cs": {
+            "prompt": "Co je obvykle rychlejší: jízdní kolo, nebo Formule 1?",
+            "answers": [
+              "formule 1",
+              "formule",
+              "f1"
+            ],
+            "explanation": "Formule 1 je mnohem rychlejší."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc012",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kc012",
+        "difficulty": 2,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "What powers a battery electric car?",
+            "answers": [
+              "electricity",
+              "battery",
+              "electric motor"
+            ],
+            "explanation": "An electric car uses electricity stored in a battery."
+          },
+          "cs": {
+            "prompt": "Co pohání bateriový elektromobil?",
+            "answers": [
+              "elektrina",
+              "baterie",
+              "elektromotor"
+            ],
+            "explanation": "Elektromobil využívá elektřinu uloženou v baterii."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc013",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kc013",
+        "difficulty": 2,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which pedal usually makes a car slow down?",
+            "answers": [
+              "brake",
+              "brake pedal"
+            ],
+            "explanation": "The brake pedal slows the car."
+          },
+          "cs": {
+            "prompt": "Který pedál auto obvykle zpomaluje?",
+            "answers": [
+              "brzda",
+              "brzdovy pedal",
+              "brzdový pedál"
+            ],
+            "explanation": "Auto zpomaluje brzdový pedál."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc014",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kc014",
+        "difficulty": 3,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "What does AWD mean on a car?",
+            "answers": [
+              "all wheel drive",
+              "all-wheel drive"
+            ],
+            "explanation": "AWD means all-wheel drive."
+          },
+          "cs": {
+            "prompt": "Co znamená u auta zkratka AWD?",
+            "answers": [
+              "pohon vsech kol",
+              "pohon všech kol",
+              "all wheel drive"
+            ],
+            "explanation": "AWD znamená pohon všech kol."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kc015",
+      "kind": "kids_game",
+      "category": "cars",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kc015",
+        "difficulty": 3,
+        "category": "cars",
+        "localized": {
+          "en": {
+            "prompt": "Which is better for carrying many people: a two-seat sports car or a minivan?",
+            "answers": [
+              "minivan",
+              "van"
+            ],
+            "explanation": "A minivan has more passenger space."
+          },
+          "cs": {
+            "prompt": "Co je lepší pro převoz více lidí: dvoumístné sportovní auto, nebo minivan?",
+            "answers": [
+              "minivan",
+              "dodavka",
+              "dodávka"
+            ],
+            "explanation": "Minivan má více místa pro cestující."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ks001",
+      "kind": "kids_game",
+      "category": "space",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ks001",
+        "difficulty": 1,
+        "category": "space",
+        "localized": {
+          "en": {
+            "prompt": "What planet do we live on?",
+            "answers": [
+              "earth"
+            ],
+            "explanation": "We live on Earth."
+          },
+          "cs": {
+            "prompt": "Na které planetě žijeme?",
+            "answers": [
+              "zeme",
+              "země"
+            ],
+            "explanation": "Žijeme na Zemi."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ks002",
+      "kind": "kids_game",
+      "category": "space",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ks002",
+        "difficulty": 1,
+        "category": "space",
+        "localized": {
+          "en": {
+            "prompt": "What is the name of Earth's natural satellite?",
+            "answers": [
+              "moon"
+            ],
+            "explanation": "Earth's natural satellite is the Moon."
+          },
+          "cs": {
+            "prompt": "Jak se jmenuje přirozená družice Země?",
+            "answers": [
+              "mesic",
+              "měsíc"
+            ],
+            "explanation": "Přirozenou družicí Země je Měsíc."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ks003",
+      "kind": "kids_game",
+      "category": "space",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ks003",
+        "difficulty": 1,
+        "category": "space",
+        "localized": {
+          "en": {
+            "prompt": "Which star gives Earth light and heat?",
+            "answers": [
+              "sun"
+            ],
+            "explanation": "The Sun gives Earth light and heat."
+          },
+          "cs": {
+            "prompt": "Která hvězda dává Zemi světlo a teplo?",
+            "answers": [
+              "slunce"
+            ],
+            "explanation": "Slunce dává Zemi světlo a teplo."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ks004",
+      "kind": "kids_game",
+      "category": "space",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ks004",
+        "difficulty": 1,
+        "category": "space",
+        "localized": {
+          "en": {
+            "prompt": "Which planet is known as the Red Planet?",
+            "answers": [
+              "mars"
+            ],
+            "explanation": "Mars is called the Red Planet."
+          },
+          "cs": {
+            "prompt": "Které planetě se říká Rudá planeta?",
+            "answers": [
+              "mars"
+            ],
+            "explanation": "Mars se nazývá Rudá planeta."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ks005",
+      "kind": "kids_game",
+      "category": "space",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "ks005",
+        "difficulty": 1,
+        "category": "space",
+        "localized": {
+          "en": {
+            "prompt": "Which planet has famous rings?",
+            "answers": [
+              "saturn"
+            ],
+            "explanation": "Saturn is famous for its rings."
+          },
+          "cs": {
+            "prompt": "Která planeta je známá svými prstenci?",
+            "answers": [
+              "saturn"
+            ],
+            "explanation": "Saturn je známý svými prstenci."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ks006",
+      "kind": "kids_game",
+      "category": "space",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ks006",
+        "difficulty": 2,
+        "category": "space",
+        "localized": {
+          "en": {
+            "prompt": "What is the largest planet in our solar system?",
+            "answers": [
+              "jupiter"
+            ],
+            "explanation": "Jupiter is the largest planet."
+          },
+          "cs": {
+            "prompt": "Která planeta je největší ve Sluneční soustavě?",
+            "answers": [
+              "jupiter"
+            ],
+            "explanation": "Jupiter je největší planeta."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ks007",
+      "kind": "kids_game",
+      "category": "space",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ks007",
+        "difficulty": 2,
+        "category": "space",
+        "localized": {
+          "en": {
+            "prompt": "What do astronauts wear outside a spacecraft?",
+            "answers": [
+              "spacesuit",
+              "space suit"
+            ],
+            "explanation": "Astronauts wear spacesuits."
+          },
+          "cs": {
+            "prompt": "Co mají astronauti na sobě mimo kosmickou loď?",
+            "answers": [
+              "skafandr"
+            ],
+            "explanation": "Astronauti nosí skafandry."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ks008",
+      "kind": "kids_game",
+      "category": "space",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ks008",
+        "difficulty": 2,
+        "category": "space",
+        "localized": {
+          "en": {
+            "prompt": "What is a group of billions of stars called?",
+            "answers": [
+              "galaxy"
+            ],
+            "explanation": "A galaxy contains huge numbers of stars."
+          },
+          "cs": {
+            "prompt": "Jak se nazývá obrovská skupina miliard hvězd?",
+            "answers": [
+              "galaxie"
+            ],
+            "explanation": "Galaxie obsahuje obrovské množství hvězd."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ks009",
+      "kind": "kids_game",
+      "category": "space",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "ks009",
+        "difficulty": 2,
+        "category": "space",
+        "localized": {
+          "en": {
+            "prompt": "What is the name of our galaxy?",
+            "answers": [
+              "milky way"
+            ],
+            "explanation": "Our galaxy is the Milky Way."
+          },
+          "cs": {
+            "prompt": "Jak se jmenuje naše galaxie?",
+            "answers": [
+              "mlecna draha",
+              "mléčná dráha"
+            ],
+            "explanation": "Naše galaxie se jmenuje Mléčná dráha."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "ks010",
+      "kind": "kids_game",
+      "category": "space",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "ks010",
+        "difficulty": 3,
+        "category": "space",
+        "localized": {
+          "en": {
+            "prompt": "What force keeps planets in orbit around the Sun?",
+            "answers": [
+              "gravity"
+            ],
+            "explanation": "Gravity keeps planets in orbit."
+          },
+          "cs": {
+            "prompt": "Jaká síla udržuje planety na oběžných drahách kolem Slunce?",
+            "answers": [
+              "gravitace"
+            ],
+            "explanation": "Planety drží na oběžných drahách gravitace."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kn001",
+      "kind": "kids_game",
+      "category": "nature",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kn001",
+        "difficulty": 1,
+        "category": "nature",
+        "localized": {
+          "en": {
+            "prompt": "What do plants need from the Sun to grow?",
+            "answers": [
+              "light",
+              "sunlight"
+            ],
+            "explanation": "Plants use sunlight for photosynthesis."
+          },
+          "cs": {
+            "prompt": "Co rostliny potřebují ze Slunce k růstu?",
+            "answers": [
+              "svetlo",
+              "slunecni svetlo",
+              "světlo"
+            ],
+            "explanation": "Rostliny používají sluneční světlo při fotosyntéze."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kn002",
+      "kind": "kids_game",
+      "category": "nature",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kn002",
+        "difficulty": 1,
+        "category": "nature",
+        "localized": {
+          "en": {
+            "prompt": "What falls from clouds when it rains?",
+            "answers": [
+              "water",
+              "rain"
+            ],
+            "explanation": "Rain is water falling from clouds."
+          },
+          "cs": {
+            "prompt": "Co padá z mraků, když prší?",
+            "answers": [
+              "voda",
+              "dest",
+              "déšť"
+            ],
+            "explanation": "Déšť je voda padající z mraků."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kn003",
+      "kind": "kids_game",
+      "category": "nature",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kn003",
+        "difficulty": 1,
+        "category": "nature",
+        "localized": {
+          "en": {
+            "prompt": "What season comes after spring?",
+            "answers": [
+              "summer"
+            ],
+            "explanation": "Summer comes after spring."
+          },
+          "cs": {
+            "prompt": "Které roční období přichází po jaru?",
+            "answers": [
+              "leto",
+              "léto"
+            ],
+            "explanation": "Po jaru přichází léto."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kn004",
+      "kind": "kids_game",
+      "category": "nature",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kn004",
+        "difficulty": 1,
+        "category": "nature",
+        "localized": {
+          "en": {
+            "prompt": "What season is usually the coldest?",
+            "answers": [
+              "winter"
+            ],
+            "explanation": "Winter is usually the coldest season."
+          },
+          "cs": {
+            "prompt": "Které roční období bývá nejchladnější?",
+            "answers": [
+              "zima"
+            ],
+            "explanation": "Zima bývá nejchladnější období."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kn005",
+      "kind": "kids_game",
+      "category": "nature",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kn005",
+        "difficulty": 1,
+        "category": "nature",
+        "localized": {
+          "en": {
+            "prompt": "What is frozen water called?",
+            "answers": [
+              "ice"
+            ],
+            "explanation": "Frozen water is ice."
+          },
+          "cs": {
+            "prompt": "Jak se nazývá zmrzlá voda?",
+            "answers": [
+              "led"
+            ],
+            "explanation": "Zmrzlá voda je led."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kn006",
+      "kind": "kids_game",
+      "category": "nature",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kn006",
+        "difficulty": 2,
+        "category": "nature",
+        "localized": {
+          "en": {
+            "prompt": "What gas do plants take from the air?",
+            "answers": [
+              "carbon dioxide",
+              "co2"
+            ],
+            "explanation": "Plants take in carbon dioxide."
+          },
+          "cs": {
+            "prompt": "Který plyn rostliny přijímají ze vzduchu?",
+            "answers": [
+              "oxid uhlicity",
+              "oxid uhličitý",
+              "co2"
+            ],
+            "explanation": "Rostliny přijímají oxid uhličitý."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kn007",
+      "kind": "kids_game",
+      "category": "nature",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kn007",
+        "difficulty": 2,
+        "category": "nature",
+        "localized": {
+          "en": {
+            "prompt": "What is water called when it turns into gas?",
+            "answers": [
+              "water vapor",
+              "water vapour",
+              "vapor"
+            ],
+            "explanation": "Water as a gas is water vapor."
+          },
+          "cs": {
+            "prompt": "Jak se nazývá voda v plynném stavu?",
+            "answers": [
+              "vodni para",
+              "vodní pára",
+              "para"
+            ],
+            "explanation": "Voda v plynném stavu je vodní pára."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kn008",
+      "kind": "kids_game",
+      "category": "nature",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kn008",
+        "difficulty": 2,
+        "category": "nature",
+        "localized": {
+          "en": {
+            "prompt": "What part of a plant usually grows underground?",
+            "answers": [
+              "root",
+              "roots"
+            ],
+            "explanation": "Roots usually grow underground."
+          },
+          "cs": {
+            "prompt": "Která část rostliny obvykle roste pod zemí?",
+            "answers": [
+              "koren",
+              "kořen",
+              "koreny",
+              "kořeny"
+            ],
+            "explanation": "Kořeny obvykle rostou pod zemí."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kn009",
+      "kind": "kids_game",
+      "category": "nature",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kn009",
+        "difficulty": 2,
+        "category": "nature",
+        "localized": {
+          "en": {
+            "prompt": "What do bees collect from flowers to help make honey?",
+            "answers": [
+              "nectar"
+            ],
+            "explanation": "Bees collect nectar from flowers."
+          },
+          "cs": {
+            "prompt": "Co včely sbírají z květů, aby mohly vyrábět med?",
+            "answers": [
+              "nektar"
+            ],
+            "explanation": "Včely sbírají z květů nektar."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kn010",
+      "kind": "kids_game",
+      "category": "nature",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kn010",
+        "difficulty": 3,
+        "category": "nature",
+        "localized": {
+          "en": {
+            "prompt": "What process lets plants use light to make food?",
+            "answers": [
+              "photosynthesis"
+            ],
+            "explanation": "The process is photosynthesis."
+          },
+          "cs": {
+            "prompt": "Jak se nazývá proces, při kterém rostliny využívají světlo k tvorbě živin?",
+            "answers": [
+              "fotosynteza",
+              "fotosyntéza"
+            ],
+            "explanation": "Tento proces se nazývá fotosyntéza."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kb001",
+      "kind": "kids_game",
+      "category": "body",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kb001",
+        "difficulty": 1,
+        "category": "body",
+        "localized": {
+          "en": {
+            "prompt": "Which organ pumps blood around your body?",
+            "answers": [
+              "heart"
+            ],
+            "explanation": "The heart pumps blood."
+          },
+          "cs": {
+            "prompt": "Který orgán pumpuje krev do těla?",
+            "answers": [
+              "srdce"
+            ],
+            "explanation": "Srdce pumpuje krev."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kb002",
+      "kind": "kids_game",
+      "category": "body",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kb002",
+        "difficulty": 1,
+        "category": "body",
+        "localized": {
+          "en": {
+            "prompt": "Which body part do you use to smell?",
+            "answers": [
+              "nose"
+            ],
+            "explanation": "You smell with your nose."
+          },
+          "cs": {
+            "prompt": "Kterou část těla používáš k čichání?",
+            "answers": [
+              "nos"
+            ],
+            "explanation": "Čicháš nosem."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kb003",
+      "kind": "kids_game",
+      "category": "body",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kb003",
+        "difficulty": 1,
+        "category": "body",
+        "localized": {
+          "en": {
+            "prompt": "How many eyes do most people have?",
+            "answers": [
+              "2",
+              "two"
+            ],
+            "explanation": "Most people have two eyes."
+          },
+          "cs": {
+            "prompt": "Kolik očí má většina lidí?",
+            "answers": [
+              "2",
+              "dve",
+              "dvě"
+            ],
+            "explanation": "Většina lidí má dvě oči."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kb004",
+      "kind": "kids_game",
+      "category": "body",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kb004",
+        "difficulty": 1,
+        "category": "body",
+        "localized": {
+          "en": {
+            "prompt": "Which body part helps you hear?",
+            "answers": [
+              "ears",
+              "ear"
+            ],
+            "explanation": "We hear with our ears."
+          },
+          "cs": {
+            "prompt": "Která část těla ti pomáhá slyšet?",
+            "answers": [
+              "usi",
+              "uši",
+              "ucho"
+            ],
+            "explanation": "Slyšíme ušima."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kb005",
+      "kind": "kids_game",
+      "category": "body",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kb005",
+        "difficulty": 1,
+        "category": "body",
+        "localized": {
+          "en": {
+            "prompt": "What covers most of the outside of your body?",
+            "answers": [
+              "skin"
+            ],
+            "explanation": "Skin covers the outside of your body."
+          },
+          "cs": {
+            "prompt": "Co pokrývá většinu povrchu lidského těla?",
+            "answers": [
+              "kuze",
+              "kůže"
+            ],
+            "explanation": "Povrch těla pokrývá kůže."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kb006",
+      "kind": "kids_game",
+      "category": "body",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kb006",
+        "difficulty": 2,
+        "category": "body",
+        "localized": {
+          "en": {
+            "prompt": "Which organs help you breathe?",
+            "answers": [
+              "lungs"
+            ],
+            "explanation": "The lungs help you breathe."
+          },
+          "cs": {
+            "prompt": "Které orgány ti pomáhají dýchat?",
+            "answers": [
+              "plice"
+            ],
+            "explanation": "Dýchání zajišťují plíce."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kb007",
+      "kind": "kids_game",
+      "category": "body",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kb007",
+        "difficulty": 2,
+        "category": "body",
+        "localized": {
+          "en": {
+            "prompt": "What protects your brain?",
+            "answers": [
+              "skull"
+            ],
+            "explanation": "The skull protects the brain."
+          },
+          "cs": {
+            "prompt": "Co chrání mozek?",
+            "answers": [
+              "lebka"
+            ],
+            "explanation": "Mozek chrání lebka."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kb008",
+      "kind": "kids_game",
+      "category": "body",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kb008",
+        "difficulty": 2,
+        "category": "body",
+        "localized": {
+          "en": {
+            "prompt": "Which part of your body bends at the middle of your arm?",
+            "answers": [
+              "elbow"
+            ],
+            "explanation": "The elbow bends the arm."
+          },
+          "cs": {
+            "prompt": "Který kloub se ohýbá uprostřed paže?",
+            "answers": [
+              "loket"
+            ],
+            "explanation": "Paže se ohýbá v lokti."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kb009",
+      "kind": "kids_game",
+      "category": "body",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kb009",
+        "difficulty": 2,
+        "category": "body",
+        "localized": {
+          "en": {
+            "prompt": "What do your muscles help you do?",
+            "answers": [
+              "move",
+              "movement"
+            ],
+            "explanation": "Muscles help your body move."
+          },
+          "cs": {
+            "prompt": "S čím ti pomáhají svaly?",
+            "answers": [
+              "pohybovat se",
+              "pohyb"
+            ],
+            "explanation": "Svaly pomáhají tělu se pohybovat."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kb010",
+      "kind": "kids_game",
+      "category": "body",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kb010",
+        "difficulty": 3,
+        "category": "body",
+        "localized": {
+          "en": {
+            "prompt": "Which organ helps digest food after it leaves your mouth?",
+            "answers": [
+              "stomach"
+            ],
+            "explanation": "The stomach helps digest food."
+          },
+          "cs": {
+            "prompt": "Který orgán pomáhá trávit jídlo poté, co ho spolkneš?",
+            "answers": [
+              "zaludek",
+              "žaludek"
+            ],
+            "explanation": "Žaludek pomáhá trávit potravu."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kp001",
+      "kind": "kids_game",
+      "category": "sports",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kp001",
+        "difficulty": 1,
+        "category": "sports",
+        "localized": {
+          "en": {
+            "prompt": "How many goals do you score if the ball goes into the soccer net once?",
+            "answers": [
+              "1",
+              "one"
+            ],
+            "explanation": "One ball in the net counts as one goal."
+          },
+          "cs": {
+            "prompt": "Kolik gólů získáš, když míč jednou skončí ve fotbalové brance?",
+            "answers": [
+              "1",
+              "jeden"
+            ],
+            "explanation": "Jedna branka znamená jeden gól."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kp002",
+      "kind": "kids_game",
+      "category": "sports",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kp002",
+        "difficulty": 1,
+        "category": "sports",
+        "localized": {
+          "en": {
+            "prompt": "Which sport uses a racket and a yellow ball?",
+            "answers": [
+              "tennis"
+            ],
+            "explanation": "Tennis uses rackets and a yellow ball."
+          },
+          "cs": {
+            "prompt": "Který sport používá raketu a žlutý míček?",
+            "answers": [
+              "tenis"
+            ],
+            "explanation": "Tenis používá rakety a žlutý míček."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kp003",
+      "kind": "kids_game",
+      "category": "sports",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kp003",
+        "difficulty": 1,
+        "category": "sports",
+        "localized": {
+          "en": {
+            "prompt": "Which sport is played on ice with a puck?",
+            "answers": [
+              "ice hockey",
+              "hockey"
+            ],
+            "explanation": "Ice hockey uses a puck."
+          },
+          "cs": {
+            "prompt": "Který sport se hraje na ledě s pukem?",
+            "answers": [
+              "hokej",
+              "ledni hokej"
+            ],
+            "explanation": "Hokej se hraje s pukem."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kp004",
+      "kind": "kids_game",
+      "category": "sports",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kp004",
+        "difficulty": 1,
+        "category": "sports",
+        "localized": {
+          "en": {
+            "prompt": "In which sport do players try to shoot a ball through a hoop?",
+            "answers": [
+              "basketball"
+            ],
+            "explanation": "Basketball uses hoops."
+          },
+          "cs": {
+            "prompt": "Ve kterém sportu se hráči snaží hodit míč do obroučky?",
+            "answers": [
+              "basketbal"
+            ],
+            "explanation": "V basketbalu se hází míč do koše."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kp005",
+      "kind": "kids_game",
+      "category": "sports",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kp005",
+        "difficulty": 1,
+        "category": "sports",
+        "localized": {
+          "en": {
+            "prompt": "Which sport uses a swimming pool?",
+            "answers": [
+              "swimming"
+            ],
+            "explanation": "Swimming takes place in a pool."
+          },
+          "cs": {
+            "prompt": "Který sport se odehrává v bazénu?",
+            "answers": [
+              "plavani",
+              "plavání"
+            ],
+            "explanation": "Plavání se odehrává v bazénu."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kp006",
+      "kind": "kids_game",
+      "category": "sports",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kp006",
+        "difficulty": 2,
+        "category": "sports",
+        "localized": {
+          "en": {
+            "prompt": "How many players does one soccer team start with on the field?",
+            "answers": [
+              "11",
+              "eleven"
+            ],
+            "explanation": "A soccer team starts with eleven players."
+          },
+          "cs": {
+            "prompt": "S kolika hráči začíná jeden fotbalový tým na hřišti?",
+            "answers": [
+              "11",
+              "jedenact",
+              "jedenáct"
+            ],
+            "explanation": "Fotbalový tým začíná s jedenácti hráči."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kp007",
+      "kind": "kids_game",
+      "category": "sports",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kp007",
+        "difficulty": 2,
+        "category": "sports",
+        "localized": {
+          "en": {
+            "prompt": "Which sport uses a shuttlecock?",
+            "answers": [
+              "badminton"
+            ],
+            "explanation": "Badminton uses a shuttlecock."
+          },
+          "cs": {
+            "prompt": "Který sport používá košíček?",
+            "answers": [
+              "badminton"
+            ],
+            "explanation": "Badminton používá košíček."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kp008",
+      "kind": "kids_game",
+      "category": "sports",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kp008",
+        "difficulty": 2,
+        "category": "sports",
+        "localized": {
+          "en": {
+            "prompt": "How many points is a free throw worth in basketball?",
+            "answers": [
+              "1",
+              "one"
+            ],
+            "explanation": "A free throw is worth one point."
+          },
+          "cs": {
+            "prompt": "Kolik bodů má trestný hod v basketbalu?",
+            "answers": [
+              "1",
+              "jeden"
+            ],
+            "explanation": "Trestný hod má hodnotu jednoho bodu."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kp009",
+      "kind": "kids_game",
+      "category": "sports",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kp009",
+        "difficulty": 2,
+        "category": "sports",
+        "localized": {
+          "en": {
+            "prompt": "What color card sends a player off in soccer?",
+            "answers": [
+              "red",
+              "red card"
+            ],
+            "explanation": "A red card sends a player off."
+          },
+          "cs": {
+            "prompt": "Jaká karta ve fotbale znamená vyloučení?",
+            "answers": [
+              "cervena",
+              "červená",
+              "cervena karta"
+            ],
+            "explanation": "Červená karta znamená vyloučení."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kp010",
+      "kind": "kids_game",
+      "category": "sports",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kp010",
+        "difficulty": 3,
+        "category": "sports",
+        "localized": {
+          "en": {
+            "prompt": "Which sport has a position called goalkeeper and can also use hands only in a special area?",
+            "answers": [
+              "soccer",
+              "football"
+            ],
+            "explanation": "Soccer has a goalkeeper who can handle the ball in the penalty area."
+          },
+          "cs": {
+            "prompt": "Ve kterém sportu má tým brankáře, který smí v pokutovém území používat ruce?",
+            "answers": [
+              "fotbal"
+            ],
+            "explanation": "Fotbal má brankáře, který smí v pokutovém území hrát rukama."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kf001",
+      "kind": "kids_game",
+      "category": "food_world",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kf001",
+        "difficulty": 1,
+        "category": "food_world",
+        "localized": {
+          "en": {
+            "prompt": "Which fruit is yellow and curved?",
+            "answers": [
+              "banana"
+            ],
+            "explanation": "A banana is yellow and curved."
+          },
+          "cs": {
+            "prompt": "Které ovoce je žluté a zahnuté?",
+            "answers": [
+              "banan",
+              "banán"
+            ],
+            "explanation": "Banán je žlutý a zahnutý."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kf002",
+      "kind": "kids_game",
+      "category": "food_world",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kf002",
+        "difficulty": 1,
+        "category": "food_world",
+        "localized": {
+          "en": {
+            "prompt": "Which vegetable is orange and rabbits are often shown eating it?",
+            "answers": [
+              "carrot"
+            ],
+            "explanation": "The answer is a carrot."
+          },
+          "cs": {
+            "prompt": "Která zelenina je oranžová a často se kreslí, že ji jedí králíci?",
+            "answers": [
+              "mrkev"
+            ],
+            "explanation": "Odpověď je mrkev."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kf003",
+      "kind": "kids_game",
+      "category": "food_world",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kf003",
+        "difficulty": 1,
+        "category": "food_world",
+        "localized": {
+          "en": {
+            "prompt": "What do you get when water freezes?",
+            "answers": [
+              "ice"
+            ],
+            "explanation": "Frozen water becomes ice."
+          },
+          "cs": {
+            "prompt": "Co vznikne, když voda zmrzne?",
+            "answers": [
+              "led"
+            ],
+            "explanation": "Zmrzlá voda se změní v led."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kf004",
+      "kind": "kids_game",
+      "category": "food_world",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kf004",
+        "difficulty": 1,
+        "category": "food_world",
+        "localized": {
+          "en": {
+            "prompt": "Which country is famous for pizza?",
+            "answers": [
+              "italy"
+            ],
+            "explanation": "Pizza is strongly associated with Italy."
+          },
+          "cs": {
+            "prompt": "Která země je známá pizzou?",
+            "answers": [
+              "italie"
+            ],
+            "explanation": "Pizza je silně spojená s Itálií."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kf005",
+      "kind": "kids_game",
+      "category": "food_world",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kf005",
+        "difficulty": 1,
+        "category": "food_world",
+        "localized": {
+          "en": {
+            "prompt": "What is the capital of the Czech Republic?",
+            "answers": [
+              "prague"
+            ],
+            "explanation": "Prague is the capital of the Czech Republic."
+          },
+          "cs": {
+            "prompt": "Jaké je hlavní město České republiky?",
+            "answers": [
+              "praha"
+            ],
+            "explanation": "Praha je hlavní město České republiky."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kf006",
+      "kind": "kids_game",
+      "category": "food_world",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kf006",
+        "difficulty": 2,
+        "category": "food_world",
+        "localized": {
+          "en": {
+            "prompt": "Which country has the Eiffel Tower?",
+            "answers": [
+              "france"
+            ],
+            "explanation": "The Eiffel Tower is in France."
+          },
+          "cs": {
+            "prompt": "Ve které zemi stojí Eiffelova věž?",
+            "answers": [
+              "francie"
+            ],
+            "explanation": "Eiffelova věž stojí ve Francii."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kf007",
+      "kind": "kids_game",
+      "category": "food_world",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kf007",
+        "difficulty": 2,
+        "category": "food_world",
+        "localized": {
+          "en": {
+            "prompt": "Which country is shaped like a boot on maps?",
+            "answers": [
+              "italy"
+            ],
+            "explanation": "Italy is often described as boot-shaped."
+          },
+          "cs": {
+            "prompt": "Která země na mapě připomíná botu?",
+            "answers": [
+              "italie"
+            ],
+            "explanation": "Itálie na mapě připomíná botu."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kf008",
+      "kind": "kids_game",
+      "category": "food_world",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kf008",
+        "difficulty": 2,
+        "category": "food_world",
+        "localized": {
+          "en": {
+            "prompt": "Which drink is made from cocoa and milk and is often served warm?",
+            "answers": [
+              "hot chocolate",
+              "cocoa"
+            ],
+            "explanation": "Hot chocolate is made with cocoa and milk."
+          },
+          "cs": {
+            "prompt": "Který nápoj se vyrábí z kakaa a mléka a často se podává teplý?",
+            "answers": [
+              "horka cokolada",
+              "horká čokoláda",
+              "kakao"
+            ],
+            "explanation": "Horká čokoláda se připravuje z kakaa a mléka."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kf009",
+      "kind": "kids_game",
+      "category": "food_world",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kf009",
+        "difficulty": 2,
+        "category": "food_world",
+        "localized": {
+          "en": {
+            "prompt": "What food is made by baking dough and often has cheese and tomato on top?",
+            "answers": [
+              "pizza"
+            ],
+            "explanation": "That food is pizza."
+          },
+          "cs": {
+            "prompt": "Které jídlo se peče z těsta a často má nahoře sýr a rajčata?",
+            "answers": [
+              "pizza"
+            ],
+            "explanation": "Je to pizza."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kf010",
+      "kind": "kids_game",
+      "category": "food_world",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kf010",
+        "difficulty": 3,
+        "category": "food_world",
+        "localized": {
+          "en": {
+            "prompt": "Which continent contains Egypt?",
+            "answers": [
+              "africa"
+            ],
+            "explanation": "Egypt is in Africa."
+          },
+          "cs": {
+            "prompt": "Na kterém kontinentu leží Egypt?",
+            "answers": [
+              "afrika"
+            ],
+            "explanation": "Egypt leží v Africe."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl001",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kl001",
+        "difficulty": 1,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "What comes next: 2, 4, 6, 8?",
+            "answers": [
+              "10",
+              "ten"
+            ],
+            "explanation": "The numbers increase by two, so ten comes next."
+          },
+          "cs": {
+            "prompt": "Co následuje: 2, 4, 6, 8?",
+            "answers": [
+              "10",
+              "deset"
+            ],
+            "explanation": "Čísla rostou po dvou, takže následuje deset."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl002",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kl002",
+        "difficulty": 1,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "If you have three apples and get two more, how many do you have?",
+            "answers": [
+              "5",
+              "five"
+            ],
+            "explanation": "Three plus two is five."
+          },
+          "cs": {
+            "prompt": "Máš tři jablka a dostaneš další dvě. Kolik jich máš?",
+            "answers": [
+              "5",
+              "pet",
+              "pět"
+            ],
+            "explanation": "Tři plus dva je pět."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl003",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kl003",
+        "difficulty": 1,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "Which is heavier: one kilogram of feathers or one kilogram of stones?",
+            "answers": [
+              "same",
+              "equal",
+              "they weigh the same"
+            ],
+            "explanation": "Both weigh one kilogram."
+          },
+          "cs": {
+            "prompt": "Co je těžší: kilogram peří, nebo kilogram kamenů?",
+            "answers": [
+              "stejne",
+              "stejně",
+              "vazi stejne",
+              "váží stejně"
+            ],
+            "explanation": "Obojí váží jeden kilogram."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl004",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kl004",
+        "difficulty": 1,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "How many sides does a triangle have?",
+            "answers": [
+              "3",
+              "three"
+            ],
+            "explanation": "A triangle has three sides."
+          },
+          "cs": {
+            "prompt": "Kolik stran má trojúhelník?",
+            "answers": [
+              "3",
+              "tri",
+              "tři"
+            ],
+            "explanation": "Trojúhelník má tři strany."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl005",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "kl005",
+        "difficulty": 1,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "What number is half of ten?",
+            "answers": [
+              "5",
+              "five"
+            ],
+            "explanation": "Half of ten is five."
+          },
+          "cs": {
+            "prompt": "Kolik je polovina z deseti?",
+            "answers": [
+              "5",
+              "pet",
+              "pět"
+            ],
+            "explanation": "Polovina z deseti je pět."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl006",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kl006",
+        "difficulty": 2,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "If one car has four wheels, how many wheels do three cars have?",
+            "answers": [
+              "12",
+              "twelve"
+            ],
+            "explanation": "Three times four is twelve."
+          },
+          "cs": {
+            "prompt": "Když má jedno auto čtyři kola, kolik kol mají tři auta?",
+            "answers": [
+              "12",
+              "dvanact",
+              "dvanáct"
+            ],
+            "explanation": "Tři krát čtyři je dvanáct."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl007",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kl007",
+        "difficulty": 2,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "What comes next: 5, 10, 15, 20?",
+            "answers": [
+              "25",
+              "twenty five"
+            ],
+            "explanation": "The pattern increases by five."
+          },
+          "cs": {
+            "prompt": "Co následuje: 5, 10, 15, 20?",
+            "answers": [
+              "25",
+              "dvacet pet",
+              "dvacet pět"
+            ],
+            "explanation": "Řada se zvyšuje vždy o pět."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl008",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kl008",
+        "difficulty": 2,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "If you have twelve candies and share them equally between three children, how many does each get?",
+            "answers": [
+              "4",
+              "four"
+            ],
+            "explanation": "Twelve divided by three is four."
+          },
+          "cs": {
+            "prompt": "Máš dvanáct bonbonů a rozdělíš je stejně mezi tři děti. Kolik dostane každé?",
+            "answers": [
+              "4",
+              "ctyri",
+              "čtyři"
+            ],
+            "explanation": "Dvanáct děleno třemi jsou čtyři."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl009",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "kl009",
+        "difficulty": 2,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "Which is the odd one out: car, bus, bicycle, banana?",
+            "answers": [
+              "banana"
+            ],
+            "explanation": "Banana is not a vehicle."
+          },
+          "cs": {
+            "prompt": "Co sem nepatří: auto, autobus, kolo, banán?",
+            "answers": [
+              "banan",
+              "banán"
+            ],
+            "explanation": "Banán není dopravní prostředek."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl010",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kl010",
+        "difficulty": 3,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "A farmer has ten sheep. Two walk away. How many remain?",
+            "answers": [
+              "8",
+              "eight"
+            ],
+            "explanation": "Ten minus two is eight."
+          },
+          "cs": {
+            "prompt": "Farmář má deset ovcí. Dvě odejdou. Kolik jich zbude?",
+            "answers": [
+              "8",
+              "osm"
+            ],
+            "explanation": "Deset minus dva je osm."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl011",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kl011",
+        "difficulty": 3,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "What is 7 times 8?",
+            "answers": [
+              "56",
+              "fifty six"
+            ],
+            "explanation": "Seven times eight is fifty-six."
+          },
+          "cs": {
+            "prompt": "Kolik je 7 krát 8?",
+            "answers": [
+              "56",
+              "padesat sest",
+              "padesát šest"
+            ],
+            "explanation": "Sedm krát osm je padesát šest."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl012",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kl012",
+        "difficulty": 3,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "What is 100 divided by 4?",
+            "answers": [
+              "25",
+              "twenty five"
+            ],
+            "explanation": "One hundred divided by four is twenty-five."
+          },
+          "cs": {
+            "prompt": "Kolik je 100 děleno 4?",
+            "answers": [
+              "25",
+              "dvacet pet",
+              "dvacet pět"
+            ],
+            "explanation": "Sto děleno čtyřmi je dvacet pět."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl013",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kl013",
+        "difficulty": 3,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "If a movie starts at five and lasts two hours, when does it end?",
+            "answers": [
+              "7",
+              "seven",
+              "7 o'clock"
+            ],
+            "explanation": "It ends at seven."
+          },
+          "cs": {
+            "prompt": "Film začne v pět a trvá dvě hodiny. V kolik skončí?",
+            "answers": [
+              "7",
+              "sedm",
+              "v sedm"
+            ],
+            "explanation": "Skončí v sedm."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl014",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kl014",
+        "difficulty": 3,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "Which number is larger: 0.5 or 0.8?",
+            "answers": [
+              "0.8",
+              "zero point eight"
+            ],
+            "explanation": "Zero point eight is larger."
+          },
+          "cs": {
+            "prompt": "Které číslo je větší: 0,5 nebo 0,8?",
+            "answers": [
+              "0.8",
+              "0,8",
+              "nula cela osm"
+            ],
+            "explanation": "Nula celá osm je větší."
+          }
+        },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "kl015",
+      "kind": "kids_game",
+      "category": "logic",
+      "difficulty": 3,
+      "enabled": true,
+      "data": {
+        "id": "kl015",
+        "difficulty": 3,
+        "category": "logic",
+        "localized": {
+          "en": {
+            "prompt": "If you double 15, what number do you get?",
+            "answers": [
+              "30",
+              "thirty"
+            ],
+            "explanation": "Double fifteen is thirty."
+          },
+          "cs": {
+            "prompt": "Když zdvojnásobíš 15, kolik dostaneš?",
+            "answers": [
+              "30",
+              "tricet",
+              "třicet"
+            ],
+            "explanation": "Dvojnásobek patnácti je třicet."
+          }
+        },
+        "enabled": true
       }
     }
   ]
