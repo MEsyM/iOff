@@ -525,6 +525,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                     ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
                                     ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
                                     ActiveGame.ENGLISH -> speakCurrentEnglishItem()
+                                    ActiveGame.BRAIN -> speakCurrentBrainChallenge()
                                     ActiveGame.TRIVIA -> speakCurrentQuestion()
                                 }
                             } else {
