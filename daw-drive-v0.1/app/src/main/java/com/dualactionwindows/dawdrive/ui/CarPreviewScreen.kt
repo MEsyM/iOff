@@ -45,6 +45,7 @@ fun CarPreviewScreen(
     onSelectKids: () -> Unit,
     onSelectFamily: () -> Unit,
     onSelectEnglish: () -> Unit,
+    onSelectBrain: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
     onFamilySetup: () -> Unit,
     onPlayPause: () -> Unit,
@@ -59,6 +60,7 @@ fun CarPreviewScreen(
         "kids" -> GameVisual("★", "TRIVIA KIDS", LoneRiderColors.Blue)
         "family" -> GameVisual("🏆", "FAMILY QUIZ", LoneRiderColors.Pink)
         "english" -> GameVisual("🇬🇧", "ENGLISH LESSONS", LoneRiderColors.Cyan)
+        "brain" -> GameVisual("🧠", "BRAIN TRAINER", LoneRiderColors.Green)
         else -> GameVisual("💡", "QUICK TRIVIA", LoneRiderColors.Purple)
     }
 
@@ -85,7 +87,8 @@ fun CarPreviewScreen(
                     onSelectGuessWho = onSelectGuessWho,
                     onSelectKids = onSelectKids,
                     onSelectFamily = onSelectFamily,
-                    onSelectEnglish = onSelectEnglish
+                    onSelectEnglish = onSelectEnglish,
+                    onSelectBrain = onSelectBrain
                 )
 
                 Column(
@@ -216,7 +219,8 @@ private fun NavigationRail(
     onSelectGuessWho: () -> Unit,
     onSelectKids: () -> Unit,
     onSelectFamily: () -> Unit,
-    onSelectEnglish: () -> Unit
+    onSelectEnglish: () -> Unit,
+    onSelectBrain: () -> Unit
 ) {
     Surface(
         modifier = Modifier.width(92.dp),
@@ -237,6 +241,7 @@ private fun NavigationRail(
             RailButton("★", selectedGame == "kids", onSelectKids)
             RailButton("🏆", selectedGame == "family", onSelectFamily)
             RailButton("🇬🇧", selectedGame == "english", onSelectEnglish)
+            RailButton("🧠", selectedGame == "brain", onSelectBrain)
         }
     }
 }
