@@ -10,6 +10,10 @@ import kotlin.random.Random
 
 class TriviaGameEngine(context: Context) {
 
+    init {
+        LiveContentRepository.initialize(context)
+    }
+
     enum class Language(val code: String, val locale: Locale) {
         EN("en", Locale.US),
         CS("cs", Locale("cs", "CZ"));
