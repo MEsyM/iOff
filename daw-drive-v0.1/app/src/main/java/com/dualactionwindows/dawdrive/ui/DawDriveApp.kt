@@ -74,6 +74,7 @@ fun DawDriveApp(
     onOpenAppSettings: () -> Unit,
     onFamilySetupClick: () -> Unit,
     onEnglishSetupClick: () -> Unit,
+    onBrainTrainerClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
     onRoadVoiceStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
@@ -110,6 +111,7 @@ fun DawDriveApp(
                     onKids = { onCarGameClick("kids") },
                     onFamily = onFamilySetupClick,
                     onEnglish = { onCarGameClick("english") },
+                    onBrain = onBrainTrainerClick,
                     onOpenCar = onCarPreviewClick
                 )
 
@@ -411,6 +413,7 @@ private fun GamesScreen(
     onKids: () -> Unit,
     onFamily: () -> Unit,
     onEnglish: () -> Unit,
+    onBrain: () -> Unit,
     onOpenCar: () -> Unit
 ) {
     val compact = LocalConfiguration.current.screenWidthDp < 700
@@ -494,6 +497,19 @@ private fun GamesScreen(
             ) {
                 GameCard(
                     modifier = Modifier.fillMaxWidth().height(150.dp),
+                    icon = "🧠",
+                    title = "Brain Trainer",
+                    subtitle = "Memory • sequences • math • logic.",
+                    accent = LoneRiderColors.Green,
+                    onClick = onBrain
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
                     icon = "🚙",
                     title = "Car Game Hub",
                     subtitle = "Pick a game and control playback.",
@@ -559,6 +575,20 @@ private fun GamesScreen(
                     subtitle = "Kids + Adults • Learn + Challenge.",
                     accent = LoneRiderColors.Cyan,
                     onClick = onEnglish
+                )
+            }
+
+            Row(
+                modifier = Modifier.height(160.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = "🧠",
+                    title = "Brain Trainer",
+                    subtitle = "Memory • sequences • math • logic • attention.",
+                    accent = LoneRiderColors.Green,
+                    onClick = onBrain
                 )
             }
 
