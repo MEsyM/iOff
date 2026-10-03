@@ -10,6 +10,10 @@ import kotlin.random.Random
 
 class EnglishLearningEngine(context: Context) {
 
+    init {
+        LiveContentRepository.initialize(context)
+    }
+
     enum class Audience { KID, ADULT }
     enum class Mode { LEARN, CHALLENGE }
     enum class LessonType { VOCABULARY, PHRASE, TRANSLATION, REPEAT }
@@ -423,7 +427,7 @@ class EnglishLearningEngine(context: Context) {
             "a", "an", "the", "please", "just", "well", "uh", "um"
         )
 
-        val CONTENT = listOf(
+        private val bundledContent = listOf(
             LessonItem("k001",Audience.KID,1,LessonType.VOCABULARY,"animals","Jak se anglicky řekne pes?","How do you say dog in Czech?",listOf("dog"),"Dog znamená pes."),
             LessonItem("k002",Audience.KID,1,LessonType.VOCABULARY,"animals","Jak se anglicky řekne kočka?","How do you say cat in Czech?",listOf("cat"),"Cat znamená kočka."),
             LessonItem("k003",Audience.KID,1,LessonType.VOCABULARY,"colors","Jak se anglicky řekne modrá?","How do you say blue in Czech?",listOf("blue"),"Blue znamená modrá."),
@@ -464,5 +468,9 @@ class EnglishLearningEngine(context: Context) {
             LessonItem("a019",Audience.ADULT,5,LessonType.PHRASE,"business","Řekni anglicky: Nejde jen o cenu, ale i o specifikaci a rozsah dodávky.","Say in English: It's not just about the price but also the specification and scope of supply.",listOf("it's not just about the price but also the specification and scope of supply","it is not just about the price but also the specification and scope of supply"),"Scope of supply znamená rozsah dodávky."),
             LessonItem("a020",Audience.ADULT,5,LessonType.REPEAT,"conversation","Zopakuj: From my perspective, the main issue is timing rather than cost.","Repeat: From my perspective, the main issue is timing rather than cost.",listOf("from my perspective the main issue is timing rather than cost"),"Rather than znamená spíše než.")
         )
+
+
+        val CONTENT: List<LessonItem>
+            get() = LiveContentRepository.englishLessons().ifEmpty { bundledContent }
     }
 }
