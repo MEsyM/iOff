@@ -12,8 +12,8 @@ android {
         applicationId = "com.dualactionwindows.dawdrive"
         minSdk = 35
         targetSdk = 36
-        versionCode = 32
-        versionName = "1.6-feedback-fix"
+        versionCode = 33
+        versionName = "1.7-brain-trainer"
     }
 
     buildTypes {
