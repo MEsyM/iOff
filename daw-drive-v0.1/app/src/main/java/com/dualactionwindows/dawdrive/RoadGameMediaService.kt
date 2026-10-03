@@ -45,8 +45,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private lateinit var kidsTriviaEngine: KidsTriviaEngine
     private lateinit var familyEngine: FamilyGameEngine
     private lateinit var englishEngine: EnglishLearningEngine
+    private lateinit var brainTrainerEngine: BrainTrainerEngine
 
-    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO, KIDS_TRIVIA, FAMILY, ENGLISH }
+    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO, KIDS_TRIVIA, FAMILY, ENGLISH, BRAIN }
     private enum class ArtworkState { IDLE, LISTENING, CORRECT, WRONG }
 
     private var activeGame = ActiveGame.TRIVIA
@@ -135,6 +136,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         kidsTriviaEngine = KidsTriviaEngine(this)
         familyEngine = FamilyGameEngine(this)
         englishEngine = EnglishLearningEngine(this)
+        brainTrainerEngine = BrainTrainerEngine(this)
         tts = TextToSpeech(this, this)
 
         createSpeechRecognizer()
@@ -205,6 +207,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             sessionStarted = false
                             startOrResumeEnglish()
                         }
+                        MEDIA_ID_BRAIN -> {
+                            activeGame = ActiveGame.BRAIN
+                            sessionStarted = false
+                            startOrResumeBrain()
+                        }
                         else -> {
                             activeGame = ActiveGame.TRIVIA
                             sessionStarted = false
@@ -232,6 +239,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             ActiveGame.KIDS_TRIVIA -> evaluateKidsTriviaCandidates(listOf(spoken))
                             ActiveGame.FAMILY -> evaluateFamilyCandidates(listOf(spoken))
                             ActiveGame.ENGLISH -> evaluateEnglishCandidates(listOf(spoken))
+                            ActiveGame.BRAIN -> evaluateBrainCandidates(listOf(spoken))
                             ActiveGame.TRIVIA -> evaluateSpeechCandidates(listOf(spoken))
                         }
                     } else {
@@ -331,6 +339,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         ActiveGame.KIDS_TRIVIA -> evaluateKidsTriviaCandidates(candidates)
                         ActiveGame.FAMILY -> evaluateFamilyCandidates(candidates)
                         ActiveGame.ENGLISH -> evaluateEnglishCandidates(candidates)
+                        ActiveGame.BRAIN -> evaluateBrainCandidates(candidates)
                         ActiveGame.TRIVIA -> evaluateSpeechCandidates(candidates)
                     }
                 }
@@ -442,6 +451,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
                                 ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
                                 ActiveGame.ENGLISH -> speakCurrentEnglishItem()
+                                ActiveGame.BRAIN -> speakCurrentBrainChallenge()
                                 ActiveGame.TRIVIA -> speakCurrentQuestion()
                             }
                         }
@@ -471,6 +481,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 ActiveGame.KIDS_TRIVIA -> moveToNextKidsQuestion()
                                 ActiveGame.FAMILY -> moveToNextFamilyQuestion()
                                 ActiveGame.ENGLISH -> moveToNextEnglishItem()
+                                ActiveGame.BRAIN -> moveToNextBrainChallenge()
                                 ActiveGame.TRIVIA -> moveToNextQuestion()
                             }
                         }, FEEDBACK_ART_HOLD_MS)
@@ -484,6 +495,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 ActiveGame.KIDS_TRIVIA -> startNextKidsRound()
                                 ActiveGame.FAMILY -> startNextFamilySession()
                                 ActiveGame.ENGLISH -> startNextEnglishRound()
+                                ActiveGame.BRAIN -> startNextBrainRound()
                                 ActiveGame.TRIVIA -> startNextRound()
                             }
                         }, 700)
@@ -637,6 +649,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         englishEngine.settings().level.label + " • " +
                         englishEngine.settings().mode.name.lowercase().replaceFirstChar { it.uppercase() },
                     R.drawable.trivia_idle
+                ),
+                mediaItem(
+                    MEDIA_ID_BRAIN,
+                    "Brain Trainer",
+                    "Memory • sequences • math • logic • attention",
+                    R.drawable.trivia_idle
                 )
             )
         )
@@ -649,6 +667,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ActiveGame.KIDS_TRIVIA -> startOrResumeKidsTrivia()
             ActiveGame.FAMILY -> startOrResumeFamily()
             ActiveGame.ENGLISH -> startOrResumeEnglish()
+            ActiveGame.BRAIN -> startOrResumeBrain()
             ActiveGame.TRIVIA -> startOrResumeTrivia()
         }
     }
@@ -1335,6 +1354,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 ActiveGame.TRIVIA -> triviaEngine.currentQuestion()?.answers.orEmpty()
                 ActiveGame.KIDS_TRIVIA ->
                     kidsTriviaEngine.currentQuestion(triviaEngine.language())?.answers.orEmpty()
+                ActiveGame.BRAIN -> brainTrainerEngine.currentChallenge()?.answers.orEmpty()
                 else -> emptyList()
             }
             if (expectedBias.isNotEmpty()) {
@@ -1805,6 +1825,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
             ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
             ActiveGame.ENGLISH -> speakCurrentEnglishItem()
+            ActiveGame.BRAIN -> speakCurrentBrainChallenge()
             ActiveGame.TRIVIA -> speakCurrentQuestion()
         }
     }
@@ -2059,6 +2080,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     ActiveGame.KIDS_TRIVIA -> kidsTriviaEngine.scoreSummary(language)
                     ActiveGame.FAMILY -> (if (language == TriviaGameEngine.Language.CS) "Skóre: " else "Score: ") + familyEngine.scoreboard()
                     ActiveGame.ENGLISH -> englishEngine.roundSummary()
+                    ActiveGame.BRAIN -> brainTrainerEngine.roundSummary(language)
                     ActiveGame.TRIVIA -> triviaEngine.scoreSummary()
                 }
                 speak(summary, COMMAND_UTTERANCE_ID)
@@ -2079,6 +2101,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     ActiveGame.ENGLISH -> {
                         val p = englishEngine.settings()
                         p.playerName + ", English " + p.level.label + ", " + p.xp + " XP."
+                    }
+                    ActiveGame.BRAIN -> {
+                        val p = brainTrainerEngine.profile()
+                        "Brain Trainer level " + p.level + ", " + p.xp + " XP."
                     }
                     ActiveGame.TRIVIA -> triviaEngine.levelSummary()
                 }
@@ -2586,6 +2612,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 ArtworkState.CORRECT -> R.drawable.trivia_correct
                 ArtworkState.WRONG -> R.drawable.trivia_wrong
             }
+            ActiveGame.BRAIN -> when (state) {
+                ArtworkState.IDLE -> R.drawable.trivia_idle
+                ArtworkState.LISTENING -> R.drawable.trivia_listening
+                ArtworkState.CORRECT -> R.drawable.trivia_correct
+                ArtworkState.WRONG -> R.drawable.trivia_wrong
+            }
         }
     }
 
@@ -2917,6 +2949,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         if (cs) "Family hra je aktivní" else "Family game is active"
                     ActiveGame.ENGLISH ->
                         if (cs) "English Lessons jsou aktivní" else "English Lessons are active"
+                    ActiveGame.BRAIN ->
+                        if (cs) "Brain Trainer je aktivní" else "Brain Trainer is active"
                     ActiveGame.TRIVIA ->
                         if (cs) "Quick Trivia je aktivní" else "Quick Trivia is active"
                 }
@@ -2955,6 +2989,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val MEDIA_ID_KIDS_TRIVIA = "kids_trivia"
         private const val MEDIA_ID_FAMILY = "family_game"
         private const val MEDIA_ID_ENGLISH = "english_lessons"
+        private const val MEDIA_ID_BRAIN = "brain_trainer"
         private const val MEDIA_ID_LANGUAGE_CS = "language_cs"
         private const val MEDIA_ID_LANGUAGE_EN = "language_en"
 
