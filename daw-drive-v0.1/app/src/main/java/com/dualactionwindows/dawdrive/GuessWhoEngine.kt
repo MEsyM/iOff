@@ -9,6 +9,10 @@ import kotlin.math.min
 
 class GuessWhoEngine(context: Context) {
 
+    init {
+        LiveContentRepository.initialize(context)
+    }
+
     enum class Region { CZECH, WORLD }
 
     data class Person(
@@ -434,7 +438,7 @@ class GuessWhoEngine(context: Context) {
         private const val ROUND_SIZE = 10
         private const val MAX_HINT_INDEX = 2
 
-        private val people = listOf(
+        private val bundledPeople = listOf(
             Person("cz001","Karel Gott",listOf("Gott","Kája Gott"),Region.CZECH,1,
                 listOf("I was one of the best-known Czech singers.","I repeatedly won the Golden Nightingale music poll.","I was nicknamed the Sinatra of the East."),
                 listOf("Patřím mezi nejznámější české zpěváky.","Mnohokrát jsem vyhrál anketu Zlatý slavík.","Přezdívalo se mi Sinatra východu.")),
@@ -647,5 +651,9 @@ class GuessWhoEngine(context: Context) {
                 listOf("I am a British chef and television personality.","I am known for a fiery style on cooking shows.","I host shows including Hell's Kitchen."),
                 listOf("Jsem britský šéfkuchař a televizní osobnost.","Jsem známý výbušným stylem v kuchařských pořadech.","Moderuji pořady včetně Hell's Kitchen."))
         )
+
+
+        private val people: List<Person>
+            get() = LiveContentRepository.guessWhoPeople().ifEmpty { bundledPeople }
     }
 }
