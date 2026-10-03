@@ -28,7 +28,7 @@ object TriviaQuestionBank {
         val explanationCs: String
     )
 
-    val questions: List<LocalizedQuestion> = listOf(
+    private val bundledQuestions: List<LocalizedQuestion> = listOf(
         q("geo001",1,Category.GEOGRAPHY,"What is the capital of France?","Jaké je hlavní město Francie?",listOf("paris"),listOf("pariz","paříž"),"Paris is the capital of France.","Paříž je hlavní město Francie."),
         q("geo002",1,Category.GEOGRAPHY,"What is the capital of Italy?","Jaké je hlavní město Itálie?",listOf("rome"),listOf("rim","řím"),"Rome is the capital of Italy.","Řím je hlavní město Itálie."),
         q("geo003",1,Category.GEOGRAPHY,"Which ocean is the largest?","Který oceán je největší?",listOf("pacific","pacific ocean"),listOf("tichy ocean","tichý oceán","pacifik"),"The Pacific is Earth's largest ocean.","Tichý oceán je největší oceán na Zemi."),
@@ -654,6 +654,9 @@ object TriviaQuestionBank {
             )
         }
     }
+
+    val questions: List<LocalizedQuestion>
+        get() = LiveContentRepository.triviaQuestions().ifEmpty { bundledQuestions }
 
     private fun q(
         id: String,
