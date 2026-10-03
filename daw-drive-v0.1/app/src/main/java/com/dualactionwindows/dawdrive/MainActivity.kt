@@ -109,6 +109,9 @@ class MainActivity : ComponentActivity() {
                 onEnglishSetupClick = {
                     startActivity(Intent(this, EnglishSetupActivity::class.java))
                 },
+                onBrainTrainerClick = {
+                    openCarPreview("brain")
+                },
                 onDebugLogsClick = {
                     startActivity(
                         Intent(this, DebugLogsActivity::class.java)
