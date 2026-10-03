@@ -32,20 +32,47 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Build debug APK
+      - name: Restore persistent test signing keystore
+        env:
+          DAW_TEST_KEYSTORE_BASE64: ${{ secrets.DAW_TEST_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$DAW_TEST_KEYSTORE_BASE64"
+          mkdir -p "$RUNNER_TEMP/daw-signing"
+          echo "$DAW_TEST_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/daw-signing/daw-drive-test.jks"
+          chmod 600 "$RUNNER_TEMP/daw-signing/daw-drive-test.jks"
+
+      - name: Set version and signing environment
+        env:
+          DAW_TEST_KEYSTORE_PASSWORD: ${{ secrets.DAW_TEST_KEYSTORE_PASSWORD }}
+          DAW_TEST_KEY_ALIAS: ${{ secrets.DAW_TEST_KEY_ALIAS }}
+          DAW_TEST_KEY_PASSWORD: ${{ secrets.DAW_TEST_KEY_PASSWORD }}
+        run: |
+          test -n "$DAW_TEST_KEYSTORE_PASSWORD"
+          test -n "$DAW_TEST_KEY_ALIAS"
+          test -n "$DAW_TEST_KEY_PASSWORD"
+          echo "DAW_TEST_KEYSTORE_PATH=$RUNNER_TEMP/daw-signing/daw-drive-test.jks" >> "$GITHUB_ENV"
+          echo "DAW_TEST_KEYSTORE_PASSWORD=$DAW_TEST_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "DAW_TEST_KEY_ALIAS=$DAW_TEST_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "DAW_TEST_KEY_PASSWORD=$DAW_TEST_KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "DAW_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "DAW_VERSION_NAME=0.25-test.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Build updateable test APK
         run: gradle -p daw-drive-v0.1 assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk DAW-Drive-v0.24.apk
+        run: cp daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk "DAW-Drive-${DAW_VERSION_NAME}.apk"
 
-      - name: Verify APK
+      - name: Verify APK package and signature
         run: |
-          ls -lh DAW-Drive-v0.24.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose DAW-Drive-v0.24.apk
+          APK="DAW-Drive-${DAW_VERSION_NAME}.apk"
+          ls -lh "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | grep "package: name='com.dualactionwindows.dawdrive'"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DAW-Drive-v0.24-apk
-          path: DAW-Drive-v0.24.apk
+          name: DAW-Drive-test-${{ github.run_number }}
+          path: DAW-Drive-*.apk
           if-no-files-found: error
