@@ -75,7 +75,7 @@ def audit(db, action, item=None, data=None, principal=None):
     if principal is not None:
         payload["actor_admin_id"] = str(principal.user.id)
         payload["actor_email"] = principal.user.email
-    db.add(ContentAudit(action=action,item_kind=getattr(item,"kind",None),item_public_id=getattr(item,"public_id",None),data=payload)
+    db.add(ContentAudit(action=action,item_kind=getattr(item,"kind",None),item_public_id=getattr(item,"public_id",None),data=payload))
 
 def item_json(x):
     return {"id":str(x.id),"public_id":x.public_id,"kind":x.kind,"category":x.category,"difficulty":x.difficulty,
