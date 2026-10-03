@@ -12,8 +12,8 @@ android {
         applicationId = "com.dualactionwindows.dawdrive"
         minSdk = 35
         targetSdk = 36
-        versionCode = 34
-        versionName = "1.8-feedback-global"
+        versionCode = 35
+        versionName = "1.9-favorites-ui"
     }
 
     buildTypes {
