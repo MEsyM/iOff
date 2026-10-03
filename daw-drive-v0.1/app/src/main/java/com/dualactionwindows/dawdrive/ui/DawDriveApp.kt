@@ -74,6 +74,7 @@ fun DawDriveApp(
     onOpenAppSettings: () -> Unit,
     onFamilySetupClick: () -> Unit,
     onEnglishSetupClick: () -> Unit,
+    onAccountClick: () -> Unit,
     onBrainTrainerClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
     onRoadVoiceStop: () -> Unit,
@@ -136,6 +137,7 @@ fun DawDriveApp(
                     onLanguageChange = onLanguageChange,
                     onFamilySetup = onFamilySetupClick,
                     onEnglishSetup = onEnglishSetupClick,
+                    onAccount = onAccountClick,
                     onDiagnostics = { screen = LoneScreen.DIAGNOSTICS }
                 )
 
@@ -736,6 +738,7 @@ private fun SettingsScreen(
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
     onFamilySetup: () -> Unit,
     onEnglishSetup: () -> Unit,
+    onAccount: () -> Unit,
     onDiagnostics: () -> Unit
 ) {
     val cs = profile.language == TriviaGameEngine.Language.CS
@@ -847,6 +850,12 @@ private fun SettingsScreen(
             title = if (cs) "Rodinný režim" else "Family mode",
             subtitle = if (cs) "Hráči, jména, obtížnost a Battle" else "Players, names, difficulty and Battle",
             actions = { CompactButton(if (cs) "NASTAVIT" else "SET UP", true, onFamilySetup) }
+        )
+
+        SettingsRow(
+            title = if (cs) "Účet a cloud" else "Account & cloud",
+            subtitle = if (cs) "Přihlášení, profily a synchronizace progressu" else "Sign in, profiles and progress sync",
+            actions = { CompactButton(if (cs) "ÚČET" else "ACCOUNT", true, onAccount) }
         )
 
         SettingsRow(
