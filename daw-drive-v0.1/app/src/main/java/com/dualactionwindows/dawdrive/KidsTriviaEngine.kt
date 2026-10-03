@@ -4,6 +4,7 @@ import android.content.Context
 import java.text.Normalizer
 import java.util.Locale
 import kotlin.math.max
+import kotlin.random.Random
 
 class KidsTriviaEngine(context: Context) {
 
@@ -117,16 +118,50 @@ class KidsTriviaEngine(context: Context) {
 
         val pool = questionsFor(language)
         val eligible = pool.filter { it.difficulty <= maxDifficulty }
-        val selected = eligible
+        val lastCategory = prefs.getString(KEY_LAST_CATEGORY, null)
+
+        val ranked = eligible
+            .asSequence()
             .filterNot { recent.contains(it.id) }
-            .minByOrNull { seenCount(it.id) * 10 + wrongCount(it.id) * -3 }
-            ?: eligible.minByOrNull { seenCount(it.id) }
-            ?: pool.first()
+            .map { q ->
+                val seen = seenCount(q.id)
+                val wrong = wrongCount(q.id)
+                var score = 100.0
+                if (seen == 0) score += 35.0
+                score -= seen * 7.0
+                score += wrong * 6.0
+                if (q.category.key == lastCategory) score -= 18.0
+                q to score
+            }
+            .sortedByDescending { it.second }
+            .take(RANDOM_TOP_POOL)
+            .toList()
+            .ifEmpty {
+                eligible.map { q ->
+                    q to (100.0 - seenCount(q.id) * 7.0 + wrongCount(q.id) * 6.0)
+                }.sortedByDescending { it.second }.take(RANDOM_TOP_POOL)
+            }
+
+        val selected = if (ranked.isEmpty()) {
+            pool.random()
+        } else {
+            val floor = ranked.minOf { it.second }
+            val weighted = ranked.map { (q, score) ->
+                q to maxOf(1.0, score - floor + 8.0)
+            }
+            val totalWeight = weighted.sumOf { it.second }
+            var pick = Random.nextDouble(totalWeight)
+            weighted.firstOrNull { (_, weight) ->
+                pick -= weight
+                pick <= 0.0
+            }?.first ?: weighted.last().first
+        }
 
         currentQuestionId = selected.id
         prefs.edit()
             .putString(KEY_CURRENT, selected.id)
             .putString(KEY_RECENT, (recent + selected.id).takeLast(14).joinToString(","))
+            .putString(KEY_LAST_CATEGORY, selected.category.key)
             .apply()
 
         return localize(selected, language)
@@ -143,10 +178,25 @@ class KidsTriviaEngine(context: Context) {
         val correct = candidates.any { raw ->
             val actual = normalize(raw, language)
             normalizedExpected.any { expected ->
-                actual == expected ||
-                    (expected.length >= 5 && actual.contains(expected)) ||
-                    (actual.length >= 5 && expected.contains(actual)) ||
-                    levenshtein(actual, expected) <= if (expected.length >= 8) 1 else 0
+                if (actual == expected) {
+                    true
+                } else if (expected.length >= 4 && actual.contains(expected)) {
+                    true
+                } else if (actual.length >= 4 && expected.contains(actual)) {
+                    true
+                } else {
+                    val distance = levenshtein(actual, expected)
+                    val maxLen = maxOf(actual.length, expected.length)
+                    val similarity = if (maxLen == 0) 0.0
+                    else 1.0 - distance.toDouble() / maxLen.toDouble()
+
+                    distance <= when {
+                        expected.length <= 4 -> 0
+                        expected.length <= 7 -> 1
+                        expected.length <= 12 -> 2
+                        else -> 3
+                    } || similarity >= 0.82
+                }
             }
         }
 
@@ -397,6 +447,8 @@ class KidsTriviaEngine(context: Context) {
         private const val KEY_ROUND_CORRECT = "round_correct"
         private const val KEY_CURRENT = "current"
         private const val KEY_RECENT = "recent"
+        private const val KEY_LAST_CATEGORY = "last_category"
+        private const val RANDOM_TOP_POOL = 20
         private const val ROUND_SIZE = 10
 
         private fun q(

@@ -1,14 +1,13 @@
-name: DAW Drive APK
+name: Lone Rider APK
 
 concurrency:
-  group: daw-drive-${{ github.sha }}
+  group: lone-rider-${{ github.ref }}
   cancel-in-progress: true
 
 on:
   push:
     branches:
-      - codex/daw-drive-v0.1-build
-      - codex/daw-drive-family-game
+      - codex/lone-rider-ui-v1
   workflow_dispatch:
 
 jobs:
@@ -33,20 +32,47 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Build debug APK
+      - name: Restore persistent test signing keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.DAW_TEST_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$KEYSTORE_B64"
+          mkdir -p "$RUNNER_TEMP/lone-rider-signing"
+          echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/lone-rider-signing/lone-rider-test.jks"
+          chmod 600 "$RUNNER_TEMP/lone-rider-signing/lone-rider-test.jks"
+
+      - name: Configure version and signing
+        env:
+          STORE_PASSWORD: ${{ secrets.DAW_TEST_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.DAW_TEST_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.DAW_TEST_KEY_PASSWORD }}
+        run: |
+          test -n "$STORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+          echo "DAW_TEST_KEYSTORE_PATH=$RUNNER_TEMP/lone-rider-signing/lone-rider-test.jks" >> "$GITHUB_ENV"
+          echo "DAW_TEST_KEYSTORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "DAW_TEST_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "DAW_TEST_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "LONE_RIDER_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "LONE_RIDER_VERSION_NAME=1.9-favorites-ui.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Build updateable test APK
         run: gradle -p daw-drive-v0.1 assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk DAW-Drive-v0.25-family-battle2.apk
+        run: cp daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk "Lone-Rider-${LONE_RIDER_VERSION_NAME}.apk"
 
-      - name: Verify APK
+      - name: Verify APK identity and signature
         run: |
-          ls -lh DAW-Drive-v0.25-family-battle2.apk
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose DAW-Drive-v0.25-family-battle2.apk
+          APK="Lone-Rider-${LONE_RIDER_VERSION_NAME}.apk"
+          ls -lh "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | grep "package: name='com.dualactionwindows.dawdrive'"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: DAW-Drive-v0.25-family-battle2-apk
-          path: DAW-Drive-v0.25-family-battle2.apk
+          name: Lone-Rider-v1.9-${{ github.run_number }}
+          path: Lone-Rider-*.apk
           if-no-files-found: error

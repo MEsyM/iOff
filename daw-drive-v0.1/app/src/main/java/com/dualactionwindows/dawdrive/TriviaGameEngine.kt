@@ -6,6 +6,7 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.random.Random
 
 class TriviaGameEngine(context: Context) {
 
@@ -41,7 +42,8 @@ class TriviaGameEngine(context: Context) {
         val roundsCompleted: Int,
         val achievements: Set<String>,
         val language: Language,
-        val categoryStats: List<CategoryStat>
+        val categoryStats: List<CategoryStat>,
+        val favoriteCategories: Set<TriviaQuestionBank.Category>
     )
 
     data class LocalizedQuestion(
@@ -142,6 +144,30 @@ class TriviaGameEngine(context: Context) {
         prefs.edit().putString(KEY_LANGUAGE, language.code).apply()
     }
 
+    fun favoriteCategories(): Set<TriviaQuestionBank.Category> {
+        val keys = prefs.getString(KEY_FAVORITE_CATEGORIES, "")
+            ?.split(",")
+            ?.filter { it.isNotBlank() }
+            ?.toSet()
+            .orEmpty()
+
+        return TriviaQuestionBank.Category.entries
+            .filter { it.key in keys }
+            .toSet()
+    }
+
+    fun setCategoryFavorite(
+        category: TriviaQuestionBank.Category,
+        favorite: Boolean
+    ) {
+        val updated = favoriteCategories().toMutableSet().apply {
+            if (favorite) add(category) else remove(category)
+        }
+        prefs.edit()
+            .putString(KEY_FAVORITE_CATEGORIES, updated.joinToString(",") { it.key })
+            .apply()
+    }
+
     fun profile(): Profile {
         val xp = prefs.getInt(KEY_XP, 0)
         val totalAnswered = prefs.getInt(KEY_TOTAL_ANSWERED, 0)
@@ -161,7 +187,8 @@ class TriviaGameEngine(context: Context) {
             roundsCompleted = prefs.getInt(KEY_ROUNDS_COMPLETED, 0),
             achievements = unlockedAchievements(),
             language = language(),
-            categoryStats = TriviaQuestionBank.Category.entries.map { categoryStat(it) }
+            categoryStats = TriviaQuestionBank.Category.entries.map { categoryStat(it) },
+            favoriteCategories = favoriteCategories()
         )
     }
 
@@ -525,8 +552,9 @@ class TriviaGameEngine(context: Context) {
         val targetDifficulty = targetDifficulty(p)
         val totalAnswered = p.totalAnswered
         val lastCategory = lastCategoryKey
+        val favorites = favoriteCategories()
 
-        return TriviaQuestionBank.questions
+        val ranked = TriviaQuestionBank.questions
             .asSequence()
             .filter { unlockedDifficulty(it.difficulty, p.level) }
             .map { q ->
@@ -548,16 +576,33 @@ class TriviaGameEngine(context: Context) {
                 if (mastered) score -= 35.0
                 if (recentIds.contains(q.id)) score -= 80.0
                 if (q.category.key == lastCategory) score -= 18.0
-
-                val deterministicJitter =
-                    ((q.id.hashCode() xor totalAnswered) and 0xF) / 4.0
-                score += deterministicJitter
+                if (q.category in favorites) score += FAVORITE_CATEGORY_BONUS
 
                 q to score
             }
-            .maxByOrNull { it.second }
-            ?.first
-            ?: TriviaQuestionBank.questions.first()
+            .sortedByDescending { it.second }
+            .take(RANDOM_TOP_POOL)
+            .toList()
+
+        if (ranked.isEmpty()) {
+            return TriviaQuestionBank.questions.random()
+        }
+
+        // Keep the adaptive ranking, but randomize inside the best candidate pool.
+        // This prevents every fresh install from receiving the exact same opening sequence.
+        val floor = ranked.minOf { it.second }
+        val weighted = ranked.map { (question, score) ->
+            question to max(1.0, score - floor + 8.0)
+        }
+        val totalWeight = weighted.sumOf { it.second }
+        var pick = Random.nextDouble(totalWeight)
+
+        for ((question, weight) in weighted) {
+            pick -= weight
+            if (pick <= 0.0) return question
+        }
+
+        return weighted.last().first
     }
 
     private fun targetDifficulty(profile: Profile): Int {
@@ -877,12 +922,15 @@ class TriviaGameEngine(context: Context) {
         private const val KEY_CURRENT_QUESTION_ID = "current_question_id"
         private const val KEY_LAST_CATEGORY = "last_category"
         private const val KEY_ROUND_HISTORY = "round_history"
+        private const val KEY_FAVORITE_CATEGORIES = "favorite_categories"
 
         private const val ROUND_SIZE = 10
         private const val RECENT_WINDOW = 8
+        private const val RANDOM_TOP_POOL = 12
         private const val RECENT_RESULT_WINDOW = 20
         private const val MAX_ROUND_HISTORY = 30
 
+        private const val FAVORITE_CATEGORY_BONUS = 30.0
         private const val WRONG_ANSWER_XP = 2
         private const val PERFECT_ROUND_BONUS = 50
 

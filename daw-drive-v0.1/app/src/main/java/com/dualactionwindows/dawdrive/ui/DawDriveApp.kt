@@ -1,24 +1,25 @@
 package com.dualactionwindows.dawdrive.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,82 +29,130 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dualactionwindows.dawdrive.R
 import com.dualactionwindows.dawdrive.TriviaGameEngine
 import com.dualactionwindows.dawdrive.TriviaQuestionBank
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import kotlin.math.max
 
-private enum class DawModule(
-    val title: String,
-    val subtitle: String
-) {
-    Games("Road Games", "Quick Trivia + Kids + Spelling Bee + Guess Who"),
-    Video("Video", "Web browser"),
-    Erp("DAW ERP", "Deals, contacts and next actions"),
-    Tools("Tools", "Vehicle and utility tools")
+private enum class LoneScreen {
+    HOME,
+    GAMES,
+    STATS,
+    SETTINGS,
+    DIAGNOSTICS
 }
+
+private data class ModuleCard(
+    val icon: String,
+    val title: String,
+    val subtitle: String,
+    val accent: Color
+)
 
 @Composable
 fun DawDriveApp(
+    appVersion: String,
     profile: TriviaGameEngine.Profile,
     dashboard: TriviaGameEngine.DashboardData,
     achievementTitles: List<String>,
     onVideoClick: () -> Unit,
     onCarPreviewClick: () -> Unit,
-    onFamilySetupClick: () -> Unit,
+    onCarGameClick: (String) -> Unit,
     onDebugLogsClick: () -> Unit,
+    micPermissionGranted: Boolean,
+    notificationPermissionGranted: Boolean,
+    speechRecognitionAvailable: Boolean,
+    drivingVoiceArmed: Boolean,
+    onRequestVoicePermissions: () -> Unit,
+    onSetDrivingVoiceArmed: (Boolean) -> Unit,
+    onOpenAppSettings: () -> Unit,
+    onFamilySetupClick: () -> Unit,
+    onEnglishSetupClick: () -> Unit,
+    onBrainTrainerClick: () -> Unit,
     onRoadVoiceStart: () -> Unit,
     onRoadVoiceStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
+    onTriviaCategoryToggle: (TriviaQuestionBank.Category, Boolean) -> Unit,
     onRefreshProfile: () -> Unit
 ) {
-    var selectedModule by remember { mutableStateOf<DawModule?>(null) }
+    var screen by remember { mutableStateOf(LoneScreen.HOME) }
 
-    BackHandler(enabled = selectedModule != null) {
-        selectedModule = null
+    BackHandler(enabled = screen != LoneScreen.HOME) {
+        screen = LoneScreen.HOME
     }
 
-    MaterialTheme {
+    LoneRiderTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
-            color = Color(0xFF080A0D)
+            color = LoneRiderColors.Background
         ) {
-            when {
-                selectedModule == null -> LauncherScreen(
-                    onModuleSelected = { module ->
-                        when (module) {
-                            DawModule.Video -> onVideoClick()
-                            else -> selectedModule = module
-                        }
-                    }
+            when (screen) {
+                LoneScreen.HOME -> HomeScreen(
+                    appVersion = appVersion,
+                    profile = profile,
+                    onGames = { screen = LoneScreen.GAMES },
+                    onDrive = onCarPreviewClick,
+                    onMedia = onVideoClick,
+                    onStats = { screen = LoneScreen.STATS },
+                    onTools = { screen = LoneScreen.DIAGNOSTICS },
+                    onSettings = { screen = LoneScreen.SETTINGS }
                 )
 
-                selectedModule == DawModule.Games -> TriviaProfileScreen(
+                LoneScreen.GAMES -> GamesScreen(
+                    onBack = { screen = LoneScreen.HOME },
+                    onQuickTrivia = onRoadVoiceStart,
+                    onSpellingBee = { onCarGameClick("spelling") },
+                    onGuessWho = { onCarGameClick("guesswho") },
+                    onKids = { onCarGameClick("kids") },
+                    onFamily = onFamilySetupClick,
+                    onEnglish = { onCarGameClick("english") },
+                    onBrain = onBrainTrainerClick,
+                    onOpenCar = onCarPreviewClick
+                )
+
+                LoneScreen.STATS -> StatsScreen(
                     profile = profile,
                     dashboard = dashboard,
                     achievementTitles = achievementTitles,
-                    onCarPreview = onCarPreviewClick,
-                    onFamilySetup = onFamilySetupClick,
-                    onDebugLogs = onDebugLogsClick,
-                    onStart = onRoadVoiceStart,
-                    onStop = onRoadVoiceStop,
-                    onLanguageChange = onLanguageChange,
-                    onRefresh = onRefreshProfile,
-                    onBack = { selectedModule = null }
+                    onBack = { screen = LoneScreen.HOME },
+                    onRefresh = onRefreshProfile
                 )
 
-                else -> ModulePlaceholder(
-                    module = selectedModule!!,
-                    onBack = { selectedModule = null }
+                LoneScreen.SETTINGS -> SettingsScreen(
+                    profile = profile,
+                    micPermissionGranted = micPermissionGranted,
+                    notificationPermissionGranted = notificationPermissionGranted,
+                    speechRecognitionAvailable = speechRecognitionAvailable,
+                    drivingVoiceArmed = drivingVoiceArmed,
+                    onRequestVoicePermissions = onRequestVoicePermissions,
+                    onSetDrivingVoiceArmed = onSetDrivingVoiceArmed,
+                    onOpenAppSettings = onOpenAppSettings,
+                    onBack = { screen = LoneScreen.HOME },
+                    onLanguageChange = onLanguageChange,
+                    onTriviaCategoryToggle = onTriviaCategoryToggle,
+                    onFamilySetup = onFamilySetupClick,
+                    onEnglishSetup = onEnglishSetupClick,
+                    onDiagnostics = { screen = LoneScreen.DIAGNOSTICS }
+                )
+
+                LoneScreen.DIAGNOSTICS -> DiagnosticsScreen(
+                    onBack = { screen = LoneScreen.HOME },
+                    onOpenLogs = onDebugLogsClick,
+                    onStopVoice = onRoadVoiceStop,
+                    onOpenCar = onCarPreviewClick
                 )
             }
         }
@@ -111,771 +160,1115 @@ fun DawDriveApp(
 }
 
 @Composable
-private fun LauncherScreen(
-    onModuleSelected: (DawModule) -> Unit
+private fun HomeScreen(
+    appVersion: String,
+    profile: TriviaGameEngine.Profile,
+    onGames: () -> Unit,
+    onDrive: () -> Unit,
+    onMedia: () -> Unit,
+    onStats: () -> Unit,
+    onTools: () -> Unit,
+    onSettings: () -> Unit
 ) {
+    val compact = LocalConfiguration.current.screenWidthDp < 700
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 28.dp, vertical = 20.dp)
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFF06101E), LoneRiderColors.Background)
+                )
+            )
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = if (compact) 16.dp else 24.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text(
-            text = "DAW DRIVE",
-            color = Color.White,
-            fontSize = 30.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = "v0.20 Road Games",
-            color = Color(0xFF9AA4B2),
-            fontSize = 14.sp
+        BrandHeader(
+            eyebrow = "DRIVING TOGETHER  •  PLAYING FURTHER",
+            onSettings = onSettings
         )
 
-        Spacer(modifier = Modifier.height(18.dp))
+        AdventureHero(profile)
 
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("🚙", "Drive", "Car preview & road voice", LoneRiderColors.Blue),
+                    onClick = onDrive
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("🎮", "Games", "Play together on the road", LoneRiderColors.Purple),
+                    onClick = onGames
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("♫", "Media", "Music, podcasts & web", LoneRiderColors.Pink),
+                    onClick = onMedia
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("▥", "Stats", "XP, streaks & progress", LoneRiderColors.Cyan),
+                    onClick = onStats
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("⚙", "Tools", "Diagnostics & utilities", LoneRiderColors.Amber),
+                    onClick = onTools
+                )
+                ProfileMiniCard(
+                    modifier = Modifier.weight(1f),
+                    profile = profile
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("🚙", "Drive", "Car preview & road voice", LoneRiderColors.Blue),
+                    onClick = onDrive
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("🎮", "Games", "Play together on the road", LoneRiderColors.Purple),
+                    onClick = onGames
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("♫", "Media", "Music, podcasts & web", LoneRiderColors.Pink),
+                    onClick = onMedia
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("▥", "Stats", "XP, streaks & progress", LoneRiderColors.Cyan),
+                    onClick = onStats
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
+                    card = ModuleCard("⚙", "Tools", "Diagnostics & utilities", LoneRiderColors.Amber),
+                    onClick = onTools
+                )
+                ProfileMiniCard(
+                    modifier = Modifier.weight(1f),
+                    profile = profile
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                LauncherTile(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    module = DawModule.Games,
-                    onClick = { onModuleSelected(DawModule.Games) }
-                )
-                LauncherTile(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    module = DawModule.Video,
-                    onClick = { onModuleSelected(DawModule.Video) }
-                )
-            }
-
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                LauncherTile(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    module = DawModule.Erp,
-                    onClick = { onModuleSelected(DawModule.Erp) }
-                )
-                LauncherTile(
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                    module = DawModule.Tools,
-                    onClick = { onModuleSelected(DawModule.Tools) }
-                )
-            }
+            Text(
+                text = "Voice first • Family friendly • Distraction aware",
+                color = Color(0xFF708198),
+                fontSize = 12.sp
+            )
+            Text(
+                text = "v" + appVersion,
+                color = LoneRiderColors.Cyan.copy(alpha = 0.78f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
 
 @Composable
-private fun LauncherTile(
+private fun AdventureHero(profile: TriviaGameEngine.Profile) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent,
+        shape = RoundedCornerShape(28.dp),
+        border = BorderStroke(1.dp, LoneRiderColors.Cyan.copy(alpha = 0.34f))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color(0xFF0D2033),
+                            Color(0xFF11172A),
+                            LoneRiderColors.Purple.copy(alpha = 0.24f)
+                        )
+                    )
+                )
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "ROAD MODE READY",
+                        color = LoneRiderColors.Cyan,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.8.sp
+                    )
+                    Text(
+                        "Ready for the next adventure?",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        "Voice-first games, family challenges and road tools.",
+                        color = LoneRiderColors.TextSecondary,
+                        fontSize = 12.sp
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        "LVL " + profile.level,
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Text(
+                        profile.xp.toString() + " XP",
+                        color = LoneRiderColors.Cyan,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+private object HexagonShape : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        val path = Path().apply {
+            moveTo(size.width * 0.25f, 0f)
+            lineTo(size.width * 0.75f, 0f)
+            lineTo(size.width, size.height * 0.5f)
+            lineTo(size.width * 0.75f, size.height)
+            lineTo(size.width * 0.25f, size.height)
+            lineTo(0f, size.height * 0.5f)
+            close()
+        }
+        return Outline.Generic(path)
+    }
+}
+
+@Composable
+private fun HexIconBadge(
+    icon: String,
+    accent: Color,
+    size: androidx.compose.ui.unit.Dp
+) {
+    Surface(
+        modifier = Modifier.width(size).height(size),
+        color = accent.copy(alpha = 0.13f),
+        shape = HexagonShape,
+        border = BorderStroke(1.5.dp, accent.copy(alpha = 0.8f))
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(icon, fontSize = (size.value * 0.43f).sp)
+        }
+    }
+}
+
+@Composable
+private fun BrandHeader(
+    eyebrow: String,
+    onSettings: (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            WolfBadge()
+            Column {
+                Text(
+                    text = "LONE RIDER",
+                    color = LoneRiderColors.TextPrimary,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 3.sp
+                )
+                Text(
+                    text = eyebrow,
+                    color = LoneRiderColors.Cyan,
+                    fontSize = 10.sp,
+                    letterSpacing = 1.6.sp
+                )
+            }
+        }
+
+        if (onSettings != null) {
+            CompactButton("SETTINGS", false, onSettings)
+        }
+    }
+}
+
+@Composable
+private fun WolfBadge() {
+    Surface(
+        color = Color.Transparent,
+        shape = RoundedCornerShape(999.dp),
+        modifier = Modifier
+            .width(54.dp)
+            .height(54.dp)
+    ) {
+        Image(
+            painter = painterResource(R.drawable.lone_rider_logo),
+            contentDescription = "Lone Rider logo",
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+private fun HomeTile(
     modifier: Modifier,
-    module: DawModule,
+    card: ModuleCard,
     onClick: () -> Unit
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
+        modifier = modifier.height(158.dp),
+        shape = RoundedCornerShape(26.dp),
+        border = BorderStroke(1.dp, card.accent.copy(alpha = 0.52f)),
+        contentPadding = PaddingValues(18.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF171B22),
+            containerColor = LoneRiderColors.SurfaceRaised,
             contentColor = Color.White
         )
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.Start
         ) {
-            Text(
-                text = module.title,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = module.subtitle,
-                color = Color(0xFFAFB7C2),
-                fontSize = 15.sp
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                HexIconBadge(card.icon, card.accent, 48.dp)
+                Text(
+                    "OPEN",
+                    color = card.accent,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp
+                )
+            }
+            Column {
+                Text(card.title, fontSize = 24.sp, fontWeight = FontWeight.Black)
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    card.subtitle,
+                    color = LoneRiderColors.TextSecondary,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun TriviaProfileScreen(
+private fun ProfileMiniCard(
+    modifier: Modifier,
+    profile: TriviaGameEngine.Profile
+) {
+    Surface(
+        modifier = modifier.height(150.dp),
+        color = LoneRiderColors.SurfaceRaised,
+        shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, LoneRiderColors.Cyan.copy(alpha = 0.34f))
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("PROFILE", color = LoneRiderColors.TextSecondary, fontSize = 11.sp)
+            Text("Level ${levelFor(profile.xp)}", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("${profile.xp} XP  •  ${profile.accuracy}% accuracy", color = LoneRiderColors.Cyan, fontSize = 13.sp)
+        }
+    }
+}
+
+@Composable
+private fun GamesScreen(
+    onBack: () -> Unit,
+    onQuickTrivia: () -> Unit,
+    onSpellingBee: () -> Unit,
+    onGuessWho: () -> Unit,
+    onKids: () -> Unit,
+    onFamily: () -> Unit,
+    onEnglish: () -> Unit,
+    onBrain: () -> Unit,
+    onOpenCar: () -> Unit
+) {
+    val compact = LocalConfiguration.current.screenWidthDp < 700
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(if (compact) 16.dp else 24.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        ScreenHeader("Games", "Voice-first road games", onBack)
+
+        if (compact) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "💡",
+                    title = "Quick Trivia",
+                    subtitle = "Fast facts. Big fun.",
+                    accent = LoneRiderColors.Purple,
+                    onClick = onQuickTrivia
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "🐝",
+                    title = "Spelling Bee",
+                    subtitle = "Spell it out together.",
+                    accent = LoneRiderColors.Amber,
+                    onClick = onSpellingBee
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "👤",
+                    title = "Guess WHO",
+                    subtitle = "People, clues & personalities.",
+                    accent = LoneRiderColors.Green,
+                    onClick = onGuessWho
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "🏆",
+                    title = "Family Quiz",
+                    subtitle = "Round + Battle modes.",
+                    accent = LoneRiderColors.Pink,
+                    onClick = onFamily
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "★",
+                    title = "Trivia Kids",
+                    subtitle = "Adaptive questions for 6–12.",
+                    accent = LoneRiderColors.Blue,
+                    onClick = onKids
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "🇬🇧",
+                    title = "English",
+                    subtitle = "Kids + Adults • Learn + Challenge.",
+                    accent = LoneRiderColors.Cyan,
+                    onClick = onEnglish
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                    icon = "🧠",
+                    title = "Brain Trainer",
+                    subtitle = "Memory • sequences • math • logic.",
+                    accent = LoneRiderColors.Green,
+                    onClick = onBrain
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                    icon = "🚙",
+                    title = "Car Game Hub",
+                    subtitle = "Pick a game and control playback.",
+                    accent = LoneRiderColors.Cyan,
+                    onClick = onOpenCar
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.height(210.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "💡",
+                    title = "Quick Trivia",
+                    subtitle = "Fast facts. Big fun.",
+                    accent = LoneRiderColors.Purple,
+                    onClick = onQuickTrivia
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "🐝",
+                    title = "Spelling Bee",
+                    subtitle = "Spell it out together.",
+                    accent = LoneRiderColors.Amber,
+                    onClick = onSpellingBee
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "👤",
+                    title = "Guess WHO",
+                    subtitle = "People, clues & personalities.",
+                    accent = LoneRiderColors.Green,
+                    onClick = onGuessWho
+                )
+            }
+
+            Row(
+                modifier = Modifier.height(210.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "🏆",
+                    title = "Family Quiz",
+                    subtitle = "Round + Battle modes.",
+                    accent = LoneRiderColors.Pink,
+                    onClick = onFamily
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "★",
+                    title = "Trivia Kids",
+                    subtitle = "Adaptive questions for 6–12.",
+                    accent = LoneRiderColors.Blue,
+                    onClick = onKids
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "🇬🇧",
+                    title = "English",
+                    subtitle = "Kids + Adults • Learn + Challenge.",
+                    accent = LoneRiderColors.Cyan,
+                    onClick = onEnglish
+                )
+            }
+
+            Row(
+                modifier = Modifier.height(160.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = "🧠",
+                    title = "Brain Trainer",
+                    subtitle = "Memory • sequences • math • logic • attention.",
+                    accent = LoneRiderColors.Green,
+                    onClick = onBrain
+                )
+            }
+
+            Row(
+                modifier = Modifier.height(160.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = "🚙",
+                    title = "Car Game Hub",
+                    subtitle = "Pick a game and control playback.",
+                    accent = LoneRiderColors.Cyan,
+                    onClick = onOpenCar
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GameCard(
+    modifier: Modifier,
+    icon: String,
+    title: String,
+    subtitle: String,
+    accent: Color,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.fillMaxSize(),
+        shape = RoundedCornerShape(26.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.58f)),
+        contentPadding = PaddingValues(18.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = LoneRiderColors.SurfaceRaised,
+            contentColor = Color.White
+        )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.Start
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HexIconBadge(icon, accent, 58.dp)
+                Surface(
+                    color = accent.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, accent.copy(alpha = 0.35f))
+                ) {
+                    Text(
+                        "VOICE",
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                        color = accent,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                }
+            }
+            Column {
+                Text(title, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    subtitle,
+                    color = LoneRiderColors.TextSecondary,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatsScreen(
     profile: TriviaGameEngine.Profile,
     dashboard: TriviaGameEngine.DashboardData,
     achievementTitles: List<String>,
-    onCarPreview: () -> Unit,
-    onFamilySetup: () -> Unit,
-    onDebugLogs: () -> Unit,
-    onStart: () -> Unit,
-    onStop: () -> Unit,
-    onLanguageChange: (TriviaGameEngine.Language) -> Unit,
-    onRefresh: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onRefresh: () -> Unit
 ) {
     val cs = profile.language == TriviaGameEngine.Language.CS
+    val compact = LocalConfiguration.current.screenWidthDp < 700
     val scroll = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(scroll)
-            .padding(28.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+            .padding(if (compact) 16.dp else 24.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Quick Trivia",
-                    color = Color.White,
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = if (cs) "Career dashboard" else "Career dashboard",
-                    color = Color(0xFFAFB7C2),
-                    fontSize = 16.sp
-                )
-            }
+        ScreenHeader(if (cs) "Statistiky" else "Stats", "Lone Rider profile", onBack)
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SmallActionButton(
-                    text = "EN",
-                    active = profile.language == TriviaGameEngine.Language.EN
-                ) {
+        if (compact) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                StatKpi(Modifier.weight(1f), "XP", profile.xp.toString(), LoneRiderColors.Purple)
+                StatKpi(Modifier.weight(1f), if (cs) "Úspěšnost" else "Accuracy", "${profile.accuracy}%", LoneRiderColors.Green)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                StatKpi(Modifier.weight(1f), if (cs) "Nejlepší série" else "Best streak", profile.bestStreak.toString(), LoneRiderColors.Amber)
+                StatKpi(Modifier.weight(1f), if (cs) "Kola" else "Rounds", profile.roundsCompleted.toString(), LoneRiderColors.Blue)
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                StatKpi(Modifier.weight(1f), "XP", profile.xp.toString(), LoneRiderColors.Purple)
+                StatKpi(Modifier.weight(1f), if (cs) "Úspěšnost" else "Accuracy", "${profile.accuracy}%", LoneRiderColors.Green)
+                StatKpi(Modifier.weight(1f), if (cs) "Nejlepší série" else "Best streak", profile.bestStreak.toString(), LoneRiderColors.Amber)
+                StatKpi(Modifier.weight(1f), if (cs) "Kola" else "Rounds", profile.roundsCompleted.toString(), LoneRiderColors.Blue)
+            }
+        }
+
+        SectionCard(if (cs) "Kategorie" else "Category stats") {
+            val active = dashboard.categoryStats.filter { it.answered > 0 }
+            if (active.isEmpty()) {
+                Text(if (cs) "Zatím žádná data." else "No data yet.", color = LoneRiderColors.TextSecondary)
+            } else {
+                active.sortedByDescending { it.accuracy }.forEach { stat ->
+                    CategoryBar(localizedCategory(stat.category, cs), stat.accuracy)
+                }
+            }
+        }
+
+        SectionCard(if (cs) "Achievementy" else "Achievements") {
+            val items = if (achievementTitles.isEmpty()) {
+                listOf(if (cs) "Dokonči první kolo a odemkni achievement." else "Finish your first round to unlock an achievement.")
+            } else achievementTitles
+            items.take(8).forEach { item ->
+                Text("• $item", color = LoneRiderColors.TextSecondary, fontSize = 14.sp)
+            }
+        }
+
+        SectionCard(if (cs) "Nejčastější chyby" else "Most missed") {
+            val missed = dashboard.missedQuestions.take(5)
+            if (missed.isEmpty()) {
+                Text(if (cs) "Žádné chybované otázky." else "No missed questions yet.", color = LoneRiderColors.TextSecondary)
+            } else {
+                missed.forEach {
+                    Text(
+                        "${it.prompt}  •  ${it.accuracy}%",
+                        color = LoneRiderColors.TextSecondary,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        }
+
+        CompactButton(if (cs) "Obnovit" else "Refresh", true, onRefresh)
+        Spacer(Modifier.height(8.dp))
+    }
+}
+
+@Composable
+private fun SettingsScreen(
+    profile: TriviaGameEngine.Profile,
+    micPermissionGranted: Boolean,
+    notificationPermissionGranted: Boolean,
+    speechRecognitionAvailable: Boolean,
+    drivingVoiceArmed: Boolean,
+    onRequestVoicePermissions: () -> Unit,
+    onSetDrivingVoiceArmed: (Boolean) -> Unit,
+    onOpenAppSettings: () -> Unit,
+    onBack: () -> Unit,
+    onLanguageChange: (TriviaGameEngine.Language) -> Unit,
+    onTriviaCategoryToggle: (TriviaQuestionBank.Category, Boolean) -> Unit,
+    onFamilySetup: () -> Unit,
+    onEnglishSetup: () -> Unit,
+    onDiagnostics: () -> Unit
+) {
+    val cs = profile.language == TriviaGameEngine.Language.CS
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        ScreenHeader(if (cs) "Nastavení" else "Settings", "Lone Rider", onBack)
+
+        SettingsRow(
+            title = if (cs) "Jazyk" else "Language",
+            subtitle = if (cs) "Čeština / English" else "English / Czech",
+            actions = {
+                CompactButton("EN", profile.language == TriviaGameEngine.Language.EN) {
                     onLanguageChange(TriviaGameEngine.Language.EN)
                 }
-                SmallActionButton(
-                    text = "CZ",
-                    active = profile.language == TriviaGameEngine.Language.CS
-                ) {
+                CompactButton("CZ", profile.language == TriviaGameEngine.Language.CS) {
                     onLanguageChange(TriviaGameEngine.Language.CS)
                 }
             }
-        }
+        )
 
-        KpiStrip(profile, cs)
-
-        DashboardCard(
-            title = if (cs) "Vývoj XP" else "XP progression",
-            subtitle = if (cs) "Kumulativní XP po dokončených kolech" else "Cumulative XP after completed rounds"
+        SectionCard(
+            if (cs) "Oblíbené kategorie Quick Trivia" else "Favorite Quick Trivia categories"
         ) {
-            XpProgressChart(
-                points = dashboard.xpProgression,
-                cs = cs
+            Text(
+                if (cs) {
+                    "Označené kategorie dostanou vyšší prioritu. Ostatní zůstávají ve hře."
+                } else {
+                    "Favorites get higher priority. Other categories stay in the mix."
+                },
+                color = LoneRiderColors.TextSecondary,
+                fontSize = 12.sp
             )
+
+            TriviaQuestionBank.Category.entries.chunked(2).forEach { rowCategories ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rowCategories.forEach { category ->
+                        val selected = category in profile.favoriteCategories
+                        Button(
+                            onClick = { onTriviaCategoryToggle(category, !selected) },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                if (selected) LoneRiderColors.Cyan else LoneRiderColors.Border
+                            ),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (selected) {
+                                    LoneRiderColors.Cyan.copy(alpha = 0.16f)
+                                } else {
+                                    LoneRiderColors.SurfaceRaised
+                                }
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                (if (selected) "★ " else "☆ ") + localizedCategory(category, cs),
+                                color = if (selected) Color.White else LoneRiderColors.TextSecondary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                    if (rowCategories.size == 1) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
         }
 
-        DashboardCard(
-            title = if (cs) "Přesnost podle kategorií" else "Accuracy by category",
-            subtitle = if (cs) "Jen kategorie, které už mají odpovědi" else "Only categories with recorded answers"
-        ) {
-            CategoryAccuracyChart(
-                stats = dashboard.categoryStats,
-                cs = cs
-            )
-        }
-
-        DashboardCard(
-            title = if (cs) "Historie kol" else "Round history",
-            subtitle = if (cs) "Posledních až 8 dokončených kol" else "Up to 8 most recent completed rounds"
-        ) {
-            RoundHistoryList(
-                rounds = dashboard.rounds.takeLast(8).reversed(),
-                cs = cs
-            )
-        }
-
-        DashboardCard(
-            title = if (cs) "Nejčastěji chybované otázky" else "Most missed questions",
-            subtitle = if (cs) "Otázky, které potřebují nejvíc opakování" else "Questions that need the most reinforcement"
-        ) {
-            MissedQuestionsList(
-                questions = dashboard.missedQuestions,
-                cs = cs
-            )
-        }
-
-        StatCard(
-            title = "Family",
-            lines = if (cs) {
-                listOf(
-                    "Multiplayer pro 2–6 hráčů se jmény uloženými v telefonu.",
-                    "Round: každý hraje vlastní tah, 100 bodů + bonus za sérii.",
-                    "Battle: první řekne svoje jméno jako hlasový buzzer, potom odpovídá.",
-                    "Battle otázky mají 100 / 200 / 300 bodů; chyba body odečte a pustí ostatní."
-                )
+        SettingsRow(
+            title = if (cs) "Mikrofon" else "Microphone",
+            subtitle = if (micPermissionGranted) {
+                if (cs) "Povoleno • Lone Rider může poslouchat odpovědi" else "Allowed • Lone Rider can listen for answers"
             } else {
-                listOf(
-                    "Multiplayer for 2–6 saved players.",
-                    "Round: rotating turns, 100 points plus personal streak bonuses.",
-                    "Battle: say your player name first to buzz in, then answer.",
-                    "Battle questions are worth 100 / 200 / 300 points; wrong answers lose points and reopen the question."
-                )
-            }
-        )
-
-        Button(
-            onClick = onFamilySetup,
-            shape = RoundedCornerShape(18.dp)
-        ) {
-            Text(if (cs) "Nastavit Family hráče / mód" else "Family players / mode")
-        }
-
-        StatCard(
-            title = "Guess Who",
-            lines = if (cs) {
-                listOf(
-                    "Uhodni českou nebo světovou osobnost podle až tří nápověd.",
-                    "Můžeš tipnout jméno kdykoli nebo říct „další nápověda“.",
-                    "1. nápověda = nejvíc XP, 3. nápověda = méně XP.",
-                    "Vlastní level, XP, streak a 10 osobností v jednom kole."
-                )
-            } else {
-                listOf(
-                    "Guess a Czech or world personality from up to three clues.",
-                    "Guess the name at any time or say next hint.",
-                    "First-hint answers earn the most XP.",
-                    "Separate level, XP, streak and 10-person rounds."
-                )
-            }
-        )
-
-        StatCard(
-            title = "Trivia Kids 6–12",
-            lines = if (cs) {
-                listOf(
-                    "Samostatná dětská trivia hra bez letopočtů a těžké politiky.",
-                    "Zvířata, filmy a postavy, auta, vesmír, příroda, tělo, sport, jídlo a logika.",
-                    "Obtížnost se automaticky přizpůsobuje výkonu dítěte.",
-                    "Má vlastní XP, level, streak a 10 otázek v jednom kole."
-                )
-            } else {
-                listOf(
-                    "Separate kids trivia without date-heavy or political questions.",
-                    "Animals, movies and characters, cars, space, nature, body, sports, food and logic.",
-                    "Difficulty adapts automatically to the child's performance.",
-                    "Separate XP, level, streak and 10-question rounds."
-                )
-            }
-        )
-
-        StatCard(
-            title = "Spelling Bee",
-            lines = if (cs) {
-                listOf(
-                    "Nová hands-free hra s 5 úrovněmi obtížnosti.",
-                    "Poslechneš si anglické slovo a jeho význam, potom ho nahlas vyhláskuješ.",
-                    "Má vlastní XP, level, streak a 10 slov v jednom kole.",
-                    "Spustíš ji v Android Auto nebo v Car Preview přepínačem Spelling Bee."
-                )
-            } else {
-                listOf(
-                    "New hands-free game with 5 difficulty levels.",
-                    "Hear an English word and definition, then spell it aloud.",
-                    "Separate XP, level, streak and 10-word rounds.",
-                    "Start it from Android Auto or select Spelling Bee in Car Preview."
-                )
-            }
-        )
-
-        StatCard(
-            title = if (cs) "Achievementy" else "Achievements",
-            lines = if (achievementTitles.isEmpty()) {
-                listOf(
-                    if (cs) "Zatím žádný. První získáš dokončením kola."
-                    else "None yet. Finish a round to unlock the first one."
-                )
-            } else {
-                achievementTitles.map { "• " + it }
-            }
-        )
-
-        StatCard(
-            title = if (cs) "Hlasové příkazy" else "Voice commands",
-            lines = if (cs) {
-                listOf(
-                    "zopakuj • zopakuje otázku",
-                    "přeskoč • další otázka",
-                    "skóre • aktuální statistika",
-                    "úroveň • level a XP",
-                    "zastav hru • uloží a pozastaví"
-                )
-            } else {
-                listOf(
-                    "repeat • repeat question",
-                    "skip • next question",
-                    "score • current stats",
-                    "level • level and XP",
-                    "stop game • save and pause"
-                )
-            }
-        )
-
-        Text(
-            text = if (cs) {
-                "Historické grafy se začnou plnit od prvního kola dokončeného ve v0.12."
-            } else {
-                "Historical charts start filling from the first round completed in v0.12."
+                if (cs) "Není povoleno • bez toho nelze odpovídat hlasem" else "Not allowed • voice answers will not work"
             },
-            color = Color(0xFF8C96A4),
-            fontSize = 13.sp
+            actions = {
+                CompactButton(
+                    if (micPermissionGranted) {
+                        if (cs) "POVOLENO" else "ALLOWED"
+                    } else {
+                        if (cs) "POVOLIT" else "ALLOW"
+                    },
+                    micPermissionGranted,
+                    onRequestVoicePermissions
+                )
+            }
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = onCarPreview,
-                shape = RoundedCornerShape(18.dp)
-            ) {
-                Text(if (cs) "Car Preview" else "Car Preview")
+        SettingsRow(
+            title = if (cs) "Driving Voice Mode" else "Driving Voice Mode",
+            subtitle = when {
+                !speechRecognitionAvailable ->
+                    if (cs) "Rozpoznávání řeči není v telefonu dostupné" else "Speech recognition is not available on this phone"
+                !micPermissionGranted ->
+                    if (cs) "Nejdřív povol mikrofon" else "Allow microphone access first"
+                drivingVoiceArmed ->
+                    if (cs) "AKTIVNÍ • hands-free režim je připraven pro jízdu" else "ACTIVE • hands-free mode is ready for driving"
+                else ->
+                    if (cs) "Vypnuto • aktivuj před jízdou" else "Off • arm it before driving"
+            },
+            actions = {
+                if (!micPermissionGranted) {
+                    CompactButton(
+                        if (cs) "POVOLIT MIC" else "ALLOW MIC",
+                        false,
+                        onRequestVoicePermissions
+                    )
+                } else {
+                    CompactButton(
+                        if (drivingVoiceArmed) {
+                            if (cs) "VYPNOUT" else "TURN OFF"
+                        } else {
+                            if (cs) "AKTIVOVAT" else "ARM"
+                        },
+                        drivingVoiceArmed,
+                        { onSetDrivingVoiceArmed(!drivingVoiceArmed) }
+                    )
+                }
             }
-            Button(
-                onClick = onStart,
-                shape = RoundedCornerShape(18.dp)
-            ) {
-                Text(if (cs) "Nastavit / otevřít hry" else "Setup / Open Games")
-            }
-            SmallActionButton(
-                text = if (cs) "Debug logy" else "Debug Logs",
-                active = false,
-                onClick = onDebugLogs
-            )
-                        SmallActionButton(
-                text = if (cs) "Obnovit" else "Refresh",
-                active = false,
-                onClick = onRefresh
-            )
-            SmallActionButton(
-                text = "Stop",
-                active = false,
-                onClick = onStop
-            )
-            SmallActionButton(
-                text = if (cs) "Zpět" else "Back",
-                active = false,
-                onClick = onBack
-            )
-        }
+        )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        SettingsRow(
+            title = if (cs) "Notifikace" else "Notifications",
+            subtitle = if (notificationPermissionGranted) {
+                if (cs) "Povoleno • uvidíš stav Road Voice" else "Allowed • Road Voice status can be shown"
+            } else {
+                if (cs) "Doporučeno povolit kvůli běhu na pozadí" else "Recommended for background Road Voice status"
+            },
+            actions = {
+                CompactButton(
+                    if (notificationPermissionGranted) {
+                        if (cs) "POVOLENO" else "ALLOWED"
+                    } else {
+                        if (cs) "POVOLIT" else "ALLOW"
+                    },
+                    notificationPermissionGranted,
+                    onRequestVoicePermissions
+                )
+            }
+        )
+
+        SettingsRow(
+            title = if (cs) "Systémová oprávnění" else "System permissions",
+            subtitle = if (cs) "Otevře nastavení aplikace v Androidu" else "Open Android app permissions and settings",
+            actions = {
+                CompactButton(if (cs) "OTEVŘÍT" else "OPEN", false, onOpenAppSettings)
+            }
+        )
+
+        SettingsRow(
+            title = if (cs) "Rodinný režim" else "Family mode",
+            subtitle = if (cs) "Hráči, jména, obtížnost a Battle" else "Players, names, difficulty and Battle",
+            actions = { CompactButton(if (cs) "NASTAVIT" else "SET UP", true, onFamilySetup) }
+        )
+
+        SettingsRow(
+            title = "English",
+            subtitle = if (cs) "Každý hráč má vlastní Kids/Adult profil, úroveň a progress" else "Per-player Kids/Adult profile, level and progress",
+            actions = { CompactButton(if (cs) "PROFILY" else "PROFILES", true, onEnglishSetup) }
+        )
+
+        SettingsRow(
+            title = if (cs) "Zvuk" else "Audio",
+            subtitle = if (cs) "Přehrávání přes audio systém auta" else "Playback through the car audio system"
+        )
+
+        SettingsRow(
+            title = if (cs) "Přístupnost" else "Accessibility",
+            subtitle = if (cs) "Velké prvky, vysoký kontrast, voice-first" else "Large targets, high contrast, voice-first"
+        )
+
+        SettingsRow(
+            title = if (cs) "Diagnostika" else "Diagnostics",
+            subtitle = if (cs) "Stav aplikace, mikrofon a logy" else "App status, microphone and logs",
+            actions = { CompactButton(if (cs) "OTEVŘÍT" else "OPEN", false, onDiagnostics) }
+        )
     }
 }
 
 @Composable
-private fun KpiStrip(
-    profile: TriviaGameEngine.Profile,
-    cs: Boolean
+private fun DiagnosticsScreen(
+    onBack: () -> Unit,
+    onOpenLogs: () -> Unit,
+    onStopVoice: () -> Unit,
+    onOpenCar: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        ScreenHeader("Diagnostics", "Lone Rider system status", onBack)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatusCard(Modifier.weight(1f), "APP", "OK")
+            StatusCard(Modifier.weight(1f), "MIC", "READY")
+            StatusCard(Modifier.weight(1f), "AUDIO", "READY")
+            StatusCard(Modifier.weight(1f), "CAR", "AVAILABLE")
+        }
+
+        SectionCard("Runtime") {
+            Text("Package: com.dualactionwindows.dawdrive", color = LoneRiderColors.TextSecondary, fontSize = 13.sp)
+            Text("Brand: Lone Rider", color = LoneRiderColors.TextSecondary, fontSize = 13.sp)
+            Text("Voice loop: Android SpeechRecognizer + TTS", color = LoneRiderColors.TextSecondary, fontSize = 13.sp)
+            Text("Car integration: Android media browser / car preview", color = LoneRiderColors.TextSecondary, fontSize = 13.sp)
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            CompactButton("VIEW LOGS", true, onOpenLogs)
+            CompactButton("OPEN CAR", false, onOpenCar)
+            CompactButton("STOP VOICE", false, onStopVoice)
+        }
+    }
+}
+
+@Composable
+private fun ScreenHeader(
+    title: String,
+    subtitle: String,
+    onBack: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        KpiCard(
-            modifier = Modifier.weight(1f),
-            label = "XP",
-            value = profile.xp.toString()
-        )
-        KpiCard(
-            modifier = Modifier.weight(1f),
-            label = if (cs) "Úspěšnost" else "Accuracy",
-            value = profile.accuracy.toString() + "%"
-        )
-        KpiCard(
-            modifier = Modifier.weight(1f),
-            label = if (cs) "Nejlepší série" else "Best streak",
-            value = profile.bestStreak.toString()
-        )
-        KpiCard(
-            modifier = Modifier.weight(1f),
-            label = if (cs) "Kola" else "Rounds",
-            value = profile.roundsCompleted.toString()
-        )
-    }
-}
-
-@Composable
-private fun KpiCard(
-    modifier: Modifier,
-    label: String,
-    value: String
-) {
-    Surface(
-        modifier = modifier,
-        color = Color(0xFF171B22),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = value,
-                color = Color.White,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = label,
-                color = Color(0xFF99A3B0),
-                fontSize = 13.sp
-            )
+            CompactButton("‹ BACK", false, onBack)
+            Column {
+                Text(title, color = Color.White, fontSize = 29.sp, fontWeight = FontWeight.Bold)
+                Text(subtitle, color = LoneRiderColors.TextSecondary, fontSize = 12.sp)
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            WolfBadge()
+            Text("LONE RIDER", color = Color.White, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
         }
     }
 }
 
 @Composable
-private fun DashboardCard(
+private fun StatKpi(
+    modifier: Modifier,
+    label: String,
+    value: String,
+    accent: Color
+) {
+    Surface(
+        modifier = modifier.height(100.dp),
+        color = accent.copy(alpha = 0.13f),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(value, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text(label, color = LoneRiderColors.TextSecondary, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun SectionCard(
     title: String,
-    subtitle: String,
     content: @Composable () -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = Color(0xFF11151B),
-        shape = RoundedCornerShape(20.dp)
+        color = LoneRiderColors.Surface,
+        shape = RoundedCornerShape(22.dp)
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = title,
-                color = Color.White,
-                fontSize = 21.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = subtitle,
-                color = Color(0xFF8F99A8),
-                fontSize = 13.sp
-            )
+            Text(title, color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
             content()
         }
     }
 }
 
 @Composable
-private fun XpProgressChart(
-    points: List<Pair<Int, Int>>,
-    cs: Boolean
-) {
-    if (points.isEmpty()) {
-        EmptyDataText(
-            if (cs) "Zatím není dokončené kolo s historickým záznamem."
-            else "No completed round with historical data yet."
-        )
-        return
-    }
-
-    val visible = points.takeLast(20)
-    val maxXp = max(visible.maxOf { it.second }, 1)
-
-    Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp)
-    ) {
-        val left = 14f
-        val right = size.width - 14f
-        val top = 12f
-        val bottom = size.height - 16f
-        val width = right - left
-        val height = bottom - top
-
-        for (i in 0..4) {
-            val y = top + height * i / 4f
-            drawLine(
-                color = Color(0xFF252B35),
-                start = Offset(left, y),
-                end = Offset(right, y),
-                strokeWidth = 1f
-            )
-        }
-
-        val path = Path()
-        visible.forEachIndexed { index, point ->
-            val x = if (visible.size == 1) {
-                left + width / 2f
-            } else {
-                left + width * index / (visible.size - 1).toFloat()
-            }
-            val y = bottom - (point.second.toFloat() / maxXp.toFloat()) * height
-
-            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-
-            drawCircle(
-                color = Color(0xFFE6EDF5),
-                radius = 4.5f,
-                center = Offset(x, y)
-            )
-        }
-
-        drawPath(
-            path = path,
-            color = Color(0xFF9FB4CC),
-            style = Stroke(width = 4f)
-        )
-    }
-
-    val first = visible.first()
-    val last = visible.last()
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = (if (cs) "Kolo " else "Round ") + first.first + " • " + first.second + " XP",
-            color = Color(0xFF8F99A8),
-            fontSize = 12.sp
-        )
-        Text(
-            text = (if (cs) "Kolo " else "Round ") + last.first + " • " + last.second + " XP",
-            color = Color.White,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-private fun CategoryAccuracyChart(
-    stats: List<TriviaGameEngine.CategoryStat>,
-    cs: Boolean
-) {
-    val active = stats
-        .filter { it.answered > 0 }
-        .sortedByDescending { it.accuracy }
-
-    if (active.isEmpty()) {
-        EmptyDataText(
-            if (cs) "Zatím nejsou odpovědi pro porovnání kategorií."
-            else "No category answers recorded yet."
-        )
-        return
-    }
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        active.forEach { stat ->
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = localizedCategory(stat.category, cs),
-                        color = Color.White,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        text = stat.accuracy.toString() + "% • " +
-                            stat.correct + "/" + stat.answered,
-                        color = Color(0xFF9DA8B5),
-                        fontSize = 13.sp
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(9.dp)
-                        .background(
-                            color = Color(0xFF252B35),
-                            shape = RoundedCornerShape(5.dp)
-                        )
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(stat.accuracy.coerceIn(0, 100) / 100f)
-                            .height(9.dp)
-                            .background(
-                                color = Color(0xFF9FB4CC),
-                                shape = RoundedCornerShape(5.dp)
-                            )
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RoundHistoryList(
-    rounds: List<TriviaGameEngine.RoundHistoryEntry>,
-    cs: Boolean
-) {
-    if (rounds.isEmpty()) {
-        EmptyDataText(
-            if (cs) "Historie kol se začne ukládat po dokončení dalšího kola."
-            else "Round history will appear after the next completed round."
-        )
-        return
-    }
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        rounds.forEach { round ->
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFF171B22),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = (if (cs) "Kolo " else "Round ") + round.roundNumber,
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = formatRoundDate(round.completedAt, cs),
-                            color = Color(0xFF86909D),
-                            fontSize = 12.sp
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = round.correct.toString() + "/" + round.answered +
-                                " • " + round.accuracy + "%",
-                            color = Color.White
-                        )
-                        Text(
-                            text = "+" + round.xpEarned + " XP • " +
-                                (if (cs) "série " else "streak ") + round.bestStreak,
-                            color = Color(0xFF9DA8B5),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MissedQuestionsList(
-    questions: List<TriviaGameEngine.MissedQuestionStat>,
-    cs: Boolean
-) {
-    if (questions.isEmpty()) {
-        EmptyDataText(
-            if (cs) "Zatím nemáš žádné chybované otázky."
-            else "No missed questions yet."
-        )
-        return
-    }
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        questions.forEachIndexed { index, item ->
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFF171B22),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = (index + 1).toString(),
-                        color = Color(0xFF7F8A98),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            text = item.prompt,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = localizedCategory(item.category, cs) + " • " +
-                                (if (cs) "chyby " else "misses ") + item.wrongCount +
-                                " • " + item.accuracy + "%",
-                            color = Color(0xFF929DAA),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun EmptyDataText(text: String) {
-    Text(
-        text = text,
-        color = Color(0xFF7F8996),
-        fontSize = 14.sp,
-        modifier = Modifier.padding(vertical = 18.dp)
-    )
-}
-
-@Composable
-private fun StatCard(
+private fun CategoryBar(
     title: String,
-    lines: List<String>
+    accuracy: Int
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(title, color = LoneRiderColors.TextSecondary, fontSize = 13.sp)
+            Text("$accuracy%", color = Color.White, fontSize = 13.sp)
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .background(Color(0xFF172234), RoundedCornerShape(999.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth((accuracy.coerceIn(0, 100)) / 100f)
+                    .height(8.dp)
+                    .background(LoneRiderColors.Cyan, RoundedCornerShape(999.dp))
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsRow(
+    title: String,
+    subtitle: String,
+    actions: (@Composable () -> Unit)? = null
 ) {
     Surface(
-        color = Color(0xFF171B22),
-        shape = RoundedCornerShape(18.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        color = LoneRiderColors.Surface,
+        shape = RoundedCornerShape(18.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(17.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = title,
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            lines.forEach { line ->
-                Text(
-                    text = line,
-                    color = Color(0xFFAFB7C2),
-                    fontSize = 15.sp
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                Text(subtitle, color = LoneRiderColors.TextSecondary, fontSize = 12.sp)
+            }
+            if (actions != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    actions()
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SmallActionButton(
+private fun StatusCard(
+    modifier: Modifier,
+    label: String,
+    value: String
+) {
+    Surface(
+        modifier = modifier.height(90.dp),
+        color = LoneRiderColors.Green.copy(alpha = 0.10f),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(15.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(label, color = LoneRiderColors.TextSecondary, fontSize = 11.sp)
+            Text(value, color = LoneRiderColors.Green, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun CompactButton(
     text: String,
     active: Boolean,
     onClick: () -> Unit
@@ -883,32 +1276,23 @@ private fun SmallActionButton(
     Button(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (active) Color(0xFF4A5568) else Color(0xFF242A33),
+            containerColor = if (active) LoneRiderColors.Blue else LoneRiderColors.SurfaceRaised,
             contentColor = Color.White
         )
     ) {
-        Text(text)
+        Text(text = text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
     }
 }
 
-private fun formatRoundDate(
-    timestamp: Long,
-    cs: Boolean
-): String {
-    val locale = if (cs) Locale("cs", "CZ") else Locale.US
-    val pattern = if (cs) "d. M. HH:mm" else "MMM d, HH:mm"
-    return SimpleDateFormat(pattern, locale).format(Date(timestamp))
-}
+private fun levelFor(xp: Int): Int = (xp / 1000) + 1
 
 private fun localizedCategory(
     category: TriviaQuestionBank.Category,
     cs: Boolean
 ): String {
-    if (!cs) {
-        return category.key.replaceFirstChar { it.uppercase() }
-    }
-
+    if (!cs) return category.key.replaceFirstChar { it.uppercase() }
     return when (category) {
         TriviaQuestionBank.Category.GEOGRAPHY -> "Geografie"
         TriviaQuestionBank.Category.SCIENCE -> "Věda"
@@ -921,43 +1305,5 @@ private fun localizedCategory(
         TriviaQuestionBank.Category.MOVIES -> "Filmy"
         TriviaQuestionBank.Category.CARS -> "Auta"
         TriviaQuestionBank.Category.NUMBERS -> "Čísla"
-    }
-}
-
-@Composable
-private fun ModulePlaceholder(
-    module: DawModule,
-    onBack: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(28.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = module.title,
-            color = Color.White,
-            fontSize = 40.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = module.subtitle + " — module shell ready",
-            color = Color(0xFFAFB7C2),
-            fontSize = 18.sp
-        )
-        Spacer(modifier = Modifier.height(28.dp))
-        Button(
-            onClick = onBack,
-            shape = RoundedCornerShape(18.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF2A303A),
-                contentColor = Color.White
-            )
-        ) {
-            Text("Back to launcher")
-        }
     }
 }

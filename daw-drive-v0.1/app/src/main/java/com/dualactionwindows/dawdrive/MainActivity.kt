@@ -4,6 +4,9 @@ import android.Manifest
 import android.app.ActivityOptions
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
+import android.speech.SpeechRecognizer
 import android.os.Bundle
 import android.view.Display
 import androidx.activity.ComponentActivity
@@ -19,8 +22,18 @@ import com.dualactionwindows.dawdrive.ui.DawDriveApp
 
 class MainActivity : ComponentActivity() {
 
+    private val prefs by lazy {
+        getSharedPreferences("lone_rider_settings", MODE_PRIVATE)
+    }
+
+    private var drivingVoiceArmed by mutableStateOf(false)
+    private var micPermissionGranted by mutableStateOf(false)
+    private var notificationPermissionGranted by mutableStateOf(false)
+    private var speechRecognitionAvailable by mutableStateOf(false)
+
     private var resumeGameAfterPermission = false
     private var openGamesAfterPermission = false
+    private var pendingGameAfterPermission: String? = null
 
     private val requestRoadVoicePermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
@@ -31,15 +44,18 @@ class MainActivity : ComponentActivity() {
                         Manifest.permission.RECORD_AUDIO
                     ) == PackageManager.PERMISSION_GRANTED
 
+            refreshPermissionState()
+
             if (micGranted) {
                 startRoadVoiceService(resumeGameAfterPermission)
                 if (openGamesAfterPermission) {
-                    openCarPreview()
+                    openCarPreview(pendingGameAfterPermission)
                 }
             }
 
             resumeGameAfterPermission = false
             openGamesAfterPermission = false
+            pendingGameAfterPermission = null
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,6 +63,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val triviaEngine = TriviaGameEngine(this)
+        val appVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "unknown"
+        refreshPermissionState()
+        drivingVoiceArmed = prefs.getBoolean(KEY_DRIVING_VOICE_ARMED, false)
+
+        if (drivingVoiceArmed && micPermissionGranted) {
+            startRoadVoiceService(resumeGame = false)
+        }
 
         setContent {
             var profile by remember {
@@ -57,6 +80,7 @@ class MainActivity : ComponentActivity() {
             }
 
             DawDriveApp(
+                appVersion = appVersion,
                 profile = profile,
                 dashboard = dashboard,
                 achievementTitles = profile.achievements
@@ -76,12 +100,55 @@ class MainActivity : ComponentActivity() {
                 onCarPreviewClick = {
                     openCarPreview()
                 },
+                onCarGameClick = { game ->
+                    openCarPreview(game)
+                },
                 onFamilySetupClick = {
                     startActivity(Intent(this, FamilySetupActivity::class.java))
+                },
+                onEnglishSetupClick = {
+                    startActivity(Intent(this, EnglishSetupActivity::class.java))
+                },
+                onBrainTrainerClick = {
+                    openCarPreview("brain")
                 },
                 onDebugLogsClick = {
                     startActivity(
                         Intent(this, DebugLogsActivity::class.java)
+                    )
+                },
+                micPermissionGranted = micPermissionGranted,
+                notificationPermissionGranted = notificationPermissionGranted,
+                speechRecognitionAvailable = speechRecognitionAvailable,
+                drivingVoiceArmed = drivingVoiceArmed,
+                onRequestVoicePermissions = {
+                    ensureRoadVoiceSetup(
+                        resumeGame = false,
+                        openGamesAfterSetup = false
+                    )
+                },
+                onSetDrivingVoiceArmed = { armed ->
+                    drivingVoiceArmed = armed
+                    prefs.edit().putBoolean(KEY_DRIVING_VOICE_ARMED, armed).apply()
+
+                    if (armed) {
+                        ensureRoadVoiceSetup(
+                            resumeGame = false,
+                            openGamesAfterSetup = false
+                        )
+                    } else {
+                        startService(
+                            Intent(this, RoadGameMediaService::class.java)
+                                .setAction(RoadGameMediaService.ACTION_STOP_VOICE)
+                        )
+                    }
+                },
+                onOpenAppSettings = {
+                    startActivity(
+                        Intent(
+                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.parse("package:" + packageName)
+                        )
                     )
                 },
                 onRoadVoiceStart = {
@@ -101,6 +168,11 @@ class MainActivity : ComponentActivity() {
                     profile = triviaEngine.profile()
                     dashboard = triviaEngine.dashboardData()
                 },
+                onTriviaCategoryToggle = { category, favorite ->
+                    triviaEngine.setCategoryFavorite(category, favorite)
+                    profile = triviaEngine.profile()
+                    dashboard = triviaEngine.dashboardData()
+                },
                 onRefreshProfile = {
                     profile = triviaEngine.profile()
                     dashboard = triviaEngine.dashboardData()
@@ -111,10 +183,31 @@ class MainActivity : ComponentActivity() {
         handleRoadVoiceIntent(intent)
     }
 
+    override fun onResume() {
+        super.onResume()
+        refreshPermissionState()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleRoadVoiceIntent(intent)
+    }
+
+    private fun refreshPermissionState() {
+        micPermissionGranted =
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+
+        notificationPermissionGranted =
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+        speechRecognitionAvailable = SpeechRecognizer.isRecognitionAvailable(this)
     }
 
     private fun handleRoadVoiceIntent(intent: Intent?) {
@@ -163,10 +256,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun openCarPreview() {
-        startActivity(
-            Intent(this, CarPreviewActivity::class.java)
-        )
+    private fun openCarPreview(game: String? = null) {
+        val intent = Intent(this, CarPreviewActivity::class.java)
+        if (game != null) {
+            intent.putExtra(CarPreviewActivity.EXTRA_GAME, game)
+        }
+        startActivity(intent)
     }
 
     private fun startRoadVoiceService(resumeGame: Boolean) {
@@ -179,6 +274,7 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
+        private const val KEY_DRIVING_VOICE_ARMED = "driving_voice_armed"
         const val EXTRA_ENABLE_ROAD_VOICE = "enable_road_voice"
         const val EXTRA_RESUME_GAME = "resume_game"
         const val EXTRA_NEEDS_MIC_PERMISSION = "needs_mic_permission"

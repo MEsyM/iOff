@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DAW Drive"
+rootProject.name = "Lone Rider"
 include(":app")

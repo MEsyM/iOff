@@ -10,6 +10,8 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -42,8 +44,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private lateinit var guessWhoEngine: GuessWhoEngine
     private lateinit var kidsTriviaEngine: KidsTriviaEngine
     private lateinit var familyEngine: FamilyGameEngine
+    private lateinit var englishEngine: EnglishLearningEngine
+    private lateinit var brainTrainerEngine: BrainTrainerEngine
 
-    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO, KIDS_TRIVIA, FAMILY }
+    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO, KIDS_TRIVIA, FAMILY, ENGLISH, BRAIN }
     private enum class ArtworkState { IDLE, LISTENING, CORRECT, WRONG }
 
     private var activeGame = ActiveGame.TRIVIA
@@ -98,6 +102,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var questionListeningStartedAt = 0L
     private var pendingStartAfterTts = false
     private var fallbackNoticeSpoken = false
+    private var englishWrongRetryUsed = false
+    private var lastRecognitionFinishedAt = 0L
+    private var metadataRevision = 0L
+    private data class SpeechSegment(val text: String, val locale: Locale)
+
+    private val englishSpeechQueue = ArrayDeque<SpeechSegment>()
+    private var englishSpeechFinalUtteranceId: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -124,6 +135,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         guessWhoEngine = GuessWhoEngine(this)
         kidsTriviaEngine = KidsTriviaEngine(this)
         familyEngine = FamilyGameEngine(this)
+        englishEngine = EnglishLearningEngine(this)
+        brainTrainerEngine = BrainTrainerEngine(this)
         tts = TextToSpeech(this, this)
 
         createSpeechRecognizer()
@@ -132,6 +145,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
                     DawDebugLog.log(this@RoadGameMediaService, "MEDIA_ON_PLAY", "game=" + activeGame)
+                    tryEnableVoiceFromMediaSession()
                     startOrResumeActiveGame()
                 }
 
@@ -157,6 +171,16 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
                 override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
                     DawDebugLog.log(this@RoadGameMediaService, "MEDIA_PLAY_FROM_ID", "mediaId=" + mediaId)
+                    if (mediaId == MEDIA_ID_LANGUAGE_CS) {
+                        changeLanguage(TriviaGameEngine.Language.CS, announce = true)
+                        return
+                    }
+                    if (mediaId == MEDIA_ID_LANGUAGE_EN) {
+                        changeLanguage(TriviaGameEngine.Language.EN, announce = true)
+                        return
+                    }
+
+                    tryEnableVoiceFromMediaSession()
                     when (mediaId) {
                         MEDIA_ID_SPELLING -> {
                             activeGame = ActiveGame.SPELLING
@@ -177,6 +201,16 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             activeGame = ActiveGame.FAMILY
                             sessionStarted = false
                             startOrResumeFamily()
+                        }
+                        MEDIA_ID_ENGLISH -> {
+                            activeGame = ActiveGame.ENGLISH
+                            sessionStarted = false
+                            startOrResumeEnglish()
+                        }
+                        MEDIA_ID_BRAIN -> {
+                            activeGame = ActiveGame.BRAIN
+                            sessionStarted = false
+                            startOrResumeBrain()
                         }
                         else -> {
                             activeGame = ActiveGame.TRIVIA
@@ -204,6 +238,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             ActiveGame.GUESS_WHO -> evaluateGuessWhoCandidates(listOf(spoken))
                             ActiveGame.KIDS_TRIVIA -> evaluateKidsTriviaCandidates(listOf(spoken))
                             ActiveGame.FAMILY -> evaluateFamilyCandidates(listOf(spoken))
+                            ActiveGame.ENGLISH -> evaluateEnglishCandidates(listOf(spoken))
+                            ActiveGame.BRAIN -> evaluateBrainCandidates(listOf(spoken))
                             ActiveGame.TRIVIA -> evaluateSpeechCandidates(listOf(spoken))
                         }
                     } else {
@@ -244,6 +280,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 override fun onEndOfSpeech() = Unit
 
                 override fun onError(error: Int) {
+                    lastRecognitionFinishedAt = SystemClock.elapsedRealtime()
                     DawDebugLog.log(
                         this@RoadGameMediaService,
                         "STT_ERROR",
@@ -253,18 +290,25 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     listening = false
                     if (!voiceModeEnabled || !awaitingAnswer) return
 
-                    if (retryCount < 1) {
-                        retryCount += 1
-                        mainHandler.postDelayed({ startListeningForAnswer() }, 650)
-                    } else {
-                        retryCount = 0
-                        autoSkipAfterSilence()
+                    when (error) {
+                        SpeechRecognizer.ERROR_NO_MATCH,
+                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> handleMissedAnswer()
+                        else -> {
+                            if (retryCount < 1) {
+                                retryCount += 1
+                                mainHandler.postDelayed({ startListeningForAnswer() }, 700)
+                            } else {
+                                retryCount = 0
+                                autoSkipAfterSilence()
+                            }
+                        }
                     }
                 }
 
                 override fun onResults(results: Bundle?) {
                     listening = false
                     retryCount = 0
+                    lastRecognitionFinishedAt = SystemClock.elapsedRealtime()
 
                     val candidates = results
                         ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
@@ -279,7 +323,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
 
                     if (candidates.isEmpty()) {
-                        startListeningForAnswer()
+                        handleMissedAnswer()
                         return
                     }
 
@@ -294,6 +338,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         ActiveGame.GUESS_WHO -> evaluateGuessWhoCandidates(candidates)
                         ActiveGame.KIDS_TRIVIA -> evaluateKidsTriviaCandidates(candidates)
                         ActiveGame.FAMILY -> evaluateFamilyCandidates(candidates)
+                        ActiveGame.ENGLISH -> evaluateEnglishCandidates(candidates)
+                        ActiveGame.BRAIN -> evaluateBrainCandidates(candidates)
                         ActiveGame.TRIVIA -> evaluateSpeechCandidates(candidates)
                     }
                 }
@@ -312,20 +358,34 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         )
         when (intent?.action) {
             ACTION_START_VOICE -> {
-                activateRoadVoiceForeground()
+                val activated = activateRoadVoiceForeground()
 
-                if (intent.getBooleanExtra(EXTRA_RESUME_GAME, false)) {
-                    mainHandler.postDelayed({ startOrResumeTrivia() }, 250)
-                } else {
-                    speakSystem(
-                        en = "Road Voice is ready.",
-                        cs = "Road Voice je připraven."
-                    )
+                if (activated) {
+                    if (intent.getBooleanExtra(EXTRA_RESUME_GAME, false)) {
+                        mainHandler.postDelayed({ startOrResumeTrivia() }, 250)
+                    } else {
+                        speakSystem(
+                            en = "Road Voice is ready.",
+                            cs = "Road Voice je připraven."
+                        )
+                    }
                 }
             }
 
             ACTION_STOP_VOICE -> {
                 shutdownService()
+            }
+
+            ACTION_SET_LANGUAGE -> {
+                val requested = intent.getStringExtra(EXTRA_LANGUAGE)
+                val language = when (requested?.lowercase()) {
+                    "cs", "cz", "czech" -> TriviaGameEngine.Language.CS
+                    "en", "english" -> TriviaGameEngine.Language.EN
+                    else -> null
+                }
+                if (language != null) {
+                    changeLanguage(language, announce = true)
+                }
             }
         }
 
@@ -365,7 +425,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "TTS_ERROR",
                     "id=" + utteranceId + " game=" + activeGame
                 )
-                abandonAudioFocus("tts_error")
+                if (!isChainedEnglishSegment(utteranceId)) {
+                    abandonAudioFocus("tts_error")
+                }
             }
 
             override fun onDone(utteranceId: String?) {
@@ -374,6 +436,20 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "TTS_DONE",
                     "id=" + utteranceId + " game=" + activeGame
                 )
+                if (utteranceId?.startsWith(FEEDBACK_PREROLL_PREFIX) == true) {
+                    DawDebugLog.log(
+                        this@RoadGameMediaService,
+                        "TTS_PREROLL_DONE",
+                        "id=" + utteranceId + " game=" + activeGame
+                    )
+                    return
+                }
+
+                if (isChainedEnglishSegment(utteranceId)) {
+                    mainHandler.post { playNextEnglishSpeechSegment() }
+                    return
+                }
+
                 abandonAudioFocus("tts_done")
                 when (utteranceId) {
                     SESSION_INTRO_UTTERANCE_ID -> {
@@ -383,6 +459,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
                                 ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
                                 ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
+                                ActiveGame.ENGLISH -> speakCurrentEnglishItem()
+                                ActiveGame.BRAIN -> speakCurrentBrainChallenge()
                                 ActiveGame.TRIVIA -> speakCurrentQuestion()
                             }
                         }
@@ -405,15 +483,17 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     }
 
                     FEEDBACK_UTTERANCE_ID -> {
-                        mainHandler.post {
+                        mainHandler.postDelayed({
                             when (activeGame) {
                                 ActiveGame.SPELLING -> moveToNextSpellingWord()
                                 ActiveGame.GUESS_WHO -> moveToNextGuessWhoPerson()
                                 ActiveGame.KIDS_TRIVIA -> moveToNextKidsQuestion()
                                 ActiveGame.FAMILY -> moveToNextFamilyQuestion()
+                                ActiveGame.ENGLISH -> moveToNextEnglishItem()
+                                ActiveGame.BRAIN -> moveToNextBrainChallenge()
                                 ActiveGame.TRIVIA -> moveToNextQuestion()
                             }
-                        }
+                        }, FEEDBACK_ART_HOLD_MS)
                     }
 
                     ROUND_SUMMARY_UTTERANCE_ID -> {
@@ -423,6 +503,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 ActiveGame.GUESS_WHO -> startNextGuessWhoRound()
                                 ActiveGame.KIDS_TRIVIA -> startNextKidsRound()
                                 ActiveGame.FAMILY -> startNextFamilySession()
+                                ActiveGame.ENGLISH -> startNextEnglishRound()
+                                ActiveGame.BRAIN -> startNextBrainRound()
                                 ActiveGame.TRIVIA -> startNextRound()
                             }
                         }, 700)
@@ -432,6 +514,25 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         if (awaitingAnswer && voiceModeEnabled) {
                             mainHandler.postDelayed({ startListeningForAnswer() }, 250)
                         }
+                    }
+
+                    RETRY_UTTERANCE_ID -> {
+                        if (awaitingAnswer && voiceModeEnabled) {
+                            mainHandler.postDelayed({
+                                questionListeningStartedAt = SystemClock.elapsedRealtime()
+                                startListeningForAnswer()
+                            }, 200)
+                        }
+                    }
+
+                    LANGUAGE_UTTERANCE_ID -> {
+                        mainHandler.postDelayed({
+                            awaitingAnswer = false
+                            artworkState = ArtworkState.IDLE
+                            updateMetadata()
+                            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+                            notifyChildrenChanged(ROOT_ID)
+                        }, 250)
                     }
                 }
             }
@@ -487,37 +588,75 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             "Ages 6–12 • Level " + kids.level + " • " + kids.xp + " XP"
         }
 
+        val language = triviaEngine.language()
+        val languageCsSubtitle = if (language == TriviaGameEngine.Language.CS) {
+            "✓ Aktivní jazyk"
+        } else {
+            "Přepnout hry do češtiny"
+        }
+        val languageEnSubtitle = if (language == TriviaGameEngine.Language.EN) {
+            "✓ Active language"
+        } else {
+            "Switch games to English"
+        }
+
         result.sendResult(
             mutableListOf(
+                mediaItem(
+                    MEDIA_ID_LANGUAGE_CS,
+                    "🇨🇿 Čeština",
+                    languageCsSubtitle,
+                    R.drawable.language_cz
+                ),
+                mediaItem(
+                    MEDIA_ID_LANGUAGE_EN,
+                    "🇬🇧 English",
+                    languageEnSubtitle,
+                    R.drawable.language_en
+                ),
                 mediaItem(
                     MEDIA_ID_TRIVIA,
                     "Quick Trivia",
                     triviaSubtitle,
-                    R.drawable.trivia_idle
+                    R.drawable.game_quick
                 ),
                 mediaItem(
                     MEDIA_ID_SPELLING,
                     "Spelling Bee",
                     spellingSubtitle,
-                    R.drawable.spelling_idle
+                    R.drawable.game_spelling
                 ),
                 mediaItem(
                     MEDIA_ID_GUESS_WHO,
                     "Guess Who",
                     guessWhoSubtitle,
-                    R.drawable.guesswho_idle
+                    R.drawable.game_guesswho
                 ),
                 mediaItem(
                     MEDIA_ID_KIDS_TRIVIA,
                     "Trivia Kids 6–12",
                     kidsSubtitle,
-                    R.drawable.kids_idle
+                    R.drawable.game_kids
                 ),
                 mediaItem(
                     MEDIA_ID_FAMILY,
                     "Family",
                     familySubtitle,
-                    R.drawable.kids_idle
+                    R.drawable.game_family
+                ),
+                mediaItem(
+                    MEDIA_ID_ENGLISH,
+                    "English Lessons",
+                    englishEngine.settings().playerName + " • " +
+                        englishEngine.settings().level.label + " • " +
+                        englishEngine.settings().mode.name.lowercase().replaceFirstChar { it.uppercase() },
+                    R.drawable.game_english
+                ),
+                mediaItem(
+                    MEDIA_ID_BRAIN,
+                    "Brain Trainer",
+                    "Memory • sequences • math • logic • attention",
+                    R.drawable.game_brain
                 )
             )
         )
@@ -529,6 +668,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ActiveGame.GUESS_WHO -> startOrResumeGuessWho()
             ActiveGame.KIDS_TRIVIA -> startOrResumeKidsTrivia()
             ActiveGame.FAMILY -> startOrResumeFamily()
+            ActiveGame.ENGLISH -> startOrResumeEnglish()
+            ActiveGame.BRAIN -> startOrResumeBrain()
             ActiveGame.TRIVIA -> startOrResumeTrivia()
         }
     }
@@ -999,8 +1140,295 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         speak(text, QUESTION_UTTERANCE_ID)
     }
 
+    private fun startOrResumeEnglish() {
+        if (!ensurePlaybackForeground()) return
+        if (!ttsReady) {
+            pendingStartAfterTts = true
+            setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            return
+        }
+
+        englishEngine.startOrResume()
+        applyVoiceLanguage()
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        updateMetadata()
+
+        if (!sessionStarted) {
+            sessionStarted = true
+            val p = englishEngine.settings()
+            val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+            val audience = if (p.audience == EnglishLearningEngine.Audience.KID) {
+                if (cs) "dětský" else "kids"
+            } else {
+                if (cs) "dospělý" else "adult"
+            }
+            val mode = if (p.mode == EnglishLearningEngine.Mode.LEARN) "Learn" else "Challenge"
+            speakSystem(
+                en = "Welcome to Lone Rider English. " + p.playerName + ", " +
+                    audience + " profile, level " + p.level.label + ", " + mode +
+                    ". Ten voice lessons. Answer in English.",
+                cs = "Vítej v Lone Rider English. " + p.playerName + ", " +
+                    audience + " profil, úroveň " + p.level.label + ", režim " + mode +
+                    ". Deset hlasových lekcí. Odpovídej anglicky.",
+                utteranceId = SESSION_INTRO_UTTERANCE_ID
+            )
+        } else {
+            speakCurrentEnglishItem()
+        }
+    }
+
+    private fun speakCurrentEnglishItem() {
+        if (!ttsReady) return
+
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+        englishWrongRetryUsed = false
+        artworkState = ArtworkState.IDLE
+
+        val item = englishEngine.currentItem() ?: englishEngine.startOrResume()
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+        updateMetadata()
+
+        if (cs && item.type == EnglishLearningEngine.LessonType.REPEAT) {
+            speakEnglishSequence(
+                listOf(
+                    SpeechSegment("Opakování. Zopakuj anglicky.", Locale("cs", "CZ")),
+                    SpeechSegment(item.answers.first(), Locale.US)
+                ),
+                QUESTION_UTTERANCE_ID
+            )
+        } else {
+            val prefix = when (item.type) {
+                EnglishLearningEngine.LessonType.VOCABULARY ->
+                    if (cs) "Slovíčko. " else "Vocabulary. "
+                EnglishLearningEngine.LessonType.PHRASE ->
+                    if (cs) "Fráze. " else "Phrase. "
+                EnglishLearningEngine.LessonType.TRANSLATION ->
+                    if (cs) "Překlad. " else "Translation. "
+                EnglishLearningEngine.LessonType.REPEAT ->
+                    "Repeat. "
+            }
+            val prompt = if (cs) item.promptCs else item.promptEn
+            speak(prefix + prompt, QUESTION_UTTERANCE_ID)
+        }
+    }
+
+    private fun evaluateEnglishCandidates(candidates: List<String>) {
+        if (!awaitingAnswer) return
+
+        val before = englishEngine.settings()
+        if (
+            before.mode == EnglishLearningEngine.Mode.LEARN &&
+            !englishWrongRetryUsed &&
+            !englishEngine.isCurrentAnswerCorrect(candidates)
+        ) {
+            stopListening()
+            englishWrongRetryUsed = true
+            artworkState = ArtworkState.IDLE
+            updateMetadata()
+            speakSystem(
+                en = "Almost. Try once more in English.",
+                cs = "Skoro. Zkus to ještě jednou anglicky.",
+                utteranceId = RETRY_UTTERANCE_ID
+            )
+            return
+        }
+
+        stopListening()
+        awaitingAnswer = false
+
+        val result = englishEngine.answerCandidates(candidates)
+        artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
+        updateMetadata()
+
+        val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+        val finalUtteranceId =
+            if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID else FEEDBACK_UTTERANCE_ID
+
+        if (cs && !result.correct) {
+            val intro = if (before.mode == EnglishLearningEngine.Mode.LEARN) {
+                "Správná odpověď je:"
+            } else {
+                "Špatně. Správně je:"
+            }
+            val outro = buildString {
+                append(" Zkus si tu větu zapamatovat.")
+                if (result.roundFinished) {
+                    append(" ")
+                    append(englishEngine.roundSummary())
+                }
+            }
+            speakEnglishSequence(
+                listOf(
+                    SpeechSegment(intro, Locale("cs", "CZ")),
+                    SpeechSegment(result.expected, Locale.US),
+                    SpeechSegment(outro, Locale("cs", "CZ"))
+                ),
+                finalUtteranceId
+            )
+        } else {
+            val feedback = buildString {
+                if (result.correct) {
+                    append(if (cs) "Správně." else "Correct.")
+                    append(" +")
+                    append(result.xpEarned)
+                    append(" XP.")
+                    if (result.streak >= 3) {
+                        append(if (cs) " Série " else " Streak ")
+                        append(result.streak)
+                        append(".")
+                    }
+                } else {
+                    append("Wrong. A good answer is: ")
+                    append(result.expected)
+                    append(".")
+                }
+
+                if (result.roundFinished) {
+                    append(" ")
+                    append(englishEngine.roundSummary())
+                }
+            }
+            speak(feedback, finalUtteranceId)
+        }
+    }
+
+    private fun moveToNextEnglishItem() {
+        artworkState = ArtworkState.IDLE
+        englishEngine.nextItem()
+        speakCurrentEnglishItem()
+    }
+
+    private fun startNextEnglishRound() {
+        artworkState = ArtworkState.IDLE
+        englishEngine.resetRound()
+        englishEngine.startOrResume()
+        val p = englishEngine.settings()
+        speakSystem(
+            en = "Next English lesson for " + p.playerName + ".",
+            cs = "Další English lekce pro " + p.playerName + ".",
+            utteranceId = SESSION_INTRO_UTTERANCE_ID
+        )
+    }
+
+    private fun startOrResumeBrain() {
+        if (!ensurePlaybackForeground()) return
+        if (!ttsReady) {
+            pendingStartAfterTts = true
+            setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            return
+        }
+
+        brainTrainerEngine.startOrResume(triviaEngine.language())
+        applyVoiceLanguage()
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        updateMetadata()
+
+        if (!sessionStarted) {
+            sessionStarted = true
+            val p = brainTrainerEngine.profile()
+            speakSystem(
+                en = "Welcome to Brain Trainer. Level " + p.level +
+                    ". Ten challenges mixing memory, number sequences, math, logic and attention.",
+                cs = "Vítej v Brain Traineru. Level " + p.level +
+                    ". Deset úloh z paměti, číselných sekvencí, počítání, logiky a pozornosti.",
+                utteranceId = SESSION_INTRO_UTTERANCE_ID
+            )
+        } else {
+            speakCurrentBrainChallenge()
+        }
+    }
+
+    private fun speakCurrentBrainChallenge() {
+        if (!ttsReady) return
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+        artworkState = ArtworkState.IDLE
+
+        val challenge = brainTrainerEngine.currentChallenge()
+            ?: brainTrainerEngine.startOrResume(triviaEngine.language())
+        updateMetadata()
+        speak(challenge.prompt(triviaEngine.language()), QUESTION_UTTERANCE_ID)
+    }
+
+    private fun evaluateBrainCandidates(candidates: List<String>) {
+        if (!awaitingAnswer) return
+        stopListening()
+        awaitingAnswer = false
+
+        val language = triviaEngine.language()
+        val result = brainTrainerEngine.answerCandidates(candidates, language)
+        artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
+        updateMetadata()
+
+        val cs = language == TriviaGameEngine.Language.CS
+        val feedback = buildString {
+            if (result.correct) {
+                append(if (cs) "Správně." else "Correct.")
+                append(" +")
+                append(result.xpEarned)
+                append(" XP.")
+                if (result.streak >= 3) {
+                    append(if (cs) " Série " else " Streak ")
+                    append(result.streak)
+                    append(".")
+                }
+            } else {
+                append(if (cs) "Ne tak docela. " else "Not quite. ")
+                append(result.explanation)
+            }
+            if (result.promoted) {
+                append(if (cs) " Postupuješ na level " else " Level up. You are now level ")
+                append(result.level)
+                append(".")
+            }
+            if (result.roundFinished) {
+                append(" ")
+                append(brainTrainerEngine.roundSummary(language))
+            }
+        }
+
+        speak(
+            feedback,
+            if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID else FEEDBACK_UTTERANCE_ID
+        )
+    }
+
+    private fun moveToNextBrainChallenge() {
+        artworkState = ArtworkState.IDLE
+        brainTrainerEngine.nextChallenge(triviaEngine.language())
+        speakCurrentBrainChallenge()
+    }
+
+    private fun startNextBrainRound() {
+        artworkState = ArtworkState.IDLE
+        brainTrainerEngine.resetRound()
+        brainTrainerEngine.startOrResume(triviaEngine.language())
+        speakSystem(
+            en = "Next Brain Trainer round. Let's go.",
+            cs = "Další kolo Brain Traineru. Jdeme na to.",
+            utteranceId = SESSION_INTRO_UTTERANCE_ID
+        )
+    }
+
     private fun startListeningForAnswer() {
         if (!voiceModeEnabled || !awaitingAnswer || listening) return
+
+        if (
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            DawDebugLog.log(this, "STT_PERMISSION_MISSING", "game=" + activeGame)
+            voiceModeEnabled = false
+            artworkState = ArtworkState.IDLE
+            updateMetadata()
+            showEnableRoadVoiceNotification(needsPermission = true)
+            return
+        }
 
         val recognizer = speechRecognizer
         if (recognizer == null) {
@@ -1012,7 +1440,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             return
         }
 
-        val locale = triviaEngine.language().locale
+        val locale = if (activeGame == ActiveGame.ENGLISH) Locale.US else triviaEngine.language().locale
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
@@ -1022,7 +1450,22 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, locale.toLanguageTag())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 10)
+
+            val expectedBias = when (activeGame) {
+                ActiveGame.ENGLISH -> englishEngine.currentItem()?.answers.orEmpty()
+                ActiveGame.TRIVIA -> triviaEngine.currentQuestion()?.answers.orEmpty()
+                ActiveGame.KIDS_TRIVIA ->
+                    kidsTriviaEngine.currentQuestion(triviaEngine.language())?.answers.orEmpty()
+                ActiveGame.BRAIN -> brainTrainerEngine.currentChallenge()?.answers.orEmpty()
+                else -> emptyList()
+            }
+            if (expectedBias.isNotEmpty()) {
+                putStringArrayListExtra(
+                    RecognizerIntent.EXTRA_BIASING_STRINGS,
+                    ArrayList(expectedBias)
+                )
+            }
             putExtra(
                 RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,
                 1200L
@@ -1041,7 +1484,24 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             "STT_START",
             "game=" + activeGame + " locale=" + locale.toLanguageTag()
         )
-        recognizer.startListening(intent)
+        try {
+            recognizer.startListening(intent)
+        } catch (e: SecurityException) {
+            listening = false
+            artworkState = ArtworkState.IDLE
+            voiceModeEnabled = false
+            updateMetadata()
+            DawDebugLog.log(this, "STT_SECURITY_ERROR", e.message.orEmpty())
+            showEnableRoadVoiceNotification(needsPermission = true)
+        } catch (e: IllegalStateException) {
+            listening = false
+            artworkState = ArtworkState.IDLE
+            updateMetadata()
+            DawDebugLog.log(this, "STT_STATE_ERROR", e.message.orEmpty())
+            mainHandler.postDelayed({
+                if (voiceModeEnabled && awaitingAnswer) startListeningForAnswer()
+            }, 700)
+        }
     }
 
     private fun evaluateSpeechCandidates(candidates: List<String>) {
@@ -1057,6 +1517,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         val result = triviaEngine.answerCandidates(candidates, responseMs)
+        DawDebugLog.log(
+            this,
+            "ANSWER_EVALUATED",
+            "game=TRIVIA correct=" + result.correct +
+                " heard=" + candidates.joinToString(" / ") +
+                " expected=" + result.expected
+        )
         artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
         updateMetadata()
 
@@ -1124,6 +1591,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val result = kidsTriviaEngine.answerCandidates(
             candidates,
             triviaEngine.language()
+        )
+        DawDebugLog.log(
+            this,
+            "ANSWER_EVALUATED",
+            "game=KIDS_TRIVIA correct=" + result.correct +
+                " heard=" + candidates.joinToString(" / ") +
+                " expected=" + result.expected
         )
         artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
         updateMetadata()
@@ -1453,6 +1927,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
             ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
             ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
+            ActiveGame.ENGLISH -> speakCurrentEnglishItem()
+            ActiveGame.BRAIN -> speakCurrentBrainChallenge()
             ActiveGame.TRIVIA -> speakCurrentQuestion()
         }
     }
@@ -1532,6 +2008,35 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 }
             }
 
+            ActiveGame.ENGLISH -> {
+                val finished = englishEngine.skipCurrent()
+                if (finished) {
+                    speak(englishEngine.roundSummary(), ROUND_SUMMARY_UTTERANCE_ID)
+                } else {
+                    speakSystem(
+                        en = "Skipped.",
+                        cs = "Přeskakuji.",
+                        utteranceId = FEEDBACK_UTTERANCE_ID
+                    )
+                }
+            }
+
+            ActiveGame.BRAIN -> {
+                val finished = brainTrainerEngine.skipCurrent()
+                if (finished) {
+                    speak(
+                        brainTrainerEngine.roundSummary(triviaEngine.language()),
+                        ROUND_SUMMARY_UTTERANCE_ID
+                    )
+                } else {
+                    speakSystem(
+                        en = "Skipped.",
+                        cs = "Přeskakuji.",
+                        utteranceId = FEEDBACK_UTTERANCE_ID
+                    )
+                }
+            }
+
             ActiveGame.TRIVIA -> {
                 val skip = triviaEngine.skipCurrent()
                 if (skip.roundFinished) {
@@ -1547,6 +2052,27 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                 }
             }
+        }
+    }
+
+    private fun handleMissedAnswer() {
+        if (!voiceModeEnabled || !awaitingAnswer) return
+
+        stopListening()
+
+        if (retryCount == 0) {
+            retryCount = 1
+            artworkState = ArtworkState.IDLE
+            updateMetadata()
+            DawDebugLog.log(this, "STT_SECOND_CHANCE", "game=" + activeGame)
+            speakSystem(
+                en = "I didn't catch that. One more try. Say your answer now.",
+                cs = "Neslyšel jsem tě. Zkus to ještě jednou. Řekni odpověď teď.",
+                utteranceId = RETRY_UTTERANCE_ID
+            )
+        } else {
+            retryCount = 0
+            autoSkipAfterSilence()
         }
     }
 
@@ -1595,6 +2121,27 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 }
             }
 
+            ActiveGame.ENGLISH -> {
+                val finished = englishEngine.skipCurrent()
+                if (finished) {
+                    speak(text + " " + englishEngine.roundSummary(), ROUND_SUMMARY_UTTERANCE_ID)
+                } else {
+                    speak(text, FEEDBACK_UTTERANCE_ID)
+                }
+            }
+
+            ActiveGame.BRAIN -> {
+                val finished = brainTrainerEngine.skipCurrent()
+                if (finished) {
+                    speak(
+                        text + " " + brainTrainerEngine.roundSummary(triviaEngine.language()),
+                        ROUND_SUMMARY_UTTERANCE_ID
+                    )
+                } else {
+                    speak(text, FEEDBACK_UTTERANCE_ID)
+                }
+            }
+
             ActiveGame.TRIVIA -> {
                 val skip = triviaEngine.skipCurrent()
                 if (skip.roundFinished) {
@@ -1610,6 +2157,16 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val normalized = normalizeCommand(text)
 
         val command = when {
+            normalized in setOf(
+                "switch to english", "change language to english", "use english",
+                "prepni na anglictinu", "prepnout na anglictinu", "anglicky"
+            ) -> "language_en"
+
+            normalized in setOf(
+                "switch to czech", "change language to czech", "use czech",
+                "prepni na cestinu", "prepnout na cestinu", "cesky"
+            ) -> "language_cs"
+
             activeGame == ActiveGame.GUESS_WHO &&
                 normalized in setOf(
                     "next hint", "hint", "another hint", "give me a hint",
@@ -1639,6 +2196,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (dryRun) return true
 
         when (command) {
+            "language_en" -> changeLanguage(TriviaGameEngine.Language.EN, announce = true)
+            "language_cs" -> changeLanguage(TriviaGameEngine.Language.CS, announce = true)
             "repeat" -> repeatCurrentQuestion()
             "skip" -> skipCurrentQuestion()
             "hint" -> nextGuessWhoHint()
@@ -1651,6 +2210,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     ActiveGame.GUESS_WHO -> guessWhoEngine.scoreSummary(language)
                     ActiveGame.KIDS_TRIVIA -> kidsTriviaEngine.scoreSummary(language)
                     ActiveGame.FAMILY -> (if (language == TriviaGameEngine.Language.CS) "Skóre: " else "Score: ") + familyEngine.scoreboard()
+                    ActiveGame.ENGLISH -> englishEngine.roundSummary()
+                    ActiveGame.BRAIN -> brainTrainerEngine.roundSummary(language)
                     ActiveGame.TRIVIA -> triviaEngine.scoreSummary()
                 }
                 speak(summary, COMMAND_UTTERANCE_ID)
@@ -1668,6 +2229,14 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     } else {
                         "Family has no levels. Current score: " + familyEngine.scoreboard()
                     }
+                    ActiveGame.ENGLISH -> {
+                        val p = englishEngine.settings()
+                        p.playerName + ", English " + p.level.label + ", " + p.xp + " XP."
+                    }
+                    ActiveGame.BRAIN -> {
+                        val p = brainTrainerEngine.profile()
+                        "Brain Trainer level " + p.level + ", " + p.xp + " XP."
+                    }
                     ActiveGame.TRIVIA -> triviaEngine.levelSummary()
                 }
                 speak(summary, COMMAND_UTTERANCE_ID)
@@ -1679,6 +2248,57 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
 
         return true
+    }
+
+    private fun changeLanguage(
+        language: TriviaGameEngine.Language,
+        announce: Boolean
+    ) {
+        val previous = triviaEngine.language()
+
+        if (previous == language) {
+            updateMetadata()
+            notifyChildrenChanged(ROOT_ID)
+            if (announce) {
+                speakSystem(
+                    en = if (language == TriviaGameEngine.Language.EN) {
+                        "English is already active."
+                    } else {
+                        "Czech is already active."
+                    },
+                    cs = if (language == TriviaGameEngine.Language.CS) {
+                        "Čeština už je aktivní."
+                    } else {
+                        "Angličtina už je aktivní."
+                    },
+                    utteranceId = LANGUAGE_UTTERANCE_ID
+                )
+            }
+            return
+        }
+
+        stopListening()
+        triviaEngine.setLanguage(language)
+        applyVoiceLanguage()
+        updateMetadata()
+        notifyChildrenChanged(ROOT_ID)
+
+        DawDebugLog.log(
+            this,
+            "LANGUAGE_CHANGED",
+            "from=" + previous.code + " to=" + language.code + " game=" + activeGame
+        )
+
+        if (!announce) return
+
+        awaitingAnswer = false
+        retryCount = 0
+
+        if (language == TriviaGameEngine.Language.CS) {
+            speak("Jazyk přepnut na češtinu.", LANGUAGE_UTTERANCE_ID)
+        } else {
+            speak("Language changed to English.", LANGUAGE_UTTERANCE_ID)
+        }
     }
 
     private fun pauseGame() {
@@ -1762,16 +2382,65 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
     }
 
-    private fun activateRoadVoiceForeground() {
-        startForeground(
-            NOTIFICATION_ID,
-            buildActiveNotification(),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+    private fun activateRoadVoiceForeground(): Boolean {
+        if (
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            voiceModeEnabled = false
+            DawDebugLog.log(this, "VOICE_ENABLE_NO_PERMISSION")
+            showEnableRoadVoiceNotification(needsPermission = true)
+            return false
+        }
+
+        return try {
+            startForeground(
+                NOTIFICATION_ID,
+                buildActiveNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            )
+            voiceModeEnabled = true
+            getSystemService(NotificationManager::class.java)
+                .cancel(ENABLE_NOTIFICATION_ID)
+            DawDebugLog.log(this, "VOICE_ENABLE_OK", "source=foreground")
+            true
+        } catch (e: ForegroundServiceStartNotAllowedException) {
+            voiceModeEnabled = false
+            DawDebugLog.log(this, "VOICE_ENABLE_BLOCKED", e.message.orEmpty())
+            showEnableRoadVoiceNotification(needsPermission = false)
+            false
+        } catch (e: SecurityException) {
+            voiceModeEnabled = false
+            DawDebugLog.log(this, "VOICE_ENABLE_SECURITY_ERROR", e.message.orEmpty())
+            showEnableRoadVoiceNotification(needsPermission = false)
+            false
+        }
+    }
+
+    private fun tryEnableVoiceFromMediaSession() {
+        if (voiceModeEnabled) return
+
+        val hasMicPermission =
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+
+        DawDebugLog.log(
+            this,
+            "VOICE_ENABLE_FROM_MEDIA",
+            "permission=" + hasMicPermission + " game=" + activeGame
         )
-        voiceModeEnabled = true
-        getSystemService(NotificationManager::class.java)
-            .cancel(ENABLE_NOTIFICATION_ID)
+
+        if (!hasMicPermission) {
+            showEnableRoadVoiceNotification(needsPermission = true)
+            return
+        }
+
+        activateRoadVoiceForeground()
     }
 
     private fun showEnableRoadVoiceNotification(needsPermission: Boolean) {
@@ -1793,7 +2462,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         val notification = Notification.Builder(this, ENABLE_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle(if (cs) "Zapnout DAW Road Voice" else "Enable DAW Road Voice")
+            .setContentTitle(if (cs) "Zapnout Lone Rider Voice" else "Enable Lone Rider Voice")
             .setContentText(
                 if (needsPermission) {
                     if (cs) "Klepni pro povolení mikrofonu a pokračování"
@@ -1815,13 +2484,24 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val language = triviaEngine.language()
         val cs = language == TriviaGameEngine.Language.CS
         val artUri = artworkUri(activeGame, artworkState).toString()
+        val artBitmap = artworkBitmap(activeGame, artworkState)
+        metadataRevision += 1
+        val metadataId = activeGame.name.lowercase() + ":" +
+            artworkState.name.lowercase() + ":" + metadataRevision
+        val feedbackLabel = when (artworkState) {
+            ArtworkState.CORRECT -> if (cs) "✓ SPRÁVNĚ" else "✓ CORRECT"
+            ArtworkState.WRONG -> if (cs) "✕ ŠPATNĚ" else "✕ WRONG"
+            ArtworkState.LISTENING -> if (cs) "🎙 POSLOUCHÁM" else "🎙 LISTENING"
+            ArtworkState.IDLE -> null
+        }
 
         if (activeGame == ActiveGame.FAMILY) {
             val q = familyEngine.currentQuestion(language)
             val battle = familyEngine.mode() == FamilyGameEngine.Mode.BATTLE
             val player = if (!battle) familyEngine.currentPlayer().name else familyEngine.lockedPlayer()?.name
-            mediaSession.setMetadata(
+            publishMetadata(
                 MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_TITLE,
                         "Family • " + if (battle) "Battle" else "Round"
@@ -1832,7 +2512,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
-                        q?.prompt ?: if (cs) "Připraveno" else "Ready"
+                        feedbackLabel ?: feedbackLabel ?: q?.prompt ?: if (cs) "Připraveno" else "Ready"
                     )
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
@@ -1844,6 +2524,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .build()
             )
             return
@@ -1852,8 +2536,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (activeGame == ActiveGame.KIDS_TRIVIA) {
             val p = kidsTriviaEngine.profile()
             val q = kidsTriviaEngine.currentQuestion(language)
-            mediaSession.setMetadata(
+            publishMetadata(
                 MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(MediaMetadataCompat.METADATA_KEY_TITLE, "Trivia Kids 6–12 • Level " + p.level)
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_ARTIST,
@@ -1861,7 +2546,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
-                        q?.prompt ?: if (cs) "Připraveno" else "Ready"
+                        feedbackLabel ?: q?.prompt ?: if (cs) "Připraveno" else "Ready"
                     )
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
@@ -1869,6 +2554,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .build()
             )
             return
@@ -1877,8 +2566,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (activeGame == ActiveGame.GUESS_WHO) {
             val p = guessWhoEngine.profile()
             val hintNumber = guessWhoEngine.currentHintNumber()
-            mediaSession.setMetadata(
+            publishMetadata(
                 MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_TITLE,
                         "Guess Who • Level " + p.level
@@ -1899,6 +2589,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                         (p.totalAnswered + 1).toLong()
@@ -1911,8 +2605,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (activeGame == ActiveGame.SPELLING) {
             val p = spellingEngine.profile()
             val word = spellingEngine.currentWord()
-            mediaSession.setMetadata(
+            publishMetadata(
                 MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
                         MediaMetadataCompat.METADATA_KEY_TITLE,
                         "Spelling Bee • Level " + p.level
@@ -1934,9 +2629,93 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                         (p.totalAnswered + 1).toLong()
+                    )
+                    .build()
+            )
+            return
+        }
+
+        if (activeGame == ActiveGame.BRAIN) {
+            val p = brainTrainerEngine.profile()
+            val item = brainTrainerEngine.currentChallenge()
+            publishMetadata(
+                MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_TITLE,
+                        "Brain Trainer • Level " + p.level
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_ARTIST,
+                        p.xp.toString() + " XP • " + p.accuracy + "% • " +
+                            (if (cs) "série " else "streak ") + p.streak
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
+                        feedbackLabel ?: item?.prompt(language)
+                            ?: if (cs) "Připraveno" else "Ready"
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
+                        item?.type?.name?.lowercase()?.replace("_", " ")
+                            ?.replaceFirstChar { it.uppercase() } ?: "Brain Trainer"
+                    )
+                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
+                    .putLong(
+                        MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
+                        (p.answered + 1).toLong()
+                    )
+                    .build()
+            )
+            return
+        }
+
+        if (activeGame == ActiveGame.ENGLISH) {
+            val p = englishEngine.settings()
+            val item = englishEngine.currentItem()
+            val accuracy = if (p.answered == 0) 0 else p.correct * 100 / p.answered
+            publishMetadata(
+                MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_TITLE,
+                        "English Lessons • " + p.playerName + " • " + p.level.label
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_ARTIST,
+                        p.xp.toString() + " XP • " + accuracy + "% • " +
+                            p.mode.name.lowercase().replaceFirstChar { it.uppercase() }
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
+                        item?.let { if (cs) it.promptCs else it.promptEn }
+                            ?: if (cs) "Připraveno" else "Ready"
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
+                        item?.topic ?: "English"
+                    )
+                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
+                    .putLong(
+                        MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
+                        (p.answered + 1).toLong()
                     )
                     .build()
             )
@@ -1950,13 +2729,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             (if (cs) "série " else "streak ") + p.currentStreak +
             (q?.let { " • " + it.categoryName } ?: "")
 
-        mediaSession.setMetadata(
+        publishMetadata(
             MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
-                    q?.prompt ?: if (cs) "Připraveno" else "Ready"
+                    feedbackLabel ?: q?.prompt ?: if (cs) "Připraveno" else "Ready"
                 )
                 .putString(
                     MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
@@ -1964,6 +2743,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 )
                 .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                 .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                 .putLong(
                     MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                     (p.totalAnswered + 1).toLong()
@@ -1972,8 +2755,37 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         )
     }
 
-    private fun artworkUri(game: ActiveGame, state: ArtworkState): Uri {
-        val resId = when (game) {
+    private fun publishMetadata(metadata: MediaMetadataCompat) {
+        val revision = metadataRevision
+        val feedbackState =
+            artworkState == ArtworkState.CORRECT || artworkState == ArtworkState.WRONG
+
+        if (!feedbackState) {
+            mediaSession.setMetadata(metadata)
+            return
+        }
+
+        // BMW / Android Auto can retain the previous artwork even after the
+        // bitmap changes. Clear first, then publish only if this is still the
+        // newest feedback state.
+        mediaSession.setMetadata(null)
+        mainHandler.postDelayed({
+            if (
+                metadataRevision == revision &&
+                (artworkState == ArtworkState.CORRECT || artworkState == ArtworkState.WRONG)
+            ) {
+                mediaSession.setMetadata(metadata)
+                DawDebugLog.log(
+                    this,
+                    "FEEDBACK_METADATA_PUBLISHED",
+                    "game=" + activeGame + " state=" + artworkState + " revision=" + revision
+                )
+            }
+        }, FEEDBACK_METADATA_REFRESH_MS)
+    }
+
+    private fun artworkResId(game: ActiveGame, state: ArtworkState): Int {
+        return when (game) {
             ActiveGame.TRIVIA -> when (state) {
                 ArtworkState.IDLE -> R.drawable.trivia_idle
                 ArtworkState.LISTENING -> R.drawable.trivia_listening
@@ -2004,8 +2816,36 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 ArtworkState.CORRECT -> R.drawable.kids_correct
                 ArtworkState.WRONG -> R.drawable.kids_wrong
             }
+            ActiveGame.ENGLISH -> when (state) {
+                ArtworkState.IDLE -> R.drawable.trivia_idle
+                ArtworkState.LISTENING -> R.drawable.trivia_listening
+                ArtworkState.CORRECT -> R.drawable.trivia_correct
+                ArtworkState.WRONG -> R.drawable.trivia_wrong
+            }
+            ActiveGame.BRAIN -> when (state) {
+                ArtworkState.IDLE -> R.drawable.trivia_idle
+                ArtworkState.LISTENING -> R.drawable.trivia_listening
+                ArtworkState.CORRECT -> R.drawable.trivia_correct
+                ArtworkState.WRONG -> R.drawable.trivia_wrong
+            }
         }
-        return Uri.parse("android.resource://" + packageName + "/" + resId)
+    }
+
+    private fun artworkUri(game: ActiveGame, state: ArtworkState): Uri =
+        Uri.parse("android.resource://" + packageName + "/" + artworkResId(game, state))
+
+    private fun artworkBitmap(game: ActiveGame, state: ArtworkState): Bitmap {
+        val drawable = ContextCompat.getDrawable(this, artworkResId(game, state))
+            ?: error("Missing artwork for " + game + " / " + state)
+
+        // Keep metadata comfortably below Android Binder limits while still sharp
+        // enough for Android Auto's artwork card.
+        val sizePx = 384
+        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, sizePx, sizePx)
+        drawable.draw(canvas)
+        return bitmap
     }
 
     private fun mediaItem(
@@ -2062,6 +2902,18 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         text: String,
         utteranceId: String
     ) {
+        val sinceRecognition = SystemClock.elapsedRealtime() - lastRecognitionFinishedAt
+        if (
+            utteranceId in setOf(FEEDBACK_UTTERANCE_ID, ROUND_SUMMARY_UTTERANCE_ID) &&
+            sinceRecognition in 0 until MIC_TO_TTS_GAP_MS
+        ) {
+            mainHandler.postDelayed(
+                { speak(text, utteranceId) },
+                MIC_TO_TTS_GAP_MS - sinceRecognition
+            )
+            return
+        }
+
         if (!ttsReady) {
             DawDebugLog.log(
                 this,
@@ -2124,19 +2976,129 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         }
     }
 
-    private fun performTtsSpeak(text: String, utteranceId: String) {
+    private fun isChainedEnglishSegment(utteranceId: String?): Boolean =
+        utteranceId?.startsWith(ENGLISH_SEGMENT_PREFIX) == true
+
+    private fun speakEnglishSequence(
+        segments: List<SpeechSegment>,
+        finalUtteranceId: String
+    ) {
+        if (segments.isEmpty()) return
+
+        val sinceRecognition = SystemClock.elapsedRealtime() - lastRecognitionFinishedAt
+        if (
+            finalUtteranceId in setOf(FEEDBACK_UTTERANCE_ID, ROUND_SUMMARY_UTTERANCE_ID) &&
+            sinceRecognition in 0 until MIC_TO_TTS_GAP_MS
+        ) {
+            mainHandler.postDelayed(
+                { speakEnglishSequence(segments, finalUtteranceId) },
+                MIC_TO_TTS_GAP_MS - sinceRecognition
+            )
+            return
+        }
+
+        englishSpeechQueue.clear()
+        englishSpeechQueue.addAll(segments)
+        englishSpeechFinalUtteranceId = finalUtteranceId
+
+        val first = englishSpeechQueue.removeFirst()
+        val internalId =
+            if (englishSpeechQueue.isEmpty()) finalUtteranceId
+            else ENGLISH_SEGMENT_PREFIX + "0"
+
+        tts.language = first.locale
+        val focusResult = audioManager.requestAudioFocus(audioFocusRequest)
+        if (focusResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            hasAudioFocus = true
+            performTtsSpeak(
+                first.text,
+                internalId,
+                withFeedbackPreroll = isFeedbackUtterance(finalUtteranceId)
+            )
+        } else {
+            englishSpeechQueue.clear()
+            englishSpeechFinalUtteranceId = null
+            mainHandler.postDelayed(
+                { speakEnglishSequence(segments, finalUtteranceId) },
+                350L
+            )
+        }
+    }
+
+    private fun playNextEnglishSpeechSegment() {
+        if (englishSpeechQueue.isEmpty()) return
+
+        val next = englishSpeechQueue.removeFirst()
+        val finalId = englishSpeechFinalUtteranceId ?: QUESTION_UTTERANCE_ID
+        val utteranceId =
+            if (englishSpeechQueue.isEmpty()) {
+                englishSpeechFinalUtteranceId = null
+                finalId
+            } else {
+                ENGLISH_SEGMENT_PREFIX + englishSpeechQueue.size
+            }
+
+        tts.language = next.locale
+        performTtsSpeak(next.text, utteranceId, withFeedbackPreroll = false)
+    }
+
+    private fun isFeedbackUtterance(utteranceId: String): Boolean =
+        utteranceId == FEEDBACK_UTTERANCE_ID ||
+            utteranceId == ROUND_SUMMARY_UTTERANCE_ID
+
+    private fun performTtsSpeak(
+        text: String,
+        utteranceId: String,
+        withFeedbackPreroll: Boolean = isFeedbackUtterance(utteranceId)
+    ) {
         setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
-        val result = tts.speak(
-            text,
-            TextToSpeech.QUEUE_FLUSH,
-            null,
-            utteranceId
-        )
+
+        val result = if (withFeedbackPreroll) {
+            // Keep the car audio route open before speaking. Without this BMW
+            // often fades in after the first word ("Správně") has already begun.
+            val prerollId = FEEDBACK_PREROLL_PREFIX + utteranceId
+            val silenceResult = tts.playSilentUtterance(
+                FEEDBACK_AUDIO_PREROLL_MS,
+                TextToSpeech.QUEUE_FLUSH,
+                prerollId
+            )
+            DawDebugLog.log(
+                this,
+                "TTS_PREROLL",
+                "id=" + utteranceId + " silenceResult=" + silenceResult + " game=" + activeGame
+            )
+            tts.speak(
+                text,
+                TextToSpeech.QUEUE_ADD,
+                null,
+                utteranceId
+            )
+        } else {
+            tts.speak(
+                text,
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                utteranceId
+            )
+        }
+
+        if (result == TextToSpeech.ERROR) {
+            DawDebugLog.log(
+                this,
+                "TTS_SPEAK_RETRY",
+                "id=" + utteranceId + " game=" + activeGame
+            )
+            mainHandler.postDelayed({
+                tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+            }, 300L)
+        }
+
         DawDebugLog.log(
             this,
             "TTS_SPEAK_CALL",
             "id=" + utteranceId +
                 " result=" + result +
+                " preroll=" + withFeedbackPreroll +
                 " focus=" + hasAudioFocus +
                 " game=" + activeGame
         )
@@ -2203,7 +3165,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "DAW Drive Road Voice",
+                "Lone Rider Road Voice",
                 NotificationManager.IMPORTANCE_LOW
             )
         )
@@ -2211,7 +3173,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         manager.createNotificationChannel(
             NotificationChannel(
                 ENABLE_CHANNEL_ID,
-                "DAW Drive setup",
+                "Lone Rider setup",
                 NotificationManager.IMPORTANCE_HIGH
             )
         )
@@ -2222,7 +3184,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle("DAW Drive Road Voice")
+            .setContentTitle("Lone Rider Road Voice")
             .setContentText(
                 when (activeGame) {
                     ActiveGame.SPELLING ->
@@ -2233,6 +3195,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         if (cs) "Trivia Kids je aktivní" else "Kids Trivia is active"
                     ActiveGame.FAMILY ->
                         if (cs) "Family hra je aktivní" else "Family game is active"
+                    ActiveGame.ENGLISH ->
+                        if (cs) "English Lessons jsou aktivní" else "English Lessons are active"
+                    ActiveGame.BRAIN ->
+                        if (cs) "Brain Trainer je aktivní" else "Brain Trainer is active"
                     ActiveGame.TRIVIA ->
                         if (cs) "Quick Trivia je aktivní" else "Quick Trivia is active"
                 }
@@ -2259,7 +3225,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             "com.dualactionwindows.dawdrive.START_ROAD_VOICE"
         const val ACTION_STOP_VOICE =
             "com.dualactionwindows.dawdrive.STOP_ROAD_VOICE"
+        const val ACTION_SET_LANGUAGE =
+            "com.dualactionwindows.dawdrive.SET_LANGUAGE"
         const val EXTRA_RESUME_GAME = "resume_game"
+        const val EXTRA_LANGUAGE = "language"
 
         private const val ROOT_ID = "road_games_root"
         private const val MEDIA_ID_TRIVIA = "trivia_career"
@@ -2267,6 +3236,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val MEDIA_ID_GUESS_WHO = "guess_who"
         private const val MEDIA_ID_KIDS_TRIVIA = "kids_trivia"
         private const val MEDIA_ID_FAMILY = "family_game"
+        private const val MEDIA_ID_ENGLISH = "english_lessons"
+        private const val MEDIA_ID_BRAIN = "brain_trainer"
+        private const val MEDIA_ID_LANGUAGE_CS = "language_cs"
+        private const val MEDIA_ID_LANGUAGE_EN = "language_en"
 
         private const val CONTENT_STYLE_BROWSABLE_KEY =
             "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT"
@@ -2286,6 +3259,14 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val FEEDBACK_UTTERANCE_ID = "trivia_feedback"
         private const val ROUND_SUMMARY_UTTERANCE_ID = "trivia_round_summary"
         private const val COMMAND_UTTERANCE_ID = "trivia_command"
+        private const val RETRY_UTTERANCE_ID = "trivia_retry"
         private const val SYSTEM_UTTERANCE_ID = "trivia_system"
+        private const val LANGUAGE_UTTERANCE_ID = "language_change"
+        private const val ENGLISH_SEGMENT_PREFIX = "english_segment_"
+        private const val MIC_TO_TTS_GAP_MS = 250L
+        private const val FEEDBACK_ART_HOLD_MS = 1800L
+        private const val FEEDBACK_AUDIO_PREROLL_MS = 650L
+        private const val FEEDBACK_METADATA_REFRESH_MS = 120L
+        private const val FEEDBACK_PREROLL_PREFIX = "feedback_preroll_"
     }
 }

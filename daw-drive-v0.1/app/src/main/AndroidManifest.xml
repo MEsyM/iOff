@@ -22,11 +22,11 @@
         android:allowBackup="true"
         android:appCategory="game"
         android:hardwareAccelerated="true"
-        android:icon="@drawable/ic_daw_drive"
-        android:label="DAW Drive"
-        android:roundIcon="@drawable/ic_daw_drive"
+        android:icon="@drawable/lone_rider_logo"
+        android:label="Lone Rider"
+        android:roundIcon="@drawable/lone_rider_logo"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DAWDrive"
+        android:theme="@style/Theme.LoneRider"
         android:usesCleartextTraffic="true">
 
         <meta-data
@@ -46,13 +46,16 @@
         <activity
             android:name=".DebugLogsActivity"
             android:exported="false"
-            android:screenOrientation="landscape"
             android:configChanges="screenSize|smallestScreenSize|orientation|screenLayout|density" />
 
         <activity
             android:name=".FamilySetupActivity"
             android:exported="false"
-            android:screenOrientation="landscape"
+            android:configChanges="screenSize|smallestScreenSize|orientation|screenLayout|density" />
+
+        <activity
+            android:name=".EnglishSetupActivity"
+            android:exported="false"
             android:configChanges="screenSize|smallestScreenSize|orientation|screenLayout|density" />
 
         <activity
@@ -71,7 +74,6 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="landscape"
             android:configChanges="screenSize|smallestScreenSize|orientation|screenLayout|density">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
