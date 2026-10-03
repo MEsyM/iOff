@@ -52,11 +52,15 @@ class LoginIn(BaseModel):
     login: str = Field(min_length=1, max_length=320)
     password: str = Field(min_length=1, max_length=256)
 
-class SetupIn(LoginIn):
+class SetupIn(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=12, max_length=256)
     setup_code: str = Field(min_length=8, max_length=256)
     display_name: str = Field(min_length=1, max_length=120)
 
-class AdminCreateIn(LoginIn):
+class AdminCreateIn(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=12, max_length=256)
     display_name: str = Field(min_length=1, max_length=120)
     role: str = Field(pattern="^(viewer|editor|admin)$")
 
@@ -166,9 +170,10 @@ router = APIRouter(prefix="/v1/admin/auth", tags=["admin-auth"])
 
 @router.get("/status")
 def auth_status():
+    test_enabled = os.getenv("TEST_ADMIN_ENABLED","false").lower() == "true"
     with SessionLocal() as db:
         count = db.scalar(select(func.count()).select_from(AdminUser))
-        return {"setup_required": count == 0}
+        return {"setup_required": (count == 0 and not test_enabled), "test_admin_enabled": test_enabled}
 
 @router.post("/setup")
 def setup(body: SetupIn, response: Response):
