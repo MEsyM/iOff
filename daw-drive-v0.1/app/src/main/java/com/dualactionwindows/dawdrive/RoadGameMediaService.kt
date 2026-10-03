@@ -3049,7 +3049,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             }
 
         tts.language = next.locale
-        performTtsSpeak(next.text, utteranceId)
+        performTtsSpeak(next.text, utteranceId, withFeedbackPreroll = false)
     }
 
     private fun isFeedbackUtterance(utteranceId: String): Boolean =
