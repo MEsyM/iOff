@@ -238,8 +238,10 @@ def progress(profile_id:uuid.UUID,u:User=Depends(current_user),db:Session=Depend
              "total_answered":x.total_answered,"total_correct":x.total_correct,"updated_at":x.updated_at} for x in rows]
 
 
-# Content admin / public live-content API
+# Secure admin authentication + content admin / public live-content API
+from app.admin_auth import router as admin_auth_router
 from app.admin_content import router as content_admin_router, seed_content_if_empty
+app.include_router(admin_auth_router)
 app.include_router(content_admin_router)
 
 @app.on_event("startup")
