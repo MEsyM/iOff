@@ -8,6 +8,10 @@ import kotlin.math.min
 
 class SpellingBeeEngine(context: Context) {
 
+    init {
+        LiveContentRepository.initialize(context)
+    }
+
     data class Word(
         val id: String,
         val difficulty: Int,
@@ -44,7 +48,7 @@ class SpellingBeeEngine(context: Context) {
     private var roundAnswered = prefs.getInt(KEY_ROUND_ANSWERED, 0)
     private var roundCorrect = prefs.getInt(KEY_ROUND_CORRECT, 0)
 
-    private val words = listOf(
+    private val bundledWords = listOf(
         Word("s001",1,"cat","a small domesticated animal","malé domácí zvíře"),
         Word("s002",1,"dog","a common domesticated animal","běžné domácí zvíře"),
         Word("s003",1,"sun","the star at the center of our solar system","hvězda ve středu sluneční soustavy"),
@@ -90,6 +94,9 @@ class SpellingBeeEngine(context: Context) {
         Word("s407",5,"questionnaire","a written set of questions","písemný soubor otázek"),
         Word("s408",5,"recommendation","a suggestion that something is suitable","doporučení, že je něco vhodné")
     )
+
+    private val words: List<Word>
+        get() = LiveContentRepository.spellingWords().ifEmpty { bundledWords }
 
     fun profile(): Profile {
         val xp = prefs.getInt(KEY_XP, 0)
