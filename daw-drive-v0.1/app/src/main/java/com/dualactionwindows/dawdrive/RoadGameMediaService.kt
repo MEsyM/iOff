@@ -436,6 +436,15 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "TTS_DONE",
                     "id=" + utteranceId + " game=" + activeGame
                 )
+                if (utteranceId?.startsWith(FEEDBACK_PREROLL_PREFIX) == true) {
+                    DawDebugLog.log(
+                        this@RoadGameMediaService,
+                        "TTS_PREROLL_DONE",
+                        "id=" + utteranceId + " game=" + activeGame
+                    )
+                    return
+                }
+
                 if (isChainedEnglishSegment(utteranceId)) {
                     mainHandler.post { playNextEnglishSpeechSegment() }
                     return
@@ -2500,7 +2509,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             val q = familyEngine.currentQuestion(language)
             val battle = familyEngine.mode() == FamilyGameEngine.Mode.BATTLE
             val player = if (!battle) familyEngine.currentPlayer().name else familyEngine.lockedPlayer()?.name
-            mediaSession.setMetadata(
+            publishMetadata(
                 MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
@@ -2525,7 +2534,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .build()
             )
@@ -2535,7 +2546,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (activeGame == ActiveGame.KIDS_TRIVIA) {
             val p = kidsTriviaEngine.profile()
             val q = kidsTriviaEngine.currentQuestion(language)
-            mediaSession.setMetadata(
+            publishMetadata(
                 MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(MediaMetadataCompat.METADATA_KEY_TITLE, "Trivia Kids 6–12 • Level " + p.level)
@@ -2553,7 +2564,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .build()
             )
@@ -2563,7 +2576,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (activeGame == ActiveGame.GUESS_WHO) {
             val p = guessWhoEngine.profile()
             val hintNumber = guessWhoEngine.currentHintNumber()
-            mediaSession.setMetadata(
+            publishMetadata(
                 MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
@@ -2586,7 +2599,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
@@ -2600,7 +2615,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (activeGame == ActiveGame.SPELLING) {
             val p = spellingEngine.profile()
             val word = spellingEngine.currentWord()
-            mediaSession.setMetadata(
+            publishMetadata(
                 MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
@@ -2624,7 +2639,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
@@ -2638,7 +2655,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (activeGame == ActiveGame.BRAIN) {
             val p = brainTrainerEngine.profile()
             val item = brainTrainerEngine.currentChallenge()
-            mediaSession.setMetadata(
+            publishMetadata(
                 MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
@@ -2662,7 +2679,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
@@ -2677,7 +2696,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             val p = englishEngine.settings()
             val item = englishEngine.currentItem()
             val accuracy = if (p.answered == 0) 0 else p.correct * 100 / p.answered
-            mediaSession.setMetadata(
+            publishMetadata(
                 MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
                     .putString(
@@ -2700,7 +2719,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     )
                     .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                     .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
@@ -2718,7 +2739,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             (if (cs) "série " else "streak ") + p.currentStreak +
             (q?.let { " • " + it.categoryName } ?: "")
 
-        mediaSession.setMetadata(
+        publishMetadata(
             MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
                 .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
@@ -2732,7 +2753,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 )
                 .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                 .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                 .putLong(
                     MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
@@ -2740,6 +2763,35 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 )
                 .build()
         )
+    }
+
+    private fun publishMetadata(metadata: MediaMetadataCompat) {
+        val revision = metadataRevision
+        val feedbackState =
+            artworkState == ArtworkState.CORRECT || artworkState == ArtworkState.WRONG
+
+        if (!feedbackState) {
+            mediaSession.setMetadata(metadata)
+            return
+        }
+
+        // BMW / Android Auto can retain the previous artwork even after the
+        // bitmap changes. Clear first, then publish only if this is still the
+        // newest feedback state.
+        mediaSession.setMetadata(null)
+        mainHandler.postDelayed({
+            if (
+                metadataRevision == revision &&
+                (artworkState == ArtworkState.CORRECT || artworkState == ArtworkState.WRONG)
+            ) {
+                mediaSession.setMetadata(metadata)
+                DawDebugLog.log(
+                    this,
+                    "FEEDBACK_METADATA_PUBLISHED",
+                    "game=" + activeGame + " state=" + artworkState + " revision=" + revision
+                )
+            }
+        }, FEEDBACK_METADATA_REFRESH_MS)
     }
 
     private fun artworkResId(game: ActiveGame, state: ArtworkState): Int {
@@ -2968,7 +3020,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val focusResult = audioManager.requestAudioFocus(audioFocusRequest)
         if (focusResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
             hasAudioFocus = true
-            performTtsSpeak(first.text, internalId)
+            performTtsSpeak(
+                first.text,
+                internalId,
+                withFeedbackPreroll = isFeedbackUtterance(finalUtteranceId)
+            )
         } else {
             englishSpeechQueue.clear()
             englishSpeechFinalUtteranceId = null
@@ -2996,14 +3052,46 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         performTtsSpeak(next.text, utteranceId)
     }
 
-    private fun performTtsSpeak(text: String, utteranceId: String) {
+    private fun isFeedbackUtterance(utteranceId: String): Boolean =
+        utteranceId == FEEDBACK_UTTERANCE_ID ||
+            utteranceId == ROUND_SUMMARY_UTTERANCE_ID
+
+    private fun performTtsSpeak(
+        text: String,
+        utteranceId: String,
+        withFeedbackPreroll: Boolean = isFeedbackUtterance(utteranceId)
+    ) {
         setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
-        val result = tts.speak(
-            text,
-            TextToSpeech.QUEUE_FLUSH,
-            null,
-            utteranceId
-        )
+
+        val result = if (withFeedbackPreroll) {
+            // Keep the car audio route open before speaking. Without this BMW
+            // often fades in after the first word ("Správně") has already begun.
+            val prerollId = FEEDBACK_PREROLL_PREFIX + utteranceId
+            val silenceResult = tts.playSilentUtterance(
+                FEEDBACK_AUDIO_PREROLL_MS,
+                TextToSpeech.QUEUE_FLUSH,
+                prerollId
+            )
+            DawDebugLog.log(
+                this,
+                "TTS_PREROLL",
+                "id=" + utteranceId + " silenceResult=" + silenceResult + " game=" + activeGame
+            )
+            tts.speak(
+                text,
+                TextToSpeech.QUEUE_ADD,
+                null,
+                utteranceId
+            )
+        } else {
+            tts.speak(
+                text,
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                utteranceId
+            )
+        }
+
         if (result == TextToSpeech.ERROR) {
             DawDebugLog.log(
                 this,
@@ -3012,13 +3100,15 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             )
             mainHandler.postDelayed({
                 tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
-            }, 250L)
+            }, 300L)
         }
+
         DawDebugLog.log(
             this,
             "TTS_SPEAK_CALL",
             "id=" + utteranceId +
                 " result=" + result +
+                " preroll=" + withFeedbackPreroll +
                 " focus=" + hasAudioFocus +
                 " game=" + activeGame
         )
@@ -3183,7 +3273,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val SYSTEM_UTTERANCE_ID = "trivia_system"
         private const val LANGUAGE_UTTERANCE_ID = "language_change"
         private const val ENGLISH_SEGMENT_PREFIX = "english_segment_"
-        private const val MIC_TO_TTS_GAP_MS = 450L
-        private const val FEEDBACK_ART_HOLD_MS = 1600L
+        private const val MIC_TO_TTS_GAP_MS = 250L
+        private const val FEEDBACK_ART_HOLD_MS = 1800L
+        private const val FEEDBACK_AUDIO_PREROLL_MS = 650L
+        private const val FEEDBACK_METADATA_REFRESH_MS = 120L
+        private const val FEEDBACK_PREROLL_PREFIX = "feedback_preroll_"
     }
 }
