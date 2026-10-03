@@ -63,7 +63,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val triviaEngine = TriviaGameEngine(this)
-        CloudAccountManager.syncProgressAsync(this)
+        CloudAccountManager.initialize(this)
         val appVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "unknown"
         refreshPermissionState()
         drivingVoiceArmed = prefs.getBoolean(KEY_DRIVING_VOICE_ARMED, false)
