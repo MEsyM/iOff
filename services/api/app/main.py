@@ -1,4 +1,4 @@
-import hashlib, secrets, uuid
+import base64, hashlib, hmac, secrets, uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 import jwt
@@ -34,6 +34,13 @@ class User(Base):
     status: Mapped[str]=mapped_column(String(20),default="active")
     created_at: Mapped[datetime]=mapped_column(DateTime(timezone=True),default=utcnow)
     last_login_at: Mapped[datetime|None]=mapped_column(DateTime(timezone=True))
+
+class UserCredential(Base):
+    __tablename__="user_credentials"
+    user_id: Mapped[uuid.UUID]=mapped_column(ForeignKey("users.id",ondelete="CASCADE"),primary_key=True)
+    password_hash: Mapped[str]=mapped_column(String(300))
+    created_at: Mapped[datetime]=mapped_column(DateTime(timezone=True),default=utcnow)
+    updated_at: Mapped[datetime]=mapped_column(DateTime(timezone=True),default=utcnow,onupdate=utcnow)
 
 class MagicLink(Base):
     __tablename__="magic_links"
@@ -107,6 +114,20 @@ def db_session():
 
 def h(raw:str): return hashlib.sha256((raw+settings.magic_link_pepper).encode()).hexdigest()
 def opaque(): return secrets.token_urlsafe(48)
+def _b64(raw:bytes)->str: return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+def _unb64(raw:str)->bytes: return base64.urlsafe_b64decode(raw + "=" * (-len(raw)%4))
+def password_hash(password:str)->str:
+    salt=secrets.token_bytes(16); iterations=310000
+    digest=hashlib.pbkdf2_hmac("sha256",password.encode(),salt,iterations,dklen=32)
+    return "pbkdf2-sha256-v1$"+str(iterations)+"$"+_b64(salt)+"$"+_b64(digest)
+def password_verify(password:str,encoded:str)->bool:
+    try:
+        version,it,salt,digest=encoded.split("$",3)
+        if version!="pbkdf2-sha256-v1": return False
+        actual=hashlib.pbkdf2_hmac("sha256",password.encode(),_unb64(salt),int(it),dklen=32)
+        return hmac.compare_digest(actual,_unb64(digest))
+    except Exception:
+        return False
 def issue_access(uid:uuid.UUID):
     now=utcnow(); exp=now+timedelta(minutes=settings.access_token_minutes)
     return jwt.encode({"sub":str(uid),"iat":int(now.timestamp()),"exp":int(exp.timestamp()),"type":"access"},settings.jwt_secret,algorithm="HS256")
@@ -126,6 +147,9 @@ def current_user(c:HTTPAuthorizationCredentials|None=Depends(bearer),db:Session=
     return u
 
 class EmailIn(BaseModel): email: EmailStr
+class PasswordAuthIn(BaseModel):
+    email: EmailStr
+    password: str=Field(min_length=6,max_length=256)
 class TokenIn(BaseModel): token:str
 class RefreshIn(BaseModel): refresh_token:str
 class ProfileIn(BaseModel):
@@ -154,6 +178,38 @@ app=FastAPI(title="Lone Rider API",version="0.1.0")
 
 @app.get("/health")
 def health(): return {"status":"ok","service":"lone-rider-api","version":"0.1.0"}
+
+def auth_payload(db:Session,u:User):
+    access=issue_access(u.id); refresh=issue_refresh(db,u.id); db.commit()
+    return {"access_token":access,"refresh_token":refresh,"token_type":"bearer","expires_in":settings.access_token_minutes*60}
+
+@app.post("/v1/auth/signup",status_code=201)
+def signup(body:PasswordAuthIn,db:Session=Depends(db_session)):
+    email=body.email.lower().strip()
+    u=db.scalar(select(User).where(User.email==email))
+    if u and db.get(UserCredential,u.id):
+        raise HTTPException(409,"Account already exists")
+    if not u:
+        u=User(email=email); db.add(u); db.flush()
+    db.add(UserCredential(user_id=u.id,password_hash=password_hash(body.password)))
+    u.last_login_at=utcnow()
+    return auth_payload(db,u)
+
+@app.post("/v1/auth/login")
+def password_login(body:PasswordAuthIn,db:Session=Depends(db_session)):
+    email=body.email.lower().strip()
+    u=db.scalar(select(User).where(User.email==email))
+    cred=db.get(UserCredential,u.id) if u else None
+    if not u or not cred or not password_verify(body.password,cred.password_hash):
+        raise HTTPException(401,"Invalid email or password")
+    if u.status!="active": raise HTTPException(401,"User unavailable")
+    u.last_login_at=utcnow()
+    return auth_payload(db,u)
+
+@app.post("/v1/auth/logout",status_code=204)
+def logout(body:RefreshIn,u:User=Depends(current_user),db:Session=Depends(db_session)):
+    row=db.scalar(select(RefreshToken).where(RefreshToken.token_hash==h(body.refresh_token),RefreshToken.user_id==u.id))
+    if row: row.revoked_at=utcnow(); db.commit()
 
 @app.post("/v1/auth/magic-link/request",status_code=202)
 def request_link(body:EmailIn,db:Session=Depends(db_session)):
@@ -208,12 +264,22 @@ def recompute(db:Session,pid:uuid.UUID,game:str):
     ev=db.scalars(select(GameEvent).where(GameEvent.profile_id==pid,GameEvent.game==game).order_by(GameEvent.occurred_at,GameEvent.received_at)).all()
     prog=db.scalar(select(Progress).where(Progress.profile_id==pid,Progress.game==game))
     if not prog: prog=Progress(profile_id=pid,game=game); db.add(prog)
-    xp=sum(x.xp_delta for x in ev); answered=correct=streak=best=0
+    xp=answered=correct=streak=best=0
     for x in ev:
+        if x.event_type=="progress_snapshot":
+            xp=max(xp,x.xp_delta)
+            answered=max(answered,int((x.payload or {}).get("total_answered",0)))
+            correct=max(correct,int((x.payload or {}).get("total_correct",0)))
+            streak=max(streak,int((x.payload or {}).get("current_streak",0)))
+            best=max(best,int((x.payload or {}).get("best_streak",0)))
+            continue
+        xp+=x.xp_delta
         if x.correct is None: continue
         answered+=1
-        if x.correct: correct+=1; streak+=1; best=max(best,streak)
-        else: streak=0
+        if x.correct:
+            correct+=1; streak+=1; best=max(best,streak)
+        else:
+            streak=0
     prog.xp=max(0,xp); prog.level=max(1,prog.xp//500+1); prog.current_streak=streak; prog.best_streak=best
     prog.total_answered=answered; prog.total_correct=correct; prog.updated_at=utcnow()
 
