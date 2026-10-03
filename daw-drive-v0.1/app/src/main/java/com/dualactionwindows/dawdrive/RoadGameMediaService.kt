@@ -1310,6 +1310,107 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         )
     }
 
+    private fun startOrResumeBrain() {
+        if (!ensurePlaybackForeground()) return
+        if (!ttsReady) {
+            pendingStartAfterTts = true
+            setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            return
+        }
+
+        brainTrainerEngine.startOrResume(triviaEngine.language())
+        applyVoiceLanguage()
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        updateMetadata()
+
+        if (!sessionStarted) {
+            sessionStarted = true
+            val p = brainTrainerEngine.profile()
+            speakSystem(
+                en = "Welcome to Brain Trainer. Level " + p.level +
+                    ". Ten challenges mixing memory, number sequences, math, logic and attention.",
+                cs = "Vítej v Brain Traineru. Level " + p.level +
+                    ". Deset úloh z paměti, číselných sekvencí, počítání, logiky a pozornosti.",
+                utteranceId = SESSION_INTRO_UTTERANCE_ID
+            )
+        } else {
+            speakCurrentBrainChallenge()
+        }
+    }
+
+    private fun speakCurrentBrainChallenge() {
+        if (!ttsReady) return
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+        artworkState = ArtworkState.IDLE
+
+        val challenge = brainTrainerEngine.currentChallenge()
+            ?: brainTrainerEngine.startOrResume(triviaEngine.language())
+        updateMetadata()
+        speak(challenge.prompt(triviaEngine.language()), QUESTION_UTTERANCE_ID)
+    }
+
+    private fun evaluateBrainCandidates(candidates: List<String>) {
+        if (!awaitingAnswer) return
+        stopListening()
+        awaitingAnswer = false
+
+        val language = triviaEngine.language()
+        val result = brainTrainerEngine.answerCandidates(candidates, language)
+        artworkState = if (result.correct) ArtworkState.CORRECT else ArtworkState.WRONG
+        updateMetadata()
+
+        val cs = language == TriviaGameEngine.Language.CS
+        val feedback = buildString {
+            if (result.correct) {
+                append(if (cs) "Správně." else "Correct.")
+                append(" +")
+                append(result.xpEarned)
+                append(" XP.")
+                if (result.streak >= 3) {
+                    append(if (cs) " Série " else " Streak ")
+                    append(result.streak)
+                    append(".")
+                }
+            } else {
+                append(if (cs) "Ne tak docela. " else "Not quite. ")
+                append(result.explanation)
+            }
+            if (result.promoted) {
+                append(if (cs) " Postupuješ na level " else " Level up. You are now level ")
+                append(result.level)
+                append(".")
+            }
+            if (result.roundFinished) {
+                append(" ")
+                append(brainTrainerEngine.roundSummary(language))
+            }
+        }
+
+        speak(
+            feedback,
+            if (result.roundFinished) ROUND_SUMMARY_UTTERANCE_ID else FEEDBACK_UTTERANCE_ID
+        )
+    }
+
+    private fun moveToNextBrainChallenge() {
+        artworkState = ArtworkState.IDLE
+        brainTrainerEngine.nextChallenge(triviaEngine.language())
+        speakCurrentBrainChallenge()
+    }
+
+    private fun startNextBrainRound() {
+        artworkState = ArtworkState.IDLE
+        brainTrainerEngine.resetRound()
+        brainTrainerEngine.startOrResume(triviaEngine.language())
+        speakSystem(
+            en = "Next Brain Trainer round. Let's go.",
+            cs = "Další kolo Brain Traineru. Jdeme na to.",
+            utteranceId = SESSION_INTRO_UTTERANCE_ID
+        )
+    }
+
     private fun startListeningForAnswer() {
         if (!voiceModeEnabled || !awaitingAnswer || listening) return
 
@@ -1918,6 +2019,22 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 }
             }
 
+            ActiveGame.BRAIN -> {
+                val finished = brainTrainerEngine.skipCurrent()
+                if (finished) {
+                    speak(
+                        brainTrainerEngine.roundSummary(triviaEngine.language()),
+                        ROUND_SUMMARY_UTTERANCE_ID
+                    )
+                } else {
+                    speakSystem(
+                        en = "Skipped.",
+                        cs = "Přeskakuji.",
+                        utteranceId = FEEDBACK_UTTERANCE_ID
+                    )
+                }
+            }
+
             ActiveGame.TRIVIA -> {
                 val skip = triviaEngine.skipCurrent()
                 if (skip.roundFinished) {
@@ -2006,6 +2123,18 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 val finished = englishEngine.skipCurrent()
                 if (finished) {
                     speak(text + " " + englishEngine.roundSummary(), ROUND_SUMMARY_UTTERANCE_ID)
+                } else {
+                    speak(text, FEEDBACK_UTTERANCE_ID)
+                }
+            }
+
+            ActiveGame.BRAIN -> {
+                val finished = brainTrainerEngine.skipCurrent()
+                if (finished) {
+                    speak(
+                        text + " " + brainTrainerEngine.roundSummary(triviaEngine.language()),
+                        ROUND_SUMMARY_UTTERANCE_ID
+                    )
                 } else {
                     speak(text, FEEDBACK_UTTERANCE_ID)
                 }
@@ -2499,6 +2628,44 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     .putLong(
                         MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
                         (p.totalAnswered + 1).toLong()
+                    )
+                    .build()
+            )
+            return
+        }
+
+        if (activeGame == ActiveGame.BRAIN) {
+            val p = brainTrainerEngine.profile()
+            val item = brainTrainerEngine.currentChallenge()
+            mediaSession.setMetadata(
+                MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_TITLE,
+                        "Brain Trainer • Level " + p.level
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_ARTIST,
+                        p.xp.toString() + " XP • " + p.accuracy + "% • " +
+                            (if (cs) "série " else "streak ") + p.streak
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
+                        feedbackLabel ?: item?.prompt(language)
+                            ?: if (cs) "Připraveno" else "Ready"
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
+                        item?.type?.name?.lowercase()?.replace("_", " ")
+                            ?.replaceFirstChar { it.uppercase() } ?: "Brain Trainer"
+                    )
+                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
+                    .putLong(
+                        MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
+                        (p.answered + 1).toLong()
                     )
                     .build()
             )
