@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val triviaEngine = TriviaGameEngine(this)
+        CloudAccountManager.syncProgressAsync(this)
         val appVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "unknown"
         refreshPermissionState()
         drivingVoiceArmed = prefs.getBoolean(KEY_DRIVING_VOICE_ARMED, false)
@@ -108,6 +109,9 @@ class MainActivity : ComponentActivity() {
                 },
                 onEnglishSetupClick = {
                     startActivity(Intent(this, EnglishSetupActivity::class.java))
+                },
+                onAccountClick = {
+                    startActivity(Intent(this, AccountActivity::class.java))
                 },
                 onBrainTrainerClick = {
                     openCarPreview("brain")
@@ -181,6 +185,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshPermissionState()
+        CloudAccountManager.syncProgressAsync(this)
     }
 
     override fun onNewIntent(intent: Intent) {
