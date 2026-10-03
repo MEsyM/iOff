@@ -4,20 +4,51 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val signingStoreFile = System.getenv("DAW_TEST_KEYSTORE_PATH")
+val signingStorePassword = System.getenv("DAW_TEST_KEYSTORE_PASSWORD")
+val signingKeyAlias = System.getenv("DAW_TEST_KEY_ALIAS")
+val signingKeyPassword = System.getenv("DAW_TEST_KEY_PASSWORD")
+val ciVersionCode = System.getenv("LONE_RIDER_VERSION_CODE")?.toIntOrNull()
+val ciVersionName = System.getenv("LONE_RIDER_VERSION_NAME")
+
 android {
     namespace = "com.dualactionwindows.dawdrive"
     compileSdk = 36
+
+    signingConfigs {
+        if (
+            signingStoreFile != null &&
+            signingStorePassword != null &&
+            signingKeyAlias != null &&
+            signingKeyPassword != null
+        ) {
+            create("persistentTest") {
+                storeFile = file(signingStoreFile)
+                storePassword = signingStorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingKeyPassword
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.dualactionwindows.dawdrive"
         minSdk = 35
         targetSdk = 36
-        versionCode = 35
-        versionName = "1.9-favorites-ui"
+        versionCode = ciVersionCode ?: 100287
+        versionName = ciVersionName ?: "1.9-favorites-ui"
     }
 
     buildTypes {
+        debug {
+            signingConfigs.findByName("persistentTest")?.let {
+                signingConfig = it
+            }
+        }
         release {
+            signingConfigs.findByName("persistentTest")?.let {
+                signingConfig = it
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -37,6 +68,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
