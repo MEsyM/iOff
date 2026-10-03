@@ -98,6 +98,46 @@ def seed_content_if_empty():
             audit(db,"seed_missing_content",data={"count":added})
             db.commit()
 
+            active=db.scalar(select(ContentRelease).where(ContentRelease.active==True).order_by(ContentRelease.published_at.desc()))
+            active_games=(active.snapshot or {}).get("games", {}) if active else {}
+            if "kids_game" not in active_games:
+                rows=db.scalars(
+                    select(ContentItem)
+                    .where(ContentItem.enabled==True, ContentItem.status!="archived")
+                    .order_by(ContentItem.kind, ContentItem.public_id)
+                ).all()
+                today=datetime.now(timezone.utc).strftime("%Y.%m.%d")
+                existing_count=db.scalar(
+                    select(func.count()).select_from(ContentRelease).where(ContentRelease.version.like(today+".%"))
+                )
+                version=f"{today}.{existing_count+1}"
+                grouped={}
+                for x in rows:
+                    grouped.setdefault(x.kind,[]).append({
+                        "id":x.public_id,
+                        "category":x.category,
+                        "difficulty":x.difficulty,
+                        "data":x.data,
+                    })
+                snapshot={
+                    "schemaVersion":1,
+                    "contentVersion":version,
+                    "publishedAt":utcnow().isoformat(),
+                    "games":grouped,
+                }
+                db.query(ContentRelease).update({ContentRelease.active:False})
+                db.add(ContentRelease(
+                    version=version,
+                    note="Automatic Android live-content migration",
+                    active=True,
+                    item_count=len(rows),
+                    snapshot=snapshot,
+                ))
+                for x in rows:
+                    x.status="published"
+                audit(db,"auto_publish_seed_migration",data={"version":version,"count":len(rows)})
+                db.commit()
+
 @router.get("/admin",response_class=HTMLResponse)
 def admin_page():
     return Path(__file__).with_name("admin.html").read_text(encoding="utf-8")
