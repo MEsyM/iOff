@@ -36,12 +36,15 @@ object KidsTriviaQuestionBank {
         val age: Int
     )
 
-    val questions: List<Question> =
+    private val bundledQuestions: List<Question> =
         animalQuestions() +
         fairyTaleQuestions() +
         natureQuestions() +
         schoolQuestions() +
         czechiaQuestions()
+
+    val questions: List<Question>
+        get() = LiveContentRepository.kidsTriviaQuestions().ifEmpty { bundledQuestions }
 
     private fun animalQuestions(): List<Question> {
         val facts = listOf(
