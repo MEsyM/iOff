@@ -4,20 +4,51 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val testKeystorePath = System.getenv("DAW_TEST_KEYSTORE_PATH")
+val testKeystorePassword = System.getenv("DAW_TEST_KEYSTORE_PASSWORD")
+val testKeyAlias = System.getenv("DAW_TEST_KEY_ALIAS")
+val testKeyPassword = System.getenv("DAW_TEST_KEY_PASSWORD")
+val ciVersionCode = System.getenv("DAW_VERSION_CODE")?.toIntOrNull()
+val ciVersionName = System.getenv("DAW_VERSION_NAME")
+
 android {
     namespace = "com.dualactionwindows.dawdrive"
     compileSdk = 36
+
+    signingConfigs {
+        if (
+            testKeystorePath != null &&
+            testKeystorePassword != null &&
+            testKeyAlias != null &&
+            testKeyPassword != null
+        ) {
+            create("test") {
+                storeFile = file(testKeystorePath)
+                storePassword = testKeystorePassword
+                keyAlias = testKeyAlias
+                keyPassword = testKeyPassword
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.dualactionwindows.dawdrive"
         minSdk = 35
         targetSdk = 36
-        versionCode = 24
-        versionName = "0.24"
+        versionCode = ciVersionCode ?: 25
+        versionName = ciVersionName ?: "0.25-test"
     }
 
     buildTypes {
+        debug {
+            signingConfigs.findByName("test")?.let {
+                signingConfig = it
+            }
+        }
         release {
+            signingConfigs.findByName("test")?.let {
+                signingConfig = it
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
