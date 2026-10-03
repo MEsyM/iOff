@@ -87,16 +87,25 @@ def _unb64(raw: str) -> bytes:
 
 def hash_password(password: str) -> str:
     salt = secrets.token_bytes(16)
-    digest = hashlib.scrypt(password.encode(), salt=salt, n=2**15, r=8, p=1, dklen=32)
-    return "scrypt-v1$" + _b64(salt) + "$" + _b64(digest)
+    iterations = 310000
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, iterations, dklen=32)
+    return "pbkdf2-sha256-v1$" + str(iterations) + "$" + _b64(salt) + "$" + _b64(digest)
 
 def verify_password(password: str, encoded: str) -> bool:
     try:
-        version, salt_b64, digest_b64 = encoded.split("$", 2)
-        if version != "scrypt-v1":
-            return False
-        digest = hashlib.scrypt(password.encode(), salt=_unb64(salt_b64), n=2**15, r=8, p=1, dklen=32)
-        return hmac.compare_digest(digest, _unb64(digest_b64))
+        parts = encoded.split("$")
+        if parts[0] == "pbkdf2-sha256-v1":
+            iterations = int(parts[1])
+            salt = _unb64(parts[2])
+            expected = _unb64(parts[3])
+            digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, iterations, dklen=32)
+            return hmac.compare_digest(digest, expected)
+        if parts[0] == "scrypt-v1":
+            salt = _unb64(parts[1])
+            expected = _unb64(parts[2])
+            digest = hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1, dklen=32, maxmem=64*1024*1024)
+            return hmac.compare_digest(digest, expected)
+        return False
     except Exception:
         return False
 
