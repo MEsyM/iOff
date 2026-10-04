@@ -105,6 +105,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var englishWrongRetryUsed = false
     private var lastRecognitionFinishedAt = 0L
     private var metadataRevision = 0L
+    private var sessionIntroOwner: ActiveGame? = null
+    private var questionOwner: ActiveGame? = null
+    private var feedbackOwner: ActiveGame? = null
+    private var roundSummaryOwner: ActiveGame? = null
+    private var commandOwner: ActiveGame? = null
+    private var retryOwner: ActiveGame? = null
     private data class SpeechSegment(val text: String, val locale: Locale)
 
     private val englishSpeechQueue = ArrayDeque<SpeechSegment>()
@@ -181,6 +187,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     }
 
                     tryEnableVoiceFromMediaSession()
+                    sessionIntroOwner = null
+                    questionOwner = null
+                    feedbackOwner = null
+                    roundSummaryOwner = null
+                    commandOwner = null
+                    retryOwner = null
                     when (mediaId) {
                         MEDIA_ID_SPELLING -> {
                             activeGame = ActiveGame.SPELLING
@@ -453,76 +465,100 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 abandonAudioFocus("tts_done")
                 when (utteranceId) {
                     SESSION_INTRO_UTTERANCE_ID -> {
+                        val owner = sessionIntroOwner
+                        sessionIntroOwner = null
                         mainHandler.post {
-                            when (activeGame) {
-                                ActiveGame.SPELLING -> speakCurrentSpelling()
-                                ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
-                                ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
-                                ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
-                                ActiveGame.ENGLISH -> speakCurrentEnglishItem()
-                                ActiveGame.BRAIN -> speakCurrentBrainChallenge()
-                                ActiveGame.TRIVIA -> speakCurrentQuestion()
+                            runForOwner(owner) { game ->
+                                when (game) {
+                                    ActiveGame.SPELLING -> speakCurrentSpelling()
+                                    ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
+                                    ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
+                                    ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
+                                    ActiveGame.ENGLISH -> speakCurrentEnglishItem()
+                                    ActiveGame.BRAIN -> speakCurrentBrainChallenge()
+                                    ActiveGame.TRIVIA -> speakCurrentQuestion()
+                                }
                             }
                         }
                     }
 
                     QUESTION_UTTERANCE_ID -> {
-                        if (awaitingAnswer) {
-                            if (voiceModeEnabled) {
-                                mainHandler.post {
-                                    questionListeningStartedAt = SystemClock.elapsedRealtime()
-                                    startListeningForAnswer()
-                                }
-                            } else {
-                                mainHandler.post {
-                                    artworkState = ArtworkState.IDLE
-                                    updateMetadata()
+                        val owner = questionOwner
+                        questionOwner = null
+                        mainHandler.post {
+                            runForOwner(owner) {
+                                if (awaitingAnswer) {
+                                    if (voiceModeEnabled) {
+                                        questionListeningStartedAt = SystemClock.elapsedRealtime()
+                                        startListeningForAnswer()
+                                    } else {
+                                        artworkState = ArtworkState.IDLE
+                                        updateMetadata()
+                                    }
                                 }
                             }
                         }
                     }
 
                     FEEDBACK_UTTERANCE_ID -> {
+                        val owner = feedbackOwner
+                        feedbackOwner = null
                         mainHandler.postDelayed({
-                            when (activeGame) {
-                                ActiveGame.SPELLING -> moveToNextSpellingWord()
-                                ActiveGame.GUESS_WHO -> moveToNextGuessWhoPerson()
-                                ActiveGame.KIDS_TRIVIA -> moveToNextKidsQuestion()
-                                ActiveGame.FAMILY -> moveToNextFamilyQuestion()
-                                ActiveGame.ENGLISH -> moveToNextEnglishItem()
-                                ActiveGame.BRAIN -> moveToNextBrainChallenge()
-                                ActiveGame.TRIVIA -> moveToNextQuestion()
+                            runForOwner(owner) { game ->
+                                when (game) {
+                                    ActiveGame.SPELLING -> moveToNextSpellingWord()
+                                    ActiveGame.GUESS_WHO -> moveToNextGuessWhoPerson()
+                                    ActiveGame.KIDS_TRIVIA -> moveToNextKidsQuestion()
+                                    ActiveGame.FAMILY -> moveToNextFamilyQuestion()
+                                    ActiveGame.ENGLISH -> moveToNextEnglishItem()
+                                    ActiveGame.BRAIN -> moveToNextBrainChallenge()
+                                    ActiveGame.TRIVIA -> moveToNextQuestion()
+                                }
                             }
                         }, FEEDBACK_ART_HOLD_MS)
                     }
 
                     ROUND_SUMMARY_UTTERANCE_ID -> {
+                        val owner = roundSummaryOwner
+                        roundSummaryOwner = null
                         mainHandler.postDelayed({
-                            when (activeGame) {
-                                ActiveGame.SPELLING -> startNextSpellingRound()
-                                ActiveGame.GUESS_WHO -> startNextGuessWhoRound()
-                                ActiveGame.KIDS_TRIVIA -> startNextKidsRound()
-                                ActiveGame.FAMILY -> startNextFamilySession()
-                                ActiveGame.ENGLISH -> startNextEnglishRound()
-                                ActiveGame.BRAIN -> startNextBrainRound()
-                                ActiveGame.TRIVIA -> startNextRound()
+                            runForOwner(owner) { game ->
+                                when (game) {
+                                    ActiveGame.SPELLING -> startNextSpellingRound()
+                                    ActiveGame.GUESS_WHO -> startNextGuessWhoRound()
+                                    ActiveGame.KIDS_TRIVIA -> startNextKidsRound()
+                                    ActiveGame.FAMILY -> startNextFamilySession()
+                                    ActiveGame.ENGLISH -> startNextEnglishRound()
+                                    ActiveGame.BRAIN -> startNextBrainRound()
+                                    ActiveGame.TRIVIA -> startNextRound()
+                                }
                             }
                         }, 700)
                     }
 
                     COMMAND_UTTERANCE_ID -> {
-                        if (awaitingAnswer && voiceModeEnabled) {
-                            mainHandler.postDelayed({ startListeningForAnswer() }, 250)
-                        }
+                        val owner = commandOwner
+                        commandOwner = null
+                        mainHandler.postDelayed({
+                            runForOwner(owner) {
+                                if (awaitingAnswer && voiceModeEnabled) {
+                                    startListeningForAnswer()
+                                }
+                            }
+                        }, 250)
                     }
 
                     RETRY_UTTERANCE_ID -> {
-                        if (awaitingAnswer && voiceModeEnabled) {
-                            mainHandler.postDelayed({
-                                questionListeningStartedAt = SystemClock.elapsedRealtime()
-                                startListeningForAnswer()
-                            }, 200)
-                        }
+                        val owner = retryOwner
+                        retryOwner = null
+                        mainHandler.postDelayed({
+                            runForOwner(owner) {
+                                if (awaitingAnswer && voiceModeEnabled) {
+                                    questionListeningStartedAt = SystemClock.elapsedRealtime()
+                                    startListeningForAnswer()
+                                }
+                            }
+                        }, 200)
                     }
 
                     LANGUAGE_UTTERANCE_ID -> {
@@ -554,18 +590,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         parentId: String,
         result: Result<MutableList<MediaBrowserCompat.MediaItem>>
     ) {
-        val languageSelection = when (parentId) {
-            MEDIA_ID_LANGUAGE_CS -> TriviaGameEngine.Language.CS
-            MEDIA_ID_LANGUAGE_EN -> TriviaGameEngine.Language.EN
-            ROOT_ID -> null
-            else -> {
-                result.sendResult(mutableListOf())
-                return
-            }
-        }
-
-        if (languageSelection != null) {
-            changeLanguage(languageSelection, announce = true)
+        if (parentId != ROOT_ID) {
+            result.sendResult(mutableListOf())
+            return
         }
 
         val p = triviaEngine.profile()
@@ -614,15 +641,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     MEDIA_ID_LANGUAGE_CS,
                     "🇨🇿 Čeština",
                     languageCsSubtitle,
-                    R.drawable.language_cz,
-                    browsable = true
+                    R.drawable.language_cz
                 ),
                 mediaItem(
                     MEDIA_ID_LANGUAGE_EN,
                     "🇬🇧 English",
                     languageEnSubtitle,
-                    R.drawable.language_en,
-                    browsable = true
+                    R.drawable.language_en
                 ),
                 mediaItem(
                     MEDIA_ID_TRIVIA,
@@ -2269,18 +2294,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         if (previous == language) {
             notifyChildrenChanged(ROOT_ID)
             if (announce) {
-                speakSystem(
-                    en = if (language == TriviaGameEngine.Language.EN) {
-                        "English is already active."
-                    } else {
-                        "Czech is already active."
-                    },
-                    cs = if (language == TriviaGameEngine.Language.CS) {
+                speakLanguageConfirmation(
+                    if (language == TriviaGameEngine.Language.CS) {
                         "Čeština už je aktivní."
                     } else {
-                        "Angličtina už je aktivní."
-                    },
-                    utteranceId = LANGUAGE_UTTERANCE_ID
+                        "English is already active."
+                    }
                 )
             }
             return
@@ -2306,10 +2325,47 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         awaitingAnswer = false
         retryCount = 0
 
-        if (language == TriviaGameEngine.Language.CS) {
-            speak("Jazyk přepnut na češtinu.", LANGUAGE_UTTERANCE_ID)
-        } else {
-            speak("Language changed to English.", LANGUAGE_UTTERANCE_ID)
+        speakLanguageConfirmation(
+            if (language == TriviaGameEngine.Language.CS) {
+                "Jazyk přepnut na češtinu."
+            } else {
+                "Language changed to English."
+            }
+        )
+    }
+
+    private fun speakLanguageConfirmation(text: String, attempt: Int = 0) {
+        if (!ttsReady) return
+
+        stopListening()
+        awaitingAnswer = false
+        retryCount = 0
+        applyVoiceLanguage()
+        setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+
+        val focusResult = audioManager.requestAudioFocus(audioFocusRequest)
+        DawDebugLog.log(
+            this,
+            "LANGUAGE_TTS_FOCUS",
+            "result=" + audioFocusRequestName(focusResult) + " attempt=" + attempt
+        )
+
+        if (focusResult == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+            hasAudioFocus = true
+            tts.speak(
+                text,
+                TextToSpeech.QUEUE_FLUSH,
+                null,
+                LANGUAGE_UTTERANCE_ID
+            )
+            return
+        }
+
+        if (attempt == 0) {
+            mainHandler.postDelayed(
+                { speakLanguageConfirmation(text, attempt = 1) },
+                350L
+            )
         }
     }
 
@@ -2893,10 +2949,35 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         tts.language = triviaEngine.language().locale
     }
 
+    private fun rememberUtteranceOwner(utteranceId: String) {
+        when (utteranceId) {
+            SESSION_INTRO_UTTERANCE_ID -> sessionIntroOwner = activeGame
+            QUESTION_UTTERANCE_ID -> questionOwner = activeGame
+            FEEDBACK_UTTERANCE_ID -> feedbackOwner = activeGame
+            ROUND_SUMMARY_UTTERANCE_ID -> roundSummaryOwner = activeGame
+            COMMAND_UTTERANCE_ID -> commandOwner = activeGame
+            RETRY_UTTERANCE_ID -> retryOwner = activeGame
+        }
+    }
+
+    private fun runForOwner(owner: ActiveGame?, action: (ActiveGame) -> Unit) {
+        val expected = owner ?: return
+        if (activeGame != expected) {
+            DawDebugLog.log(
+                this,
+                "STALE_TTS_CALLBACK_IGNORED",
+                "owner=" + expected + " active=" + activeGame
+            )
+            return
+        }
+        action(expected)
+    }
+
     private fun speak(
         text: String,
         utteranceId: String
     ) {
+        rememberUtteranceOwner(utteranceId)
         val sinceRecognition = SystemClock.elapsedRealtime() - lastRecognitionFinishedAt
         if (
             utteranceId in setOf(FEEDBACK_UTTERANCE_ID, ROUND_SUMMARY_UTTERANCE_ID) &&
@@ -2979,6 +3060,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         finalUtteranceId: String
     ) {
         if (segments.isEmpty()) return
+        rememberUtteranceOwner(finalUtteranceId)
 
         val sinceRecognition = SystemClock.elapsedRealtime() - lastRecognitionFinishedAt
         if (
