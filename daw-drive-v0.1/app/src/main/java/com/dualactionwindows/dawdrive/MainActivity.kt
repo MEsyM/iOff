@@ -13,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,6 +82,15 @@ class MainActivity : ComponentActivity() {
             }
             var accountState by remember {
                 mutableStateOf(accountManager.state())
+            }
+
+            LaunchedEffect(Unit) {
+                if (accountState.loggedIn) {
+                    accountState = accountManager.state(busy = true)
+                    accountManager.restoreSession(profile.language.code) { result ->
+                        runOnUiThread { accountState = result }
+                    }
+                }
             }
 
             DawDriveApp(
