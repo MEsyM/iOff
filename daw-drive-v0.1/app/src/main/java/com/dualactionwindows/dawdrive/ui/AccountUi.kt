@@ -144,7 +144,8 @@ fun FirstRunOnboarding(
                         if (cs) "VYTVOŘIT A POKRAČOVAT" else "CREATE & CONTINUE"
                     } else {
                         if (cs) "PŘIHLÁSIT" else "SIGN IN"
-                    }
+                    },
+                    enabled = !state.busy
                 ) {
                     if (mode == "signup") onSignUp(email, password, name) else onLogin(email, password)
                 }
@@ -277,19 +278,34 @@ fun AccountCloudScreen(
                         singleLine = true
                     )
                     PrimaryWide(
-                        if (signup) {
+                        if (state.busy) {
+                            if (cs) "PRACUJI…" else "WORKING…"
+                        } else if (signup) {
                             if (cs) "VYTVOŘIT ÚČET" else "CREATE ACCOUNT"
                         } else {
                             if (cs) "PŘIHLÁSIT SE" else "SIGN IN"
-                        }
+                        },
+                        enabled = !state.busy
                     ) {
                         if (signup) onSignUp(email, password, name) else onLogin(email, password)
                     }
                 }
             }
         } else {
-            PrimaryWide(if (cs) "SYNCHRONIZOVAT TEĎ" else "SYNC NOW", onSync)
-            SecondaryWide(if (cs) "ODHLÁSIT" else "SIGN OUT", onLogout)
+            PrimaryWide(
+                if (state.busy) {
+                    if (cs) "SYNCHRONIZUJI…" else "SYNCING…"
+                } else {
+                    if (cs) "SYNCHRONIZOVAT TEĎ" else "SYNC NOW"
+                },
+                enabled = !state.busy,
+                onClick = onSync
+            )
+            SecondaryWide(
+                if (cs) "ODHLÁSIT" else "SIGN OUT",
+                enabled = !state.busy,
+                onClick = onLogout
+            )
         }
 
         if (!state.message.isNullOrBlank()) {
@@ -310,9 +326,14 @@ fun AccountCloudScreen(
 }
 
 @Composable
-private fun PrimaryWide(text: String, onClick: () -> Unit) {
+private fun PrimaryWide(
+    text: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(containerColor = LoneRiderColors.Cyan, contentColor = Color(0xFF071018))
@@ -322,9 +343,14 @@ private fun PrimaryWide(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SecondaryWide(text: String, onClick: () -> Unit) {
+private fun SecondaryWide(
+    text: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(containerColor = LoneRiderColors.SurfaceRaised, contentColor = Color.White)
