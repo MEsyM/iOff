@@ -69,6 +69,7 @@ class AccountManager(private val context: Context) {
             try {
                 authorizedRequest("/v1/me", "GET")
                 ensureProfile(null, language)
+                pullQuickTriviaProgress()
                 registerDevice()
                 callback(state(message = "Session restored"))
             } catch (t: Throwable) {
@@ -112,22 +113,26 @@ class AccountManager(private val context: Context) {
 
         Thread {
             try {
+                // Pull first so a fresh device never overwrites newer cloud progress.
+                pullQuickTriviaProgress()
+
+                val merged = TriviaGameEngine(context).profile()
                 val event = JSONObject()
                     .put("event_id", UUID.randomUUID().toString())
                     .put("profile_id", profileId)
                     .put("game", "quick_trivia")
                     .put("event_type", "progress_snapshot")
                     .put("question_id", JSONObject.NULL)
-                    .put("xp_delta", profile.xp)
+                    .put("xp_delta", merged.xp)
                     .put("correct", JSONObject.NULL)
                     .put("occurred_at", Instant.now().toString())
                     .put(
                         "payload",
                         JSONObject()
-                            .put("total_answered", profile.totalAnswered)
-                            .put("total_correct", profile.totalCorrect)
-                            .put("current_streak", profile.currentStreak)
-                            .put("best_streak", profile.bestStreak)
+                            .put("total_answered", merged.totalAnswered)
+                            .put("total_correct", merged.totalCorrect)
+                            .put("current_streak", merged.currentStreak)
+                            .put("best_streak", merged.bestStreak)
                     )
 
                 authorizedRequest(
@@ -135,6 +140,10 @@ class AccountManager(private val context: Context) {
                     method = "POST",
                     body = JSONObject().put("events", JSONArray().put(event))
                 )
+
+                // Pull once more so local and cloud converge after the accepted snapshot.
+                pullQuickTriviaProgress()
+
                 val now = System.currentTimeMillis()
                 prefs.edit().putLong(KEY_LAST_SYNC, now).apply()
                 callback(state(message = "Cloud sync complete"))
@@ -177,6 +186,7 @@ class AccountManager(private val context: Context) {
                     .apply()
 
                 ensureProfile(displayName, language)
+                pullQuickTriviaProgress()
                 registerDevice()
                 callback(state(message = if (path.endsWith("signup")) "Account created" else "Signed in"))
             } catch (t: Throwable) {
@@ -216,6 +226,28 @@ class AccountManager(private val context: Context) {
             .putString(KEY_PROFILE_ID, created.getString("id"))
             .putString(KEY_PROFILE_NAME, created.optString("name", name))
             .apply()
+    }
+
+    private fun pullQuickTriviaProgress() {
+        val profileId = prefs.getString(KEY_PROFILE_ID, null) ?: return
+        val response = authorizedRequest(
+            "/v1/sync/progress/" + profileId,
+            "GET"
+        )
+        val rows = response.optJSONArray("_array") ?: return
+        for (i in 0 until rows.length()) {
+            val row = rows.optJSONObject(i) ?: continue
+            if (row.optString("game") != "quick_trivia") continue
+
+            TriviaGameEngine(context).mergeCloudProgress(
+                xp = row.optInt("xp", 0),
+                totalAnswered = row.optInt("total_answered", 0),
+                totalCorrect = row.optInt("total_correct", 0),
+                currentStreak = row.optInt("current_streak", 0),
+                bestStreak = row.optInt("best_streak", 0)
+            )
+            return
+        }
     }
 
     private fun registerDevice() {
