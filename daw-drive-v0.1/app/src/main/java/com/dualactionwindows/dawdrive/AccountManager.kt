@@ -55,36 +55,57 @@ class AccountManager(private val context: Context) {
         auth("/v1/auth/login", email, password, null, language, callback)
     }
 
+    fun restoreSession(language: String, callback: (AccountState) -> Unit) {
+        val hasSession =
+            !prefs.getString(KEY_ACCESS, null).isNullOrBlank() ||
+                !prefs.getString(KEY_REFRESH, null).isNullOrBlank()
+
+        if (!hasSession) {
+            callback(state())
+            return
+        }
+
+        Thread {
+            try {
+                authorizedRequest("/v1/me", "GET")
+                ensureProfile(null, language)
+                registerDevice()
+                callback(state(message = "Session restored"))
+            } catch (t: Throwable) {
+                if (t is ApiException && t.code == 401) {
+                    clearSession()
+                    callback(state(message = "Session expired. Sign in again."))
+                } else {
+                    // Keep a valid local session during temporary network outages.
+                    callback(state(message = "Offline. Account will reconnect automatically."))
+                }
+            }
+        }.start()
+    }
+
     fun logout(callback: (AccountState) -> Unit) {
         val refresh = prefs.getString(KEY_REFRESH, null)
-        val access = prefs.getString(KEY_ACCESS, null)
         Thread {
-            if (!refresh.isNullOrBlank() && !access.isNullOrBlank()) {
+            if (!refresh.isNullOrBlank()) {
                 runCatching {
-                    request(
+                    authorizedRequest(
                         path = "/v1/auth/logout",
                         method = "POST",
-                        token = access,
                         body = JSONObject().put("refresh_token", refresh)
                     )
                 }
             }
-            prefs.edit()
-                .remove(KEY_ACCESS)
-                .remove(KEY_REFRESH)
-                .remove(KEY_EMAIL)
-                .remove(KEY_PROFILE_ID)
-                .remove(KEY_PROFILE_NAME)
-                .putBoolean(KEY_ONBOARDING, true)
-                .apply()
+            clearSession()
             callback(state(message = "Signed out"))
         }.start()
     }
 
     fun syncProgress(profile: TriviaGameEngine.Profile, callback: (AccountState) -> Unit) {
-        val token = prefs.getString(KEY_ACCESS, null)
         val profileId = prefs.getString(KEY_PROFILE_ID, null)
-        if (token.isNullOrBlank() || profileId.isNullOrBlank()) {
+        if (
+            prefs.getString(KEY_ACCESS, null).isNullOrBlank() ||
+            profileId.isNullOrBlank()
+        ) {
             callback(state(message = "Sign in to sync"))
             return
         }
@@ -109,10 +130,9 @@ class AccountManager(private val context: Context) {
                             .put("best_streak", profile.bestStreak)
                     )
 
-                request(
+                authorizedRequest(
                     path = "/v1/sync/events",
                     method = "POST",
-                    token = token,
                     body = JSONObject().put("events", JSONArray().put(event))
                 )
                 val now = System.currentTimeMillis()
@@ -156,8 +176,8 @@ class AccountManager(private val context: Context) {
                     .putBoolean(KEY_ONBOARDING, true)
                     .apply()
 
-                ensureProfile(access, displayName, language)
-                registerDevice(access)
+                ensureProfile(displayName, language)
+                registerDevice()
                 callback(state(message = if (path.endsWith("signup")) "Account created" else "Signed in"))
             } catch (t: Throwable) {
                 callback(state(message = cleanError(t)))
@@ -165,8 +185,8 @@ class AccountManager(private val context: Context) {
         }.start()
     }
 
-    private fun ensureProfile(token: String, requestedName: String?, language: String) {
-        val existing = request("/v1/profiles", "GET", token)
+    private fun ensureProfile(requestedName: String?, language: String) {
+        val existing = authorizedRequest("/v1/profiles", "GET")
         val list = existing.optJSONArray("_array")
         if (list != null && list.length() > 0) {
             val first = list.getJSONObject(0)
@@ -183,10 +203,9 @@ class AccountManager(private val context: Context) {
             ?: "Rider"
         val name = requestedName?.trim()?.takeIf { it.isNotBlank() } ?: fallbackName
 
-        val created = request(
+        val created = authorizedRequest(
             "/v1/profiles",
             "POST",
-            token,
             JSONObject()
                 .put("name", name)
                 .put("language", language)
@@ -199,16 +218,15 @@ class AccountManager(private val context: Context) {
             .apply()
     }
 
-    private fun registerDevice(token: String) {
+    private fun registerDevice() {
         val installationId = prefs.getString(KEY_INSTALLATION_ID, null)
             ?: UUID.randomUUID().toString().also {
                 prefs.edit().putString(KEY_INSTALLATION_ID, it).apply()
             }
         runCatching {
-            request(
+            authorizedRequest(
                 "/v1/devices/current",
                 "PUT",
-                token,
                 JSONObject()
                     .put("installation_id", installationId)
                     .put("platform", "android")
@@ -218,6 +236,63 @@ class AccountManager(private val context: Context) {
                     }.getOrNull() ?: "unknown")
             )
         }
+    }
+
+    private class ApiException(
+        val code: Int,
+        message: String
+    ) : IllegalStateException(message)
+
+    private fun clearSession() {
+        prefs.edit()
+            .remove(KEY_ACCESS)
+            .remove(KEY_REFRESH)
+            .remove(KEY_EMAIL)
+            .remove(KEY_PROFILE_ID)
+            .remove(KEY_PROFILE_NAME)
+            .putBoolean(KEY_ONBOARDING, true)
+            .apply()
+    }
+
+    private fun authorizedRequest(
+        path: String,
+        method: String,
+        body: JSONObject? = null
+    ): JSONObject {
+        var access = prefs.getString(KEY_ACCESS, null)
+        if (access.isNullOrBlank()) {
+            access = refreshAccessToken()
+        }
+
+        try {
+            return request(path, method, access, body)
+        } catch (e: ApiException) {
+            if (e.code != 401) throw e
+        }
+
+        access = refreshAccessToken()
+        return request(path, method, access, body)
+    }
+
+    @Synchronized
+    private fun refreshAccessToken(): String {
+        val refresh = prefs.getString(KEY_REFRESH, null)
+            ?: throw ApiException(401, "Session expired")
+
+        val response = request(
+            path = "/v1/auth/refresh",
+            method = "POST",
+            body = JSONObject().put("refresh_token", refresh)
+        )
+
+        val access = response.getString("access_token")
+        val newRefresh = response.getString("refresh_token")
+        prefs.edit()
+            .putString(KEY_ACCESS, access)
+            .putString(KEY_REFRESH, newRefresh)
+            .apply()
+
+        return access
     }
 
     /**
@@ -274,7 +349,10 @@ class AccountManager(private val context: Context) {
                 if (code == HttpURLConnection.HTTP_UNAUTHORIZED && !token.isNullOrBlank()) {
                     clearAuthSession()
                 }
-                throw IllegalStateException(detail?.takeIf { it.isNotBlank() } ?: "HTTP $code")
+                throw ApiException(
+                    code,
+                    detail?.takeIf { it.isNotBlank() } ?: "HTTP $code"
+                )
             }
             if (raw.isBlank()) return JSONObject()
             val trimmed = raw.trim()
