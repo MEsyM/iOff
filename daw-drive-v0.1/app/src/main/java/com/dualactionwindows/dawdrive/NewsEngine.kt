@@ -40,6 +40,9 @@ class NewsEngine(private val context: Context) {
     val sources: List<Source> = listOf(
         Source("ct24", "ČT24", "https://ct24.ceskatelevize.cz/rss.xml"),
         Source("irozhlas", "iROZHLAS", "https://www.irozhlas.cz/rss/irozhlas"),
+        Source("novinky", "Novinky.cz", "https://www.novinky.cz/rss2/"),
+        Source("seznam_zpravy", "Seznam Zprávy", "https://www.seznamzpravy.cz/rss"),
+        Source("npr_news_now", "NPR News Now", "https://feeds.npr.org/500005/podcast.xml", language = "en"),
         Source("irozhlas_domov", "iROZHLAS • Domov", "https://www.irozhlas.cz/rss/irozhlas/section/zpravy-domov", defaultEnabled = false),
         Source("irozhlas_svet", "iROZHLAS • Svět", "https://www.irozhlas.cz/rss/irozhlas/section/zpravy-svet", defaultEnabled = false),
         Source("irozhlas_ekonomika", "iROZHLAS • Ekonomika", "https://www.irozhlas.cz/rss/irozhlas/section/ekonomika", defaultEnabled = false),
