@@ -2,6 +2,7 @@ package com.dualactionwindows.dawdrive
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -75,7 +76,8 @@ class NewsSettingsActivity : ComponentActivity() {
                     Button(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            startService(
+                            ContextCompat.startForegroundService(
+                                this@NewsSettingsActivity,
                                 android.content.Intent(this@NewsSettingsActivity, RoadGameMediaService::class.java)
                                     .setAction(RoadGameMediaService.ACTION_START_NEWS)
                             )
