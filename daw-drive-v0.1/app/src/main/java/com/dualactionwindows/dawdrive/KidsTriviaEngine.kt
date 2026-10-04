@@ -20,11 +20,13 @@ class KidsTriviaEngine(context: Context) {
         NATURE("nature"),
         BODY("body"),
         SPORTS("sports"),
+        FOOTBALL("football"),
         FOOD_WORLD("food_world"),
         LOGIC("logic"),
         FAIRY_TALES("fairy_tales"),
         SCHOOL("school"),
-        CZECHIA("czechia")
+        CZECHIA("czechia"),
+        SONGS("songs")
     }
 
     data class Question(
@@ -124,7 +126,18 @@ class KidsTriviaEngine(context: Context) {
         val eligible = pool.filter { it.difficulty <= maxDifficulty }
         val lastCategory = prefs.getString(KEY_LAST_CATEGORY, null)
 
-        val ranked = eligible
+        val availableCategories = eligible
+            .map { it.category }
+            .distinct()
+
+        val categoryPool = availableCategories
+            .filterNot { it.key == lastCategory }
+            .ifEmpty { availableCategories }
+
+        val selectedCategory = categoryPool.random()
+        val categoryQuestions = eligible.filter { it.category == selectedCategory }
+
+        val ranked = categoryQuestions
             .asSequence()
             .filterNot { recent.contains(it.id) }
             .map { q ->
@@ -134,20 +147,19 @@ class KidsTriviaEngine(context: Context) {
                 if (seen == 0) score += 35.0
                 score -= seen * 7.0
                 score += wrong * 6.0
-                if (q.category.key == lastCategory) score -= 18.0
                 q to score
             }
             .sortedByDescending { it.second }
             .take(RANDOM_TOP_POOL)
             .toList()
             .ifEmpty {
-                eligible.map { q ->
+                categoryQuestions.map { q ->
                     q to (100.0 - seenCount(q.id) * 7.0 + wrongCount(q.id) * 6.0)
                 }.sortedByDescending { it.second }.take(RANDOM_TOP_POOL)
             }
 
         val selected = if (ranked.isEmpty()) {
-            pool.random()
+            categoryQuestions.random()
         } else {
             val floor = ranked.minOf { it.second }
             val weighted = ranked.map { (q, score) ->
@@ -335,11 +347,13 @@ class KidsTriviaEngine(context: Context) {
             Category.NATURE -> "Nature"
             Category.BODY -> "Body"
             Category.SPORTS -> "Sports"
+            Category.FOOTBALL -> "Football"
             Category.FOOD_WORLD -> "Food and World"
             Category.LOGIC -> "Logic"
             Category.FAIRY_TALES -> "Fairy Tales"
             Category.SCHOOL -> "School"
             Category.CZECHIA -> "Czechia"
+            Category.SONGS -> "Songs"
         }
 
         return when (category) {
@@ -350,11 +364,13 @@ class KidsTriviaEngine(context: Context) {
             Category.NATURE -> "Příroda"
             Category.BODY -> "Lidské tělo"
             Category.SPORTS -> "Sport"
+            Category.FOOTBALL -> "Fotbal"
             Category.FOOD_WORLD -> "Jídlo a svět"
             Category.LOGIC -> "Logika"
             Category.FAIRY_TALES -> "Pohádky"
             Category.SCHOOL -> "Škola"
             Category.CZECHIA -> "České reálie"
+            Category.SONGS -> "Písničky"
         }
     }
 
@@ -371,10 +387,19 @@ class KidsTriviaEngine(context: Context) {
                 },
                 category = when (q.category) {
                     KidsTriviaQuestionBank.Category.ANIMALS -> Category.ANIMALS
-                    KidsTriviaQuestionBank.Category.FAIRY_TALES -> Category.FAIRY_TALES
+                    KidsTriviaQuestionBank.Category.MOVIES -> Category.MOVIES
+                    KidsTriviaQuestionBank.Category.CARS -> Category.CARS
+                    KidsTriviaQuestionBank.Category.SPACE -> Category.SPACE
                     KidsTriviaQuestionBank.Category.NATURE -> Category.NATURE
+                    KidsTriviaQuestionBank.Category.BODY -> Category.BODY
+                    KidsTriviaQuestionBank.Category.SPORTS -> Category.SPORTS
+                    KidsTriviaQuestionBank.Category.FOOTBALL -> Category.FOOTBALL
+                    KidsTriviaQuestionBank.Category.FOOD_WORLD -> Category.FOOD_WORLD
+                    KidsTriviaQuestionBank.Category.LOGIC -> Category.LOGIC
+                    KidsTriviaQuestionBank.Category.FAIRY_TALES -> Category.FAIRY_TALES
                     KidsTriviaQuestionBank.Category.SCHOOL -> Category.SCHOOL
                     KidsTriviaQuestionBank.Category.CZECHIA -> Category.CZECHIA
+                    KidsTriviaQuestionBank.Category.SONGS -> Category.SONGS
                 },
                 promptEn = q.prompt,
                 promptCs = q.prompt,

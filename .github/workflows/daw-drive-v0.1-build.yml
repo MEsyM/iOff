@@ -9,6 +9,7 @@ on:
     branches:
       - codex/lone-rider-v1.8-feedback-build
       - codex/lone-rider-v1.10-live-content
+      - codex/lone-rider-kids-categories-data
   workflow_dispatch:
 
 jobs:
