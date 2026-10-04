@@ -46,8 +46,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private lateinit var familyEngine: FamilyGameEngine
     private lateinit var englishEngine: EnglishLearningEngine
     private lateinit var brainTrainerEngine: BrainTrainerEngine
+    private lateinit var newsEngine: NewsEngine
 
-    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO, KIDS_TRIVIA, FAMILY, ENGLISH, BRAIN }
+    private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO, KIDS_TRIVIA, FAMILY, ENGLISH, BRAIN, NEWS }
     private enum class ArtworkState { IDLE, LISTENING, CORRECT, WRONG }
 
     private var activeGame = ActiveGame.TRIVIA
@@ -111,6 +112,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var roundSummaryOwner: ActiveGame? = null
     private var commandOwner: ActiveGame? = null
     private var retryOwner: ActiveGame? = null
+    private var newsArticles: List<NewsEngine.Article> = emptyList()
+    private var newsIndex = 0
+    private var newsExpanded = false
+    private var newsLoading = false
     private data class SpeechSegment(val text: String, val locale: Locale)
 
     private val englishSpeechQueue = ArrayDeque<SpeechSegment>()
@@ -143,6 +148,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         familyEngine = FamilyGameEngine(this)
         englishEngine = EnglishLearningEngine(this)
         brainTrainerEngine = BrainTrainerEngine(this)
+        newsEngine = NewsEngine(this)
         tts = TextToSpeech(this, this)
 
         createSpeechRecognizer()
@@ -224,6 +230,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             sessionStarted = false
                             startOrResumeBrain()
                         }
+                        MEDIA_ID_NEWS -> {
+                            activeGame = ActiveGame.NEWS
+                            sessionStarted = false
+                            startOrResumeNews(forceRefresh = true)
+                        }
                         else -> {
                             activeGame = ActiveGame.TRIVIA
                             sessionStarted = false
@@ -252,6 +263,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             ActiveGame.FAMILY -> evaluateFamilyCandidates(listOf(spoken))
                             ActiveGame.ENGLISH -> evaluateEnglishCandidates(listOf(spoken))
                             ActiveGame.BRAIN -> evaluateBrainCandidates(listOf(spoken))
+                            ActiveGame.NEWS -> speakNewsCommandHelp()
                             ActiveGame.TRIVIA -> evaluateSpeechCandidates(listOf(spoken))
                         }
                     } else {
@@ -352,6 +364,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         ActiveGame.FAMILY -> evaluateFamilyCandidates(candidates)
                         ActiveGame.ENGLISH -> evaluateEnglishCandidates(candidates)
                         ActiveGame.BRAIN -> evaluateBrainCandidates(candidates)
+                        ActiveGame.NEWS -> speakNewsCommandHelp()
                         ActiveGame.TRIVIA -> evaluateSpeechCandidates(candidates)
                     }
                 }
@@ -382,6 +395,22 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         )
                     }
                 }
+            }
+
+            ACTION_START_NEWS -> {
+                if (
+                    ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    activateRoadVoiceForeground()
+                } else {
+                    ensurePlaybackForeground()
+                }
+                activeGame = ActiveGame.NEWS
+                sessionStarted = false
+                mainHandler.post { startOrResumeNews(forceRefresh = true) }
             }
 
             ACTION_STOP_VOICE -> {
@@ -476,6 +505,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                     ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
                                     ActiveGame.ENGLISH -> speakCurrentEnglishItem()
                                     ActiveGame.BRAIN -> speakCurrentBrainChallenge()
+                                    ActiveGame.NEWS -> speakCurrentNewsHeadline()
                                     ActiveGame.TRIVIA -> speakCurrentQuestion()
                                 }
                             }
@@ -692,6 +722,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     "Brain Trainer",
                     "Memory • sequences • math • logic • attention",
                     R.drawable.game_brain
+                ),
+                mediaItem(
+                    MEDIA_ID_NEWS,
+                    if (p.language == TriviaGameEngine.Language.CS) "Denní zprávy" else "Daily News",
+                    if (p.language == TriviaGameEngine.Language.CS) "Dnešní přehled • headline → více / další" else "Today's briefing • headline → more / next",
+                    R.drawable.trivia_idle
                 )
             )
         )
@@ -705,8 +741,179 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ActiveGame.FAMILY -> startOrResumeFamily()
             ActiveGame.ENGLISH -> startOrResumeEnglish()
             ActiveGame.BRAIN -> startOrResumeBrain()
+            ActiveGame.NEWS -> startOrResumeNews(forceRefresh = false)
             ActiveGame.TRIVIA -> startOrResumeTrivia()
         }
+    }
+
+    private fun startOrResumeNews(forceRefresh: Boolean = false) {
+        if (!ensurePlaybackForeground()) return
+        if (!ttsReady) {
+            pendingStartAfterTts = true
+            setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            return
+        }
+
+        if (!forceRefresh && newsArticles.isNotEmpty()) {
+            applyVoiceLanguage()
+            setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+            updateMetadata()
+            speakCurrentNewsHeadline()
+            return
+        }
+
+        if (newsLoading) return
+        newsLoading = true
+        stopListening()
+        awaitingAnswer = false
+        setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+        updateMetadata()
+
+        Thread {
+            val briefing = newsEngine.loadDailyBriefing()
+            mainHandler.post {
+                newsLoading = false
+                if (activeGame != ActiveGame.NEWS) return@post
+
+                newsArticles = briefing.articles
+                newsIndex = 0
+                newsExpanded = false
+                sessionStarted = true
+
+                DawDebugLog.log(
+                    this,
+                    "NEWS_LOADED",
+                    "articles=" + newsArticles.size +
+                        " errors=" + briefing.errors.joinToString(" | ")
+                )
+
+                if (newsArticles.isEmpty()) {
+                    awaitingAnswer = false
+                    updateMetadata()
+                    speakSystem(
+                        en = "I could not load today's news. Check your connection or news sources.",
+                        cs = "Dnešní zprávy se nepodařilo načíst. Zkontroluj připojení nebo zdroje.",
+                        utteranceId = SYSTEM_UTTERANCE_ID
+                    )
+                    setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+                    return@post
+                }
+
+                updateMetadata()
+                val intro = if (triviaEngine.language() == TriviaGameEngine.Language.CS) {
+                    "Denní zprávy. Mám " + newsArticles.size +
+                        " hlavních zpráv. Po každém titulku řekni více, další, uložit nebo zopakuj."
+                } else {
+                    "Daily News. I have " + newsArticles.size +
+                        " top stories. After each headline say more, next, save or repeat."
+                }
+                sessionIntroOwner = ActiveGame.NEWS
+                speak(intro, SESSION_INTRO_UTTERANCE_ID)
+            }
+        }.start()
+    }
+
+    private fun currentNewsArticle(): NewsEngine.Article? =
+        newsArticles.getOrNull(newsIndex)
+
+    private fun speakCurrentNewsHeadline() {
+        val article = currentNewsArticle() ?: run {
+            finishNewsBriefing()
+            return
+        }
+
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+        newsExpanded = false
+        artworkState = ArtworkState.IDLE
+        updateMetadata()
+
+        val position = newsIndex + 1
+        val text = if (triviaEngine.language() == TriviaGameEngine.Language.CS) {
+            "Zpráva " + position + " z " + newsArticles.size + ". " +
+                article.sourceName + ". " + article.title +
+                ". Řekni více, nebo další."
+        } else {
+            "Story " + position + " of " + newsArticles.size + ". " +
+                article.sourceName + ". " + article.title +
+                ". Say more, or next."
+        }
+        speak(text, QUESTION_UTTERANCE_ID)
+    }
+
+    private fun speakNewsDetail() {
+        val article = currentNewsArticle() ?: return
+        stopListening()
+        awaitingAnswer = true
+        newsExpanded = true
+        updateMetadata()
+
+        val detail = article.summary
+            .replace(article.title, "", ignoreCase = true)
+            .trim(' ', '.', '-', '–', '—')
+            .ifBlank {
+                if (triviaEngine.language() == TriviaGameEngine.Language.CS) {
+                    "K této zprávě nemám další stručný text. Můžeš říct další."
+                } else {
+                    "There is no additional short summary for this story. You can say next."
+                }
+            }
+
+        val tail = if (triviaEngine.language() == TriviaGameEngine.Language.CS) {
+            " Řekni další, uložit, nebo zopakuj."
+        } else {
+            " Say next, save, or repeat."
+        }
+        speak(detail + tail, COMMAND_UTTERANCE_ID)
+    }
+
+    private fun moveToNextNews() {
+        stopListening()
+        awaitingAnswer = false
+        if (newsIndex + 1 >= newsArticles.size) {
+            finishNewsBriefing()
+            return
+        }
+        newsIndex += 1
+        newsExpanded = false
+        speakCurrentNewsHeadline()
+    }
+
+    private fun saveCurrentNews() {
+        val article = currentNewsArticle() ?: return
+        newsEngine.saveArticle(article)
+        stopListening()
+        awaitingAnswer = true
+        updateMetadata()
+        speakSystem(
+            en = "Saved. Say next or more.",
+            cs = "Uloženo. Řekni další nebo více.",
+            utteranceId = COMMAND_UTTERANCE_ID
+        )
+    }
+
+    private fun speakNewsCommandHelp() {
+        stopListening()
+        awaitingAnswer = true
+        speakSystem(
+            en = "Say more, next, save, repeat, or stop.",
+            cs = "Řekni více, další, uložit, zopakuj nebo stop.",
+            utteranceId = COMMAND_UTTERANCE_ID
+        )
+    }
+
+    private fun finishNewsBriefing() {
+        stopListening()
+        awaitingAnswer = false
+        newsExpanded = false
+        updateMetadata()
+        speakSystem(
+            en = "That's all for today's briefing.",
+            cs = "To je pro dnešní přehled všechno.",
+            utteranceId = SYSTEM_UTTERANCE_ID
+        )
+        setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
     }
 
     private fun startOrResumeTrivia() {
@@ -1493,6 +1700,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 ActiveGame.KIDS_TRIVIA ->
                     kidsTriviaEngine.currentQuestion(triviaEngine.language())?.answers.orEmpty()
                 ActiveGame.BRAIN -> brainTrainerEngine.currentChallenge()?.answers.orEmpty()
+                ActiveGame.NEWS -> listOf(
+                    "více", "další", "uložit", "zopakuj", "stop",
+                    "more", "next", "save", "repeat", "stop"
+                )
                 else -> emptyList()
             }
             if (expectedBias.isNotEmpty()) {
@@ -1964,6 +2175,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
             ActiveGame.ENGLISH -> speakCurrentEnglishItem()
             ActiveGame.BRAIN -> speakCurrentBrainChallenge()
+            ActiveGame.NEWS -> speakCurrentNewsHeadline()
             ActiveGame.TRIVIA -> speakCurrentQuestion()
         }
     }
@@ -1973,6 +2185,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         stopListening()
         awaitingAnswer = false
+
+        if (activeGame == ActiveGame.NEWS) {
+            moveToNextNews()
+            return
+        }
 
         when (activeGame) {
             ActiveGame.SPELLING -> {
@@ -2093,6 +2310,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private fun handleMissedAnswer() {
         if (!voiceModeEnabled || !awaitingAnswer) return
 
+        if (activeGame == ActiveGame.NEWS) {
+            moveToNextNews()
+            return
+        }
+
         stopListening()
 
         if (retryCount == 0) {
@@ -2202,6 +2424,18 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 "prepni na cestinu", "prepnout na cestinu", "cesky"
             ) -> "language_cs"
 
+            activeGame == ActiveGame.NEWS &&
+                normalized in setOf("more", "details", "detail", "read more", "vice", "podrobnosti", "precti vice") ->
+                "news_more"
+
+            activeGame == ActiveGame.NEWS &&
+                normalized in setOf("next", "next story", "dalsi", "dalsi zprava", "preskoc", "preskocit") ->
+                "news_next"
+
+            activeGame == ActiveGame.NEWS &&
+                normalized in setOf("save", "save this", "uloz", "ulozit", "uloz zpravu") ->
+                "news_save"
+
             activeGame == ActiveGame.GUESS_WHO &&
                 normalized in setOf(
                     "next hint", "hint", "another hint", "give me a hint",
@@ -2236,6 +2470,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             "repeat" -> repeatCurrentQuestion()
             "skip" -> skipCurrentQuestion()
             "hint" -> nextGuessWhoHint()
+            "news_more" -> speakNewsDetail()
+            "news_next" -> moveToNextNews()
+            "news_save" -> saveCurrentNews()
 
             "score" -> {
                 stopListening()
@@ -2247,6 +2484,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     ActiveGame.FAMILY -> (if (language == TriviaGameEngine.Language.CS) "Skóre: " else "Score: ") + familyEngine.scoreboard()
                     ActiveGame.ENGLISH -> englishEngine.roundSummary()
                     ActiveGame.BRAIN -> brainTrainerEngine.roundSummary(language)
+                    ActiveGame.NEWS -> if (language == TriviaGameEngine.Language.CS) {
+                        "Zpráva " + (newsIndex + 1).coerceAtMost(newsArticles.size) + " z " + newsArticles.size
+                    } else {
+                        "Story " + (newsIndex + 1).coerceAtMost(newsArticles.size) + " of " + newsArticles.size
+                    }
                     ActiveGame.TRIVIA -> triviaEngine.scoreSummary()
                 }
                 speak(summary, COMMAND_UTTERANCE_ID)
@@ -2271,6 +2513,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     ActiveGame.BRAIN -> {
                         val p = brainTrainerEngine.profile()
                         "Brain Trainer level " + p.level + ", " + p.xp + " XP."
+                    }
+                    ActiveGame.NEWS -> if (language == TriviaGameEngine.Language.CS) {
+                        "Denní zprávy nemají levely."
+                    } else {
+                        "Daily News has no levels."
                     }
                     ActiveGame.TRIVIA -> triviaEngine.levelSummary()
                 }
@@ -3276,6 +3523,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         if (cs) "English Lessons jsou aktivní" else "English Lessons are active"
                     ActiveGame.BRAIN ->
                         if (cs) "Brain Trainer je aktivní" else "Brain Trainer is active"
+                    ActiveGame.NEWS ->
+                        if (cs) "Denní zprávy jsou aktivní" else "Daily News is active"
                     ActiveGame.TRIVIA ->
                         if (cs) "Quick Trivia je aktivní" else "Quick Trivia is active"
                 }
@@ -3300,6 +3549,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     companion object {
         const val ACTION_START_VOICE =
             "com.dualactionwindows.dawdrive.START_ROAD_VOICE"
+        const val ACTION_START_NEWS =
+            "com.dualactionwindows.dawdrive.START_DAILY_NEWS"
         const val ACTION_STOP_VOICE =
             "com.dualactionwindows.dawdrive.STOP_ROAD_VOICE"
         const val ACTION_SET_LANGUAGE =
@@ -3315,6 +3566,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val MEDIA_ID_FAMILY = "family_game"
         private const val MEDIA_ID_ENGLISH = "english_lessons"
         private const val MEDIA_ID_BRAIN = "brain_trainer"
+        private const val MEDIA_ID_NEWS = "daily_news"
         private const val MEDIA_ID_LANGUAGE_CS = "language_cs"
         private const val MEDIA_ID_LANGUAGE_EN = "language_en"
 
