@@ -228,7 +228,8 @@ class AccountManager(private val context: Context) {
         path: String,
         method: String,
         token: String? = null,
-        body: JSONObject? = null
+        body: JSONObject? = null,
+        allowRefresh: Boolean = true
     ): JSONObject {
         val connection = (URL(BASE_URL + path).openConnection() as HttpURLConnection).apply {
             requestMethod = method
@@ -249,8 +250,30 @@ class AccountManager(private val context: Context) {
             val code = connection.responseCode
             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
             val raw = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+
+            if (
+                code == HttpURLConnection.HTTP_UNAUTHORIZED &&
+                allowRefresh &&
+                !token.isNullOrBlank() &&
+                path != "/v1/auth/refresh"
+            ) {
+                val refreshedToken = refreshAccessToken()
+                if (!refreshedToken.isNullOrBlank()) {
+                    return request(
+                        path = path,
+                        method = method,
+                        token = refreshedToken,
+                        body = body,
+                        allowRefresh = false
+                    )
+                }
+            }
+
             if (code !in 200..299) {
                 val detail = runCatching { JSONObject(raw).optString("detail") }.getOrNull()
+                if (code == HttpURLConnection.HTTP_UNAUTHORIZED && !token.isNullOrBlank()) {
+                    clearAuthSession()
+                }
                 throw IllegalStateException(detail?.takeIf { it.isNotBlank() } ?: "HTTP $code")
             }
             if (raw.isBlank()) return JSONObject()
@@ -263,6 +286,42 @@ class AccountManager(private val context: Context) {
         } finally {
             connection.disconnect()
         }
+    }
+
+    private fun refreshAccessToken(): String? {
+        val refresh = prefs.getString(KEY_REFRESH, null)
+        if (refresh.isNullOrBlank()) {
+            clearAuthSession()
+            return null
+        }
+
+        return try {
+            val response = request(
+                path = "/v1/auth/refresh",
+                method = "POST",
+                body = JSONObject().put("refresh_token", refresh),
+                allowRefresh = false
+            )
+            val access = response.getString("access_token")
+            val nextRefresh = response.getString("refresh_token")
+            prefs.edit()
+                .putString(KEY_ACCESS, access)
+                .putString(KEY_REFRESH, nextRefresh)
+                .apply()
+            access
+        } catch (_: Throwable) {
+            clearAuthSession()
+            null
+        }
+    }
+
+    private fun clearAuthSession() {
+        prefs.edit()
+            .remove(KEY_ACCESS)
+            .remove(KEY_REFRESH)
+            .remove(KEY_PROFILE_ID)
+            .remove(KEY_PROFILE_NAME)
+            .apply()
     }
 
     private fun cleanError(t: Throwable): String =
