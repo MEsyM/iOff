@@ -104,6 +104,9 @@ class MainActivity : ComponentActivity() {
                 achievementTitles = profile.achievements
                     .map { triviaEngine.achievementTitle(it) }
                     .sorted(),
+                onNewsClick = {
+                    startActivity(Intent(this, NewsSettingsActivity::class.java))
+                },
                 onVideoClick = {
                     val targetDisplayId = display?.displayId ?: Display.DEFAULT_DISPLAY
                     val options = ActivityOptions.makeBasic().apply {
