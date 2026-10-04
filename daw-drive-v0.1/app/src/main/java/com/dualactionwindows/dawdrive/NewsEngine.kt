@@ -25,7 +25,8 @@ class NewsEngine(private val context: Context) {
         val title: String,
         val summary: String,
         val link: String,
-        val publishedAt: Long
+        val publishedAt: Long,
+        val language: String
     )
 
     data class DailyBriefing(
@@ -56,6 +57,17 @@ class NewsEngine(private val context: Context) {
 
     fun enabledSources(): List<Source> = sources.filter(::isEnabled)
 
+    fun saveArticle(article: Article) {
+        if (article.link.isBlank()) return
+        val saved = prefs.getStringSet(KEY_SAVED_LINKS, emptySet()).orEmpty().toMutableSet()
+        saved += article.link
+        prefs.edit().putStringSet(KEY_SAVED_LINKS, saved).apply()
+    }
+
+    fun isSaved(article: Article): Boolean =
+        article.link.isNotBlank() &&
+            prefs.getStringSet(KEY_SAVED_LINKS, emptySet()).orEmpty().contains(article.link)
+
     fun dailyLimit(): Int = prefs.getInt(KEY_DAILY_LIMIT, 10).coerceIn(5, 20)
 
     fun setDailyLimit(limit: Int) {
@@ -75,7 +87,10 @@ class NewsEngine(private val context: Context) {
         }
 
         val seen = HashSet<String>()
-        val selected = all
+        val cutoff = System.currentTimeMillis() - 36L * 60L * 60L * 1000L
+        val recent = all.filter { it.publishedAt >= cutoff }
+        val pool = if (recent.isNotEmpty()) recent else all
+        val selected = pool
             .sortedByDescending { it.publishedAt }
             .filter { article ->
                 val key = normalizeTitle(article.title)
@@ -150,7 +165,8 @@ class NewsEngine(private val context: Context) {
                                 title = cleanTitle,
                                 summary = clean(summary).ifBlank { cleanTitle },
                                 link = link.trim(),
-                                publishedAt = parseDate(date)
+                                publishedAt = parseDate(date),
+                                language = source.language
                             )
                         }
                         inItem = false
@@ -203,5 +219,6 @@ class NewsEngine(private val context: Context) {
         private const val PREFS = "lone_rider_news"
         private const val KEY_SOURCE_PREFIX = "source_"
         private const val KEY_DAILY_LIMIT = "daily_limit"
+        private const val KEY_SAVED_LINKS = "saved_links"
     }
 }
