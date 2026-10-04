@@ -529,7 +529,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         mainHandler.postDelayed({
                             awaitingAnswer = false
                             artworkState = ArtworkState.IDLE
-                            updateMetadata()
                             setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
                             notifyChildrenChanged(ROOT_ID)
                         }, 250)
@@ -555,9 +554,18 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         parentId: String,
         result: Result<MutableList<MediaBrowserCompat.MediaItem>>
     ) {
-        if (parentId != ROOT_ID) {
-            result.sendResult(mutableListOf())
-            return
+        val languageSelection = when (parentId) {
+            MEDIA_ID_LANGUAGE_CS -> TriviaGameEngine.Language.CS
+            MEDIA_ID_LANGUAGE_EN -> TriviaGameEngine.Language.EN
+            ROOT_ID -> null
+            else -> {
+                result.sendResult(mutableListOf())
+                return
+            }
+        }
+
+        if (languageSelection != null) {
+            changeLanguage(languageSelection, announce = true)
         }
 
         val p = triviaEngine.profile()
@@ -606,13 +614,15 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     MEDIA_ID_LANGUAGE_CS,
                     "🇨🇿 Čeština",
                     languageCsSubtitle,
-                    R.drawable.language_cz
+                    R.drawable.language_cz,
+                    browsable = true
                 ),
                 mediaItem(
                     MEDIA_ID_LANGUAGE_EN,
                     "🇬🇧 English",
                     languageEnSubtitle,
-                    R.drawable.language_en
+                    R.drawable.language_en,
+                    browsable = true
                 ),
                 mediaItem(
                     MEDIA_ID_TRIVIA,
@@ -2257,7 +2267,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         val previous = triviaEngine.language()
 
         if (previous == language) {
-            updateMetadata()
             notifyChildrenChanged(ROOT_ID)
             if (announce) {
                 speakSystem(
@@ -2280,7 +2289,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         stopListening()
         triviaEngine.setLanguage(language)
         applyVoiceLanguage()
-        updateMetadata()
+        artworkState = ArtworkState.IDLE
+        awaitingAnswer = false
+        retryCount = 0
+        setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
         notifyChildrenChanged(ROOT_ID)
 
         DawDebugLog.log(
@@ -2483,7 +2495,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private fun updateMetadata() {
         val language = triviaEngine.language()
         val cs = language == TriviaGameEngine.Language.CS
-        val artUri = artworkUri(activeGame, artworkState).toString()
         val artBitmap = artworkBitmap(activeGame, artworkState)
         metadataRevision += 1
         val metadataId = activeGame.name.lowercase() + ":" +
@@ -2522,9 +2533,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             else -> if (cs) "Na tahu: " + player else "Turn: " + player
                         }
                     )
-                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
@@ -2552,9 +2560,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
                         q?.categoryName ?: "Trivia Kids"
                     )
-                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
@@ -2587,9 +2592,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
                         if (cs) "Uhodni osobnost" else "Guess the personality"
                     )
-                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
@@ -2627,9 +2629,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
                         "Spelling Bee"
                     )
-                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
@@ -2667,9 +2666,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         item?.type?.name?.lowercase()?.replace("_", " ")
                             ?.replaceFirstChar { it.uppercase() } ?: "Brain Trainer"
                     )
-                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
@@ -2707,9 +2703,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
                         item?.topic ?: "English"
                     )
-                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
@@ -2743,7 +2736,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 )
                 .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
                 .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, artUri)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
@@ -2757,31 +2749,30 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
     private fun publishMetadata(metadata: MediaMetadataCompat) {
         val revision = metadataRevision
-        val feedbackState =
-            artworkState == ArtworkState.CORRECT || artworkState == ArtworkState.WRONG
+        val stateAtPublish = artworkState
 
-        if (!feedbackState) {
-            mediaSession.setMetadata(metadata)
-            return
+        mediaSession.setMetadata(metadata)
+
+        if (stateAtPublish == ArtworkState.CORRECT || stateAtPublish == ArtworkState.WRONG) {
+            mainHandler.postDelayed({
+                if (
+                    metadataRevision == revision &&
+                    artworkState == stateAtPublish
+                ) {
+                    // Re-publish the exact same feedback frame. Do not clear
+                    // metadata first: clearing it makes some Android Auto hosts
+                    // leave Now Playing and/or reuse the previous artwork.
+                    mediaSession.setMetadata(metadata)
+                    DawDebugLog.log(
+                        this,
+                        "FEEDBACK_METADATA_REPUBLISHED",
+                        "game=" + activeGame +
+                            " state=" + stateAtPublish +
+                            " revision=" + revision
+                    )
+                }
+            }, FEEDBACK_METADATA_REFRESH_MS)
         }
-
-        // BMW / Android Auto can retain the previous artwork even after the
-        // bitmap changes. Clear first, then publish only if this is still the
-        // newest feedback state.
-        mediaSession.setMetadata(null)
-        mainHandler.postDelayed({
-            if (
-                metadataRevision == revision &&
-                (artworkState == ArtworkState.CORRECT || artworkState == ArtworkState.WRONG)
-            ) {
-                mediaSession.setMetadata(metadata)
-                DawDebugLog.log(
-                    this,
-                    "FEEDBACK_METADATA_PUBLISHED",
-                    "game=" + activeGame + " state=" + artworkState + " revision=" + revision
-                )
-            }
-        }, FEEDBACK_METADATA_REFRESH_MS)
     }
 
     private fun artworkResId(game: ActiveGame, state: ArtworkState): Int {
@@ -2852,7 +2843,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         id: String,
         title: String,
         subtitle: String,
-        artworkResId: Int
+        artworkResId: Int,
+        browsable: Boolean = false
     ): MediaBrowserCompat.MediaItem {
         val itemExtras = Bundle().apply {
             putInt(CONTENT_STYLE_SINGLE_ITEM_KEY, CONTENT_STYLE_GRID)
@@ -2868,7 +2860,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         return MediaBrowserCompat.MediaItem(
             description,
-            MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+            if (browsable) {
+                MediaBrowserCompat.MediaItem.FLAG_BROWSABLE
+            } else {
+                MediaBrowserCompat.MediaItem.FLAG_PLAYABLE
+            }
         )
     }
 
