@@ -2734,9 +2734,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
                     q?.categoryName ?: "Quick Trivia"
                 )
-                .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON_URI, artUri)
-                .putString(MediaMetadataCompat.METADATA_KEY_ART_URI, artUri)
-                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
+                .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
                     .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
                 .putLong(
