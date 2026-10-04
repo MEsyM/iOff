@@ -8,7 +8,6 @@ on:
   push:
     branches:
       - codex/lone-rider-ui-v1
-      - codex/lone-rider-daily-news
   workflow_dispatch:
 
 jobs:
