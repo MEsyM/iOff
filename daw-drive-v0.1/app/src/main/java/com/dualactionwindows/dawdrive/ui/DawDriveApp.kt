@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dualactionwindows.dawdrive.R
+import com.dualactionwindows.dawdrive.AccountManager
 import com.dualactionwindows.dawdrive.TriviaGameEngine
 import com.dualactionwindows.dawdrive.TriviaQuestionBank
 
@@ -52,6 +53,7 @@ private enum class LoneScreen {
     GAMES,
     STATS,
     SETTINGS,
+    ACCOUNT,
     DIAGNOSTICS
 }
 
@@ -86,7 +88,13 @@ fun DawDriveApp(
     onRoadVoiceStop: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
     onTriviaCategoryToggle: (TriviaQuestionBank.Category, Boolean) -> Unit,
-    onRefreshProfile: () -> Unit
+    onRefreshProfile: () -> Unit,
+    accountState: AccountManager.AccountState,
+    onAccountSignUp: (String, String, String) -> Unit,
+    onAccountLogin: (String, String) -> Unit,
+    onAccountGuest: () -> Unit,
+    onAccountLogout: () -> Unit,
+    onAccountSync: () -> Unit
 ) {
     var screen by remember { mutableStateOf(LoneScreen.HOME) }
 
@@ -99,7 +107,15 @@ fun DawDriveApp(
             modifier = Modifier.fillMaxSize(),
             color = LoneRiderColors.Background
         ) {
-            when (screen) {
+            if (!accountState.onboardingComplete) {
+                FirstRunOnboarding(
+                    cs = profile.language == TriviaGameEngine.Language.CS,
+                    state = accountState,
+                    onSignUp = onAccountSignUp,
+                    onLogin = onAccountLogin,
+                    onGuest = onAccountGuest
+                )
+            } else when (screen) {
                 LoneScreen.HOME -> HomeScreen(
                     appVersion = appVersion,
                     profile = profile,
@@ -108,7 +124,9 @@ fun DawDriveApp(
                     onMedia = onVideoClick,
                     onStats = { screen = LoneScreen.STATS },
                     onTools = { screen = LoneScreen.DIAGNOSTICS },
-                    onSettings = { screen = LoneScreen.SETTINGS }
+                    onSettings = { screen = LoneScreen.SETTINGS },
+                    accountState = accountState,
+                    onAccount = { screen = LoneScreen.ACCOUNT }
                 )
 
                 LoneScreen.GAMES -> GamesScreen(
@@ -145,7 +163,18 @@ fun DawDriveApp(
                     onTriviaCategoryToggle = onTriviaCategoryToggle,
                     onFamilySetup = onFamilySetupClick,
                     onEnglishSetup = onEnglishSetupClick,
+                    onAccount = { screen = LoneScreen.ACCOUNT },
                     onDiagnostics = { screen = LoneScreen.DIAGNOSTICS }
+                )
+
+                LoneScreen.ACCOUNT -> AccountCloudScreen(
+                    cs = profile.language == TriviaGameEngine.Language.CS,
+                    state = accountState,
+                    onBack = { screen = LoneScreen.SETTINGS },
+                    onSignUp = onAccountSignUp,
+                    onLogin = onAccountLogin,
+                    onLogout = onAccountLogout,
+                    onSync = onAccountSync
                 )
 
                 LoneScreen.DIAGNOSTICS -> DiagnosticsScreen(
@@ -168,7 +197,9 @@ private fun HomeScreen(
     onMedia: () -> Unit,
     onStats: () -> Unit,
     onTools: () -> Unit,
-    onSettings: () -> Unit
+    onSettings: () -> Unit,
+    accountState: AccountManager.AccountState,
+    onAccount: () -> Unit
 ) {
     val compact = LocalConfiguration.current.screenWidthDp < 700
 
@@ -233,7 +264,9 @@ private fun HomeScreen(
                 )
                 ProfileMiniCard(
                     modifier = Modifier.weight(1f),
-                    profile = profile
+                    profile = profile,
+                    accountState = accountState,
+                    onClick = onAccount
                 )
             }
         } else {
@@ -274,7 +307,9 @@ private fun HomeScreen(
                 )
                 ProfileMiniCard(
                     modifier = Modifier.weight(1f),
-                    profile = profile
+                    profile = profile,
+                    accountState = accountState,
+                    onClick = onAccount
                 )
             }
         }
@@ -509,21 +544,60 @@ private fun HomeTile(
 @Composable
 private fun ProfileMiniCard(
     modifier: Modifier,
-    profile: TriviaGameEngine.Profile
+    profile: TriviaGameEngine.Profile,
+    accountState: AccountManager.AccountState,
+    onClick: () -> Unit
 ) {
-    Surface(
-        modifier = modifier.height(150.dp),
-        color = LoneRiderColors.SurfaceRaised,
+    val nextXp = profile.xpForNextLevel ?: (profile.xp + 500)
+    val previousXp = ((profile.level - 1).coerceAtLeast(0)) * 500
+    val progress = if (nextXp <= previousXp) 1f else {
+        ((profile.xp - previousXp).toFloat() / (nextXp - previousXp).toFloat()).coerceIn(0f, 1f)
+    }
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(158.dp),
         shape = RoundedCornerShape(24.dp),
-        border = BorderStroke(1.dp, LoneRiderColors.Cyan.copy(alpha = 0.34f))
+        border = BorderStroke(1.dp, LoneRiderColors.Cyan.copy(alpha = 0.42f)),
+        contentPadding = PaddingValues(18.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = LoneRiderColors.SurfaceRaised,
+            contentColor = Color.White
+        )
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.Start
         ) {
-            Text("PROFILE", color = LoneRiderColors.TextSecondary, fontSize = 11.sp)
-            Text("Level ${levelFor(profile.xp)}", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Text("${profile.xp} XP  •  ${profile.accuracy}% accuracy", color = LoneRiderColors.Cyan, fontSize = 13.sp)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    if (accountState.loggedIn) (accountState.profileName ?: "Rider") else "Guest player",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(if (accountState.loggedIn) "☁" else "○", color = LoneRiderColors.Cyan, fontSize = 18.sp)
+            }
+            Text("Level ${profile.level}", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(7.dp)
+                    .background(Color(0xFF172234), RoundedCornerShape(999.dp))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress)
+                        .height(7.dp)
+                        .background(LoneRiderColors.Cyan, RoundedCornerShape(999.dp))
+                )
+            }
+            Text(
+                "${profile.xp} XP  •  ${profile.accuracy}% accuracy" +
+                    if (accountState.loggedIn) "  •  synced" else "  •  tap to sign in",
+                color = LoneRiderColors.Cyan,
+                fontSize = 11.sp
+            )
         }
     }
 }
@@ -887,6 +961,7 @@ private fun SettingsScreen(
     onTriviaCategoryToggle: (TriviaQuestionBank.Category, Boolean) -> Unit,
     onFamilySetup: () -> Unit,
     onEnglishSetup: () -> Unit,
+    onAccount: () -> Unit,
     onDiagnostics: () -> Unit
 ) {
     val cs = profile.language == TriviaGameEngine.Language.CS
@@ -1059,6 +1134,12 @@ private fun SettingsScreen(
         )
 
         SettingsRow(
+            title = if (cs) "Účet & cloud" else "Account & cloud",
+            subtitle = if (cs) "Přihlášení, profil a synchronizace progressu" else "Sign in, profile and progress sync",
+            actions = { CompactButton(if (cs) "OTEVŘÍT" else "OPEN", true, onAccount) }
+        )
+
+        SettingsRow(
             title = if (cs) "Zvuk" else "Audio",
             subtitle = if (cs) "Přehrávání přes audio systém auta" else "Playback through the car audio system"
         )
@@ -1131,7 +1212,7 @@ private fun ScreenHeader(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            CompactButton("‹ BACK", false, onBack)
+            CompactButton(if (title in listOf("Nastavení", "Statistiky")) "‹ ZPĚT" else "‹ BACK", false, onBack)
             Column {
                 Text(title, color = Color.White, fontSize = 29.sp, fontWeight = FontWeight.Bold)
                 Text(subtitle, color = LoneRiderColors.TextSecondary, fontSize = 12.sp)
@@ -1233,9 +1314,30 @@ private fun SettingsRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, color = LoneRiderColors.TextSecondary, fontSize = 12.sp)
+            val icon = when {
+                title.contains("Jazyk", true) || title.contains("Language", true) -> "🌐"
+                title.contains("Mikrofon", true) || title.contains("Microphone", true) -> "🎤"
+                title.contains("Driving", true) -> "🚙"
+                title.contains("Notifik", true) || title.contains("Notification", true) -> "🔔"
+                title.contains("opráv", true) || title.contains("permission", true) -> "🔐"
+                title.contains("Rodinn", true) || title.contains("Family", true) -> "👨‍👩‍👧‍👦"
+                title.contains("English", true) -> "🇬🇧"
+                title.contains("cloud", true) || title.contains("Účet", true) -> "☁"
+                title.contains("Zvuk", true) || title.contains("Audio", true) -> "🔊"
+                title.contains("Přístup", true) || title.contains("Accessibility", true) -> "♿"
+                title.contains("Diagnost", true) -> "🛠"
+                else -> "⚙"
+            }
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(13.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HexIconBadge(icon, LoneRiderColors.Cyan, 42.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                    Text(subtitle, color = LoneRiderColors.TextSecondary, fontSize = 12.sp)
+                }
             }
             if (actions != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
