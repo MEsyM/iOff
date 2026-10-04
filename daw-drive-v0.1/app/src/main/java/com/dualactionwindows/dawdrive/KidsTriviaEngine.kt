@@ -347,6 +347,7 @@ class KidsTriviaEngine(context: Context) {
             Category.NATURE -> "Nature"
             Category.BODY -> "Body"
             Category.SPORTS -> "Sports"
+            Category.FOOTBALL -> "Football"
             Category.FOOD_WORLD -> "Food and World"
             Category.LOGIC -> "Logic"
             Category.FAIRY_TALES -> "Fairy Tales"
