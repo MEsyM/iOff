@@ -88,7 +88,11 @@ class MainActivity : ComponentActivity() {
                 if (accountState.loggedIn) {
                     accountState = accountManager.state(busy = true)
                     accountManager.restoreSession(profile.language.code) { result ->
-                        runOnUiThread { accountState = result }
+                        runOnUiThread {
+                            accountState = result
+                            profile = triviaEngine.profile()
+                            dashboard = triviaEngine.dashboardData()
+                        }
                     }
                 }
             }
@@ -200,7 +204,11 @@ class MainActivity : ComponentActivity() {
                         displayName = name,
                         language = profile.language.code
                     ) { result ->
-                        runOnUiThread { accountState = result }
+                        runOnUiThread {
+                            accountState = result
+                            profile = triviaEngine.profile()
+                            dashboard = triviaEngine.dashboardData()
+                        }
                     }
                 },
                 onAccountLogin = { email, password ->
@@ -210,7 +218,11 @@ class MainActivity : ComponentActivity() {
                         password = password,
                         language = profile.language.code
                     ) { result ->
-                        runOnUiThread { accountState = result }
+                        runOnUiThread {
+                            accountState = result
+                            profile = triviaEngine.profile()
+                            dashboard = triviaEngine.dashboardData()
+                        }
                     }
                 },
                 onAccountGuest = {
@@ -225,7 +237,11 @@ class MainActivity : ComponentActivity() {
                 onAccountSync = {
                     accountState = accountManager.state(busy = true)
                     accountManager.syncProgress(profile) { result ->
-                        runOnUiThread { accountState = result }
+                        runOnUiThread {
+                            accountState = result
+                            profile = triviaEngine.profile()
+                            dashboard = triviaEngine.dashboardData()
+                        }
                     }
                 }
             )
