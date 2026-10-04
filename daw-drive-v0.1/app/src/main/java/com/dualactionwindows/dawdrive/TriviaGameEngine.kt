@@ -192,6 +192,35 @@ class TriviaGameEngine(context: Context) {
         )
     }
 
+    fun mergeCloudProgress(
+        xp: Int,
+        totalAnswered: Int,
+        totalCorrect: Int,
+        currentStreak: Int,
+        bestStreak: Int
+    ) {
+        val local = profile()
+        val mergedXp = max(local.xp, xp.coerceAtLeast(0))
+        val mergedAnswered = max(local.totalAnswered, totalAnswered.coerceAtLeast(0))
+        val mergedCorrect = max(local.totalCorrect, totalCorrect.coerceAtLeast(0))
+            .coerceAtMost(mergedAnswered)
+        val mergedCurrent = max(local.currentStreak, currentStreak.coerceAtLeast(0))
+        val mergedBest = maxOf(
+            local.bestStreak,
+            bestStreak.coerceAtLeast(0),
+            mergedCurrent
+        )
+
+        sessionStreak = mergedCurrent
+        prefs.edit()
+            .putInt(KEY_XP, mergedXp)
+            .putInt(KEY_TOTAL_ANSWERED, mergedAnswered)
+            .putInt(KEY_TOTAL_CORRECT, mergedCorrect)
+            .putInt(KEY_CURRENT_STREAK, mergedCurrent)
+            .putInt(KEY_BEST_STREAK, mergedBest)
+            .apply()
+    }
+
     fun startOrResumeRound(): LocalizedQuestion {
         if (roundAnswered >= ROUND_SIZE) {
             resetRound()
