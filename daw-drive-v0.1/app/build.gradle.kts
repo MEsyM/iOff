@@ -35,8 +35,8 @@ android {
         applicationId = "com.dualactionwindows.dawdrive"
         minSdk = 35
         targetSdk = 36
-        versionCode = ciVersionCode ?: 100287
-        versionName = ciVersionName ?: "1.9-favorites-ui"
+        versionCode = ciVersionCode ?: 100318
+        versionName = ciVersionName ?: "1.12-full"
     }
 
     buildTypes {
