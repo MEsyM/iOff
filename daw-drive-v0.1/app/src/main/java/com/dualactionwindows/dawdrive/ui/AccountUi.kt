@@ -97,7 +97,10 @@ fun FirstRunOnboarding(
 
                 PrimaryWide(if (cs) "VYTVOŘIT ÚČET" else "CREATE ACCOUNT") { mode = "signup" }
                 SecondaryWide(if (cs) "PŘIHLÁSIT SE" else "SIGN IN") { mode = "login" }
-                SecondaryWide(if (cs) "POKRAČOVAT JAKO HOST" else "CONTINUE AS GUEST", onGuest)
+                SecondaryWide(
+                    if (cs) "POKRAČOVAT JAKO HOST" else "CONTINUE AS GUEST",
+                    onClick = onGuest
+                )
             } else {
                 Text(
                     if (mode == "signup") {
