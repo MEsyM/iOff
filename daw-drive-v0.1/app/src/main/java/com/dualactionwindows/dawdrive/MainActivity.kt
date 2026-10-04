@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val triviaEngine = TriviaGameEngine(this)
+        val accountManager = AccountManager(this)
         val appVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "unknown"
         refreshPermissionState()
         drivingVoiceArmed = prefs.getBoolean(KEY_DRIVING_VOICE_ARMED, false)
@@ -77,6 +78,9 @@ class MainActivity : ComponentActivity() {
             }
             var dashboard by remember {
                 mutableStateOf(triviaEngine.dashboardData())
+            }
+            var accountState by remember {
+                mutableStateOf(accountManager.state())
             }
 
             DawDriveApp(
@@ -176,6 +180,43 @@ class MainActivity : ComponentActivity() {
                 onRefreshProfile = {
                     profile = triviaEngine.profile()
                     dashboard = triviaEngine.dashboardData()
+                },
+                accountState = accountState,
+                onAccountSignUp = { email, password, name ->
+                    accountState = accountManager.state(busy = true)
+                    accountManager.signUp(
+                        email = email,
+                        password = password,
+                        displayName = name,
+                        language = profile.language.code
+                    ) { result ->
+                        runOnUiThread { accountState = result }
+                    }
+                },
+                onAccountLogin = { email, password ->
+                    accountState = accountManager.state(busy = true)
+                    accountManager.login(
+                        email = email,
+                        password = password,
+                        language = profile.language.code
+                    ) { result ->
+                        runOnUiThread { accountState = result }
+                    }
+                },
+                onAccountGuest = {
+                    accountState = accountManager.continueAsGuest()
+                },
+                onAccountLogout = {
+                    accountState = accountManager.state(busy = true)
+                    accountManager.logout { result ->
+                        runOnUiThread { accountState = result }
+                    }
+                },
+                onAccountSync = {
+                    accountState = accountManager.state(busy = true)
+                    accountManager.syncProgress(profile) { result ->
+                        runOnUiThread { accountState = result }
+                    }
                 }
             )
         }
