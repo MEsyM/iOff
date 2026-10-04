@@ -542,6 +542,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                     ActiveGame.FAMILY -> moveToNextFamilyQuestion()
                                     ActiveGame.ENGLISH -> moveToNextEnglishItem()
                                     ActiveGame.BRAIN -> moveToNextBrainChallenge()
+                                    ActiveGame.NEWS -> moveToNextNews()
                                     ActiveGame.TRIVIA -> moveToNextQuestion()
                                 }
                             }
@@ -560,6 +561,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                     ActiveGame.FAMILY -> startNextFamilySession()
                                     ActiveGame.ENGLISH -> startNextEnglishRound()
                                     ActiveGame.BRAIN -> startNextBrainRound()
+                                    ActiveGame.NEWS -> finishNewsBriefing()
                                     ActiveGame.TRIVIA -> startNextRound()
                                 }
                             }
@@ -2289,6 +2291,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 }
             }
 
+            ActiveGame.NEWS -> moveToNextNews()
+
             ActiveGame.TRIVIA -> {
                 val skip = triviaEngine.skipCurrent()
                 if (skip.roundFinished) {
@@ -2398,6 +2402,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     speak(text, FEEDBACK_UTTERANCE_ID)
                 }
             }
+
+            ActiveGame.NEWS -> moveToNextNews()
 
             ActiveGame.TRIVIA -> {
                 val skip = triviaEngine.skipCurrent()
@@ -2809,6 +2815,51 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ArtworkState.IDLE -> null
         }
 
+        if (activeGame == ActiveGame.NEWS) {
+            val article = currentNewsArticle()
+            val saved = article?.let(newsEngine::isSaved) == true
+            publishMetadata(
+                MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_TITLE,
+                        if (cs) "Denní zprávy" else "Daily News"
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_ARTIST,
+                        article?.sourceName ?: if (cs) "Načítám dnešní přehled" else "Loading today's briefing"
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE,
+                        when {
+                            newsLoading -> if (cs) "Načítám aktuální zprávy…" else "Loading current news…"
+                            article == null -> if (cs) "Připraveno" else "Ready"
+                            newsExpanded -> article.summary
+                            else -> article.title
+                        }
+                    )
+                    .putString(
+                        MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION,
+                        if (article == null) {
+                            if (cs) "Headline → více / další" else "Headline → more / next"
+                        } else {
+                            val position = (newsIndex + 1).coerceAtMost(newsArticles.size)
+                            (if (cs) "Zpráva " else "Story ") + position + "/" + newsArticles.size +
+                                if (saved) (if (cs) " • uloženo" else " • saved") else ""
+                        }
+                    )
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
+                    .putLong(
+                        MediaMetadataCompat.METADATA_KEY_TRACK_NUMBER,
+                        (newsIndex + 1).toLong()
+                    )
+                    .build()
+            )
+            return
+        }
+
         if (activeGame == ActiveGame.FAMILY) {
             val q = familyEngine.currentQuestion(language)
             val battle = familyEngine.mode() == FamilyGameEngine.Mode.BATTLE
@@ -3121,6 +3172,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 ArtworkState.CORRECT -> R.drawable.trivia_correct
                 ArtworkState.WRONG -> R.drawable.trivia_wrong
             }
+            ActiveGame.NEWS -> when (state) {
+                ArtworkState.IDLE -> R.drawable.trivia_idle
+                ArtworkState.LISTENING -> R.drawable.trivia_listening
+                ArtworkState.CORRECT -> R.drawable.trivia_idle
+                ArtworkState.WRONG -> R.drawable.trivia_idle
+            }
         }
     }
 
@@ -3193,7 +3250,12 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
     private fun applyVoiceLanguage() {
         if (!ttsReady) return
-        tts.language = triviaEngine.language().locale
+        if (activeGame == ActiveGame.NEWS) {
+            val articleLanguage = currentNewsArticle()?.language
+            tts.language = if (articleLanguage == "en") Locale.US else Locale("cs", "CZ")
+        } else {
+            tts.language = triviaEngine.language().locale
+        }
     }
 
     private fun rememberUtteranceOwner(utteranceId: String) {
