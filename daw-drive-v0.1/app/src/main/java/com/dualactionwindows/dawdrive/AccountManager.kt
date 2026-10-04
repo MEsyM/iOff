@@ -33,7 +33,9 @@ class AccountManager(private val context: Context) {
     fun state(busy: Boolean = false, message: String? = null): AccountState =
         AccountState(
             onboardingComplete = prefs.getBoolean(KEY_ONBOARDING, false),
-            loggedIn = !prefs.getString(KEY_ACCESS, null).isNullOrBlank(),
+            loggedIn =
+                !prefs.getString(KEY_ACCESS, null).isNullOrBlank() ||
+                    !prefs.getString(KEY_REFRESH, null).isNullOrBlank(),
             email = prefs.getString(KEY_EMAIL, null),
             profileId = prefs.getString(KEY_PROFILE_ID, null),
             profileName = prefs.getString(KEY_PROFILE_NAME, null),
@@ -85,14 +87,19 @@ class AccountManager(private val context: Context) {
     }
 
     fun logout(callback: (AccountState) -> Unit) {
-        val refresh = prefs.getString(KEY_REFRESH, null)
         Thread {
-            if (!refresh.isNullOrBlank()) {
-                runCatching {
-                    authorizedRequest(
+            runCatching {
+                // Validate/refresh access first. Refresh tokens rotate on refresh,
+                // so read the current token only after authorizedRequest succeeds.
+                authorizedRequest("/v1/me", "GET")
+                val currentRefresh = prefs.getString(KEY_REFRESH, null)
+                val currentAccess = prefs.getString(KEY_ACCESS, null)
+                if (!currentRefresh.isNullOrBlank() && !currentAccess.isNullOrBlank()) {
+                    request(
                         path = "/v1/auth/logout",
                         method = "POST",
-                        body = JSONObject().put("refresh_token", refresh)
+                        token = currentAccess,
+                        body = JSONObject().put("refresh_token", currentRefresh)
                     )
                 }
             }
