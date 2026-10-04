@@ -531,9 +531,28 @@ class TriviaGameEngine(context: Context) {
         val totalAnswered = p.totalAnswered
         val lastCategory = lastCategoryKey
 
-        val ranked = TriviaQuestionBank.questions
-            .asSequence()
+        val eligible = TriviaQuestionBank.questions
             .filter { unlockedDifficulty(it.difficulty, p.level) }
+
+        if (eligible.isEmpty()) {
+            return TriviaQuestionBank.questions.random()
+        }
+
+        // Balance content by category first, then choose a question inside that category.
+        // This prevents large banks (for example Numbers) from dominating smaller categories.
+        val availableCategories = eligible
+            .map { it.category }
+            .distinct()
+
+        val categoryPool = availableCategories
+            .filterNot { it.key == lastCategory }
+            .ifEmpty { availableCategories }
+
+        val selectedCategory = categoryPool.random()
+        val categoryQuestions = eligible.filter { it.category == selectedCategory }
+
+        val ranked = categoryQuestions
+            .asSequence()
             .map { q ->
                 var score = 100.0
 
@@ -552,7 +571,6 @@ class TriviaGameEngine(context: Context) {
                 if (wrong > 0) score += min(25.0, wrong * 6.0)
                 if (mastered) score -= 35.0
                 if (recentIds.contains(q.id)) score -= 80.0
-                if (q.category.key == lastCategory) score -= 18.0
 
                 q to score
             }
@@ -561,11 +579,9 @@ class TriviaGameEngine(context: Context) {
             .toList()
 
         if (ranked.isEmpty()) {
-            return TriviaQuestionBank.questions.random()
+            return categoryQuestions.random()
         }
 
-        // Keep the adaptive ranking, but randomize inside the best candidate pool.
-        // This prevents every fresh install from receiving the exact same opening sequence.
         val floor = ranked.minOf { it.second }
         val weighted = ranked.map { (question, score) ->
             question to max(1.0, score - floor + 8.0)
