@@ -70,6 +70,7 @@ fun DawDriveApp(
     profile: TriviaGameEngine.Profile,
     dashboard: TriviaGameEngine.DashboardData,
     achievementTitles: List<String>,
+    onNewsClick: () -> Unit,
     onVideoClick: () -> Unit,
     onCarPreviewClick: () -> Unit,
     onCarGameClick: (String) -> Unit,
@@ -121,6 +122,7 @@ fun DawDriveApp(
                     profile = profile,
                     onGames = { screen = LoneScreen.GAMES },
                     onDrive = onCarPreviewClick,
+                    onNews = onNewsClick,
                     onMedia = onVideoClick,
                     onStats = { screen = LoneScreen.STATS },
                     onTools = { screen = LoneScreen.DIAGNOSTICS },
@@ -194,6 +196,7 @@ private fun HomeScreen(
     profile: TriviaGameEngine.Profile,
     onGames: () -> Unit,
     onDrive: () -> Unit,
+    onNews: () -> Unit,
     onMedia: () -> Unit,
     onStats: () -> Unit,
     onTools: () -> Unit,
@@ -259,16 +262,21 @@ private fun HomeScreen(
             ) {
                 HomeTile(
                     modifier = Modifier.weight(1f),
+                    card = ModuleCard("📰", "Daily News", "Today's headlines • voice briefing", LoneRiderColors.Cyan),
+                    onClick = onNews
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
                     card = ModuleCard("⚙", "Tools", "Diagnostics & utilities", LoneRiderColors.Amber),
                     onClick = onTools
                 )
-                ProfileMiniCard(
-                    modifier = Modifier.weight(1f),
-                    profile = profile,
-                    accountState = accountState,
-                    onClick = onAccount
-                )
             }
+            ProfileMiniCard(
+                modifier = Modifier.fillMaxWidth(),
+                profile = profile,
+                accountState = accountState,
+                onClick = onAccount
+            )
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -302,16 +310,21 @@ private fun HomeScreen(
                 )
                 HomeTile(
                     modifier = Modifier.weight(1f),
+                    card = ModuleCard("📰", "Daily News", "Today's headlines • voice briefing", LoneRiderColors.Cyan),
+                    onClick = onNews
+                )
+                HomeTile(
+                    modifier = Modifier.weight(1f),
                     card = ModuleCard("⚙", "Tools", "Diagnostics & utilities", LoneRiderColors.Amber),
                     onClick = onTools
                 )
-                ProfileMiniCard(
-                    modifier = Modifier.weight(1f),
-                    profile = profile,
-                    accountState = accountState,
-                    onClick = onAccount
-                )
             }
+            ProfileMiniCard(
+                modifier = Modifier.fillMaxWidth(),
+                profile = profile,
+                accountState = accountState,
+                onClick = onAccount
+            )
         }
 
         Row(
