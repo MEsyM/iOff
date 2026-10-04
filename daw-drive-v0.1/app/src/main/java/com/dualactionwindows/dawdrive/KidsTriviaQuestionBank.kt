@@ -4,10 +4,19 @@ object KidsTriviaQuestionBank {
 
     enum class Category(val key: String, val labelCs: String) {
         ANIMALS("animals", "Zvířata"),
-        FAIRY_TALES("fairy_tales", "Pohádky"),
+        MOVIES("movies", "Filmy"),
+        CARS("cars", "Auta"),
+        SPACE("space", "Vesmír"),
         NATURE("nature", "Příroda"),
+        BODY("body", "Lidské tělo"),
+        SPORTS("sports", "Sport"),
+        FOOTBALL("football", "Fotbal"),
+        FOOD_WORLD("food_world", "Jídlo a svět"),
+        LOGIC("logic", "Logika"),
+        FAIRY_TALES("fairy_tales", "Pohádky"),
         SCHOOL("school", "Škola"),
-        CZECHIA("czechia", "České reálie")
+        CZECHIA("czechia", "České reálie"),
+        SONGS("songs", "Písničky")
     }
 
     data class Question(
