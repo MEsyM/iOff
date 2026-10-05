@@ -127,19 +127,27 @@ class NewsEngine(private val context: Context) {
 
         val enabledTopics = enabledTopicIds()
         val useTopicFilter = enabledTopics.any { it != "top" }
+        val includeTop = "top" in enabledTopics
         val seen = HashSet<String>()
         val cutoff = System.currentTimeMillis() - 36L * 60L * 60L * 1000L
         val recent = all.filter { it.publishedAt >= cutoff }
-        val pool = if (recent.isNotEmpty()) recent else all
+        val pool = (if (recent.isNotEmpty()) recent else all).sortedByDescending { it.publishedAt }
+
         val topicFiltered = if (useTopicFilter) {
             pool.filter { article -> article.topics.any(enabledTopics::contains) }
         } else {
             pool
         }
 
-        val selectedPool = if (topicFiltered.isNotEmpty()) topicFiltered else pool
-        val selected = selectedPool
-            .sortedByDescending { it.publishedAt }
+        val mixed = buildList {
+            if (includeTop) {
+                addAll(pool.take(TOP_STORY_SAFETY_COUNT))
+            }
+            addAll(topicFiltered)
+            if (isEmpty()) addAll(pool)
+        }
+
+        val selected = mixed
             .filter { article ->
                 val key = normalizeTitle(article.title)
                 key.isNotBlank() && seen.add(key)
@@ -344,5 +352,6 @@ class NewsEngine(private val context: Context) {
         private const val KEY_DAILY_LIMIT = "daily_limit"
         private const val KEY_SAVED_LINKS = "saved_links"
         private const val MAX_ARTICLE_CHARS = 24000
+        private const val TOP_STORY_SAFETY_COUNT = 3
     }
 }
