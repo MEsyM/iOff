@@ -116,6 +116,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private var newsIndex = 0
     private var newsExpanded = false
     private var newsLoading = false
+    private var newsArticleLoading = false
+    private val newsFullArticleCache = mutableMapOf<String, String>()
     private data class SpeechSegment(val text: String, val locale: Locale)
 
     private val englishSpeechQueue = ArrayDeque<SpeechSegment>()
@@ -832,42 +834,113 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         updateMetadata()
 
         val position = newsIndex + 1
-        val text = if (triviaEngine.language() == TriviaGameEngine.Language.CS) {
-            "Zpráva " + position + " z " + newsArticles.size + ". " +
-                article.sourceName + ". " + article.title +
-                ". Řekni více, nebo další."
+        val controlLocale = Locale("cs", "CZ")
+        val articleLocale = if (article.language == "en") Locale.US else controlLocale
+        val intro = "Zpráva " + position + " z " + newsArticles.size + ". " + article.sourceName + "."
+        val tail = "Řekni více, nebo další."
+
+        if (article.language == "en") {
+            speakEnglishSequence(
+                listOf(
+                    SpeechSegment(intro, controlLocale),
+                    SpeechSegment(article.title, articleLocale),
+                    SpeechSegment(tail, controlLocale)
+                ),
+                QUESTION_UTTERANCE_ID
+            )
         } else {
-            "Story " + position + " of " + newsArticles.size + ". " +
-                article.sourceName + ". " + article.title +
-                ". Say more, or next."
+            speak(intro + " " + article.title + ". " + tail, QUESTION_UTTERANCE_ID)
         }
-        speak(text, QUESTION_UTTERANCE_ID)
     }
 
     private fun speakNewsDetail() {
         val article = currentNewsArticle() ?: return
+        if (newsArticleLoading) return
+
         stopListening()
-        awaitingAnswer = true
+        awaitingAnswer = false
         newsExpanded = true
+        newsArticleLoading = true
         updateMetadata()
 
-        val detail = article.summary
-            .replace(article.title, "", ignoreCase = true)
-            .trim(' ', '.', '-', '–', '—')
-            .ifBlank {
-                if (triviaEngine.language() == TriviaGameEngine.Language.CS) {
-                    "K této zprávě nemám další stručný text. Můžeš říct další."
-                } else {
-                    "There is no additional short summary for this story. You can say next."
-                }
+        speakCzechOnly("Načítám celý článek.", SYSTEM_UTTERANCE_ID)
+
+        Thread {
+            val fullText = try {
+                newsFullArticleCache[article.link]
+                    ?: newsEngine.loadFullArticle(article).also { loaded ->
+                        if (article.link.isNotBlank()) {
+                            newsFullArticleCache[article.link] = loaded
+                        }
+                    }
+            } catch (t: Throwable) {
+                DawDebugLog.log(
+                    this,
+                    "NEWS_FULL_ARTICLE_ERROR",
+                    article.sourceName + " " + (t.message ?: t.javaClass.simpleName)
+                )
+                article.summary
             }
 
-        val tail = if (triviaEngine.language() == TriviaGameEngine.Language.CS) {
-            " Řekni další, uložit, nebo zopakuj."
-        } else {
-            " Say next, save, or repeat."
+            mainHandler.post {
+                newsArticleLoading = false
+                if (activeGame != ActiveGame.NEWS || currentNewsArticle()?.link != article.link) {
+                    return@post
+                }
+
+                awaitingAnswer = true
+                updateMetadata()
+
+                val controlLocale = Locale("cs", "CZ")
+                val articleLocale = if (article.language == "en") Locale.US else controlLocale
+                val segments = mutableListOf<SpeechSegment>()
+                segments += SpeechSegment("Čtu celý článek.", controlLocale)
+                segments += speechSegments(fullText, articleLocale)
+                segments += SpeechSegment(
+                    "Konec článku. Řekni další, uložit, zopakuj nebo stop.",
+                    controlLocale
+                )
+                speakEnglishSequence(segments, COMMAND_UTTERANCE_ID)
+            }
+        }.start()
+    }
+
+    private fun speechSegments(text: String, locale: Locale): List<SpeechSegment> {
+        val normalized = text
+            .replace("\r", "")
+            .split(Regex("\\n{2,}"))
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+
+        val result = mutableListOf<SpeechSegment>()
+        normalized.forEach { paragraph ->
+            if (paragraph.length <= NEWS_TTS_CHUNK_CHARS) {
+                result += SpeechSegment(paragraph, locale)
+            } else {
+                var rest = paragraph
+                while (rest.length > NEWS_TTS_CHUNK_CHARS) {
+                    val window = rest.take(NEWS_TTS_CHUNK_CHARS)
+                    val splitAt = maxOf(
+                        window.lastIndexOf(". "),
+                        window.lastIndexOf("! "),
+                        window.lastIndexOf("? "),
+                        window.lastIndexOf(", ")
+                    ).takeIf { it >= NEWS_TTS_CHUNK_CHARS / 2 }
+                        ?: NEWS_TTS_CHUNK_CHARS
+                    result += SpeechSegment(rest.take(splitAt + 1).trim(), locale)
+                    rest = rest.drop(splitAt + 1).trim()
+                }
+                if (rest.isNotBlank()) result += SpeechSegment(rest, locale)
+            }
         }
-        speak(detail + tail, COMMAND_UTTERANCE_ID)
+        return result
+    }
+
+    private fun speakCzechOnly(text: String, utteranceId: String) {
+        speakEnglishSequence(
+            listOf(SpeechSegment(text, Locale("cs", "CZ"))),
+            utteranceId
+        )
     }
 
     private fun moveToNextNews() {
@@ -1684,7 +1757,11 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             return
         }
 
-        val locale = if (activeGame == ActiveGame.ENGLISH) Locale.US else triviaEngine.language().locale
+        val locale = when (activeGame) {
+            ActiveGame.ENGLISH -> Locale.US
+            ActiveGame.NEWS -> Locale("cs", "CZ")
+            else -> triviaEngine.language().locale
+        }
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
@@ -2177,7 +2254,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
             ActiveGame.ENGLISH -> speakCurrentEnglishItem()
             ActiveGame.BRAIN -> speakCurrentBrainChallenge()
-            ActiveGame.NEWS -> speakCurrentNewsHeadline()
+            ActiveGame.NEWS -> if (newsExpanded) speakNewsDetail() else speakCurrentNewsHeadline()
             ActiveGame.TRIVIA -> speakCurrentQuestion()
         }
     }
@@ -3250,11 +3327,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
     private fun applyVoiceLanguage() {
         if (!ttsReady) return
-        if (activeGame == ActiveGame.NEWS) {
-            val articleLanguage = currentNewsArticle()?.language
-            tts.language = if (articleLanguage == "en") Locale.US else Locale("cs", "CZ")
+        tts.language = if (activeGame == ActiveGame.NEWS) {
+            Locale("cs", "CZ")
         } else {
-            tts.language = triviaEngine.language().locale
+            triviaEngine.language().locale
         }
     }
 
@@ -3659,5 +3735,6 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val FEEDBACK_AUDIO_PREROLL_MS = 650L
         private const val FEEDBACK_METADATA_REFRESH_MS = 120L
         private const val FEEDBACK_PREROLL_PREFIX = "feedback_preroll_"
+        private const val NEWS_TTS_CHUNK_CHARS = 2800
     }
 }
