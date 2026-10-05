@@ -1,8 +1,10 @@
-import base64, hashlib, hmac, secrets, uuid
+import base64, hashlib, hmac, secrets, uuid, json
+import urllib.request
+import urllib.error
 from datetime import datetime, timedelta, timezone
 from typing import Any
 import jwt
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,6 +21,10 @@ class Settings(BaseSettings):
     access_token_minutes: int = 60
     refresh_token_days: int = 30
     magic_link_minutes: int = 15
+    elevenlabs_api_key: str = ""
+    elevenlabs_cs_voice_id: str = ""
+    elevenlabs_en_voice_id: str = ""
+    elevenlabs_model: str = "eleven_multilingual_v2"
 
 settings = Settings()
 engine = create_engine(settings.database_url, pool_pre_ping=True)
@@ -173,11 +179,57 @@ class EventIn(BaseModel):
     occurred_at:datetime
     payload:dict[str,Any]=Field(default_factory=dict)
 class EventsIn(BaseModel): events:list[EventIn]=Field(max_length=500)
+class TtsIn(BaseModel):
+    text: str=Field(min_length=1,max_length=12000)
+    language: str=Field(default="cs",pattern="^(cs|en)$")
+    style: str=Field(default="narration",pattern="^(narration|feedback|ui)$")
 
 app=FastAPI(title="Lone Rider API",version="0.1.0")
 
 @app.get("/health")
 def health(): return {"status":"ok","service":"lone-rider-api","version":"0.1.0"}
+
+@app.post("/v1/tts")
+def tts(body:TtsIn):
+    if not settings.elevenlabs_api_key:
+        raise HTTPException(503,"Neural TTS is not configured")
+    voice_id = settings.elevenlabs_en_voice_id if body.language=="en" else settings.elevenlabs_cs_voice_id
+    if not voice_id:
+        voice_id = settings.elevenlabs_cs_voice_id or settings.elevenlabs_en_voice_id
+    if not voice_id:
+        raise HTTPException(503,"TTS voice is not configured")
+
+    profiles = {
+        "narration": {"stability":0.45,"similarity_boost":0.80,"style":0.15,"use_speaker_boost":True,"speed":0.97},
+        "feedback": {"stability":0.30,"similarity_boost":0.80,"style":0.35,"use_speaker_boost":True,"speed":1.03},
+        "ui": {"stability":0.60,"similarity_boost":0.80,"style":0.05,"use_speaker_boost":True,"speed":1.00},
+    }
+    payload = json.dumps({
+        "text": body.text.strip(),
+        "model_id": settings.elevenlabs_model,
+        "voice_settings": profiles[body.style],
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://api.elevenlabs.io/v1/text-to-speech/"+voice_id+"/stream?output_format=mp3_44100_128",
+        data=payload,
+        method="POST",
+        headers={
+            "Accept":"audio/mpeg",
+            "Content-Type":"application/json",
+            "xi-api-key":settings.elevenlabs_api_key,
+        },
+    )
+    try:
+        with urllib.request.urlopen(req,timeout=30) as upstream:
+            audio = upstream.read()
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8","ignore")[:500]
+        raise HTTPException(502,"ElevenLabs error "+str(exc.code)+": "+detail)
+    except Exception as exc:
+        raise HTTPException(502,"ElevenLabs unavailable: "+str(exc))
+    if len(audio)<512:
+        raise HTTPException(502,"ElevenLabs returned empty audio")
+    return Response(content=audio,media_type="audio/mpeg",headers={"Cache-Control":"private, max-age=86400"})
 
 def auth_payload(db:Session,u:User):
     access=issue_access(u.id); refresh=issue_refresh(db,u.id); db.commit()
