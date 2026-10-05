@@ -42,7 +42,7 @@ class NewsSettingsActivity : ComponentActivity() {
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text("DAILY NEWS", fontSize = 28.sp)
-                    Text("Vyber zdroje pro denní hlasový briefing. Ve výchozím stavu používáme ČT24 a iROZHLAS.")
+                    Text("Vyber zdroje a témata pro denní hlasový briefing.")
                     engine.sources.forEach { source ->
                         val enabled = engine.isEnabled(source)
                         Row(
@@ -58,6 +58,26 @@ class NewsSettingsActivity : ComponentActivity() {
                                 checked = enabled,
                                 onCheckedChange = {
                                     engine.setEnabled(source.id, it)
+                                    revision += 1
+                                }
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("HLAVNÍ TÉMATA", fontSize = 20.sp)
+                    Text("Vyber, co tě zajímá. Hlavní zprávy nech zapnuté jako pojistku pro zásadní události.", fontSize = 12.sp)
+                    engine.topics.forEach { topic ->
+                        val enabled = engine.isTopicEnabled(topic)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(topic.name, modifier = Modifier.weight(1f))
+                            Switch(
+                                checked = enabled,
+                                onCheckedChange = {
+                                    engine.setTopicEnabled(topic.id, it)
                                     revision += 1
                                 }
                             )
@@ -85,7 +105,7 @@ class NewsSettingsActivity : ComponentActivity() {
                     ) {
                         Text("PŘEHRÁT DNEŠNÍ ZPRÁVY")
                     }
-                    Text("Hlasem: „více“, „další“, „zopakuj“, „stop“.", fontSize = 12.sp)
+                    Text("Hlasem: „více“ přečte celý článek. Dále: „další“, „uložit“, „zopakuj“, „stop“.", fontSize = 12.sp)
                 }
                 revision
             }
