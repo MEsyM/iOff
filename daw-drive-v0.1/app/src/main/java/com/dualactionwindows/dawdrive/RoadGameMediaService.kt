@@ -39,6 +39,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
     private lateinit var mediaSession: MediaSessionCompat
     private lateinit var tts: TextToSpeech
+    private lateinit var neuralTts: ElevenLabsTtsPlayer
     private lateinit var triviaEngine: TriviaGameEngine
     private lateinit var spellingEngine: SpellingBeeEngine
     private lateinit var guessWhoEngine: GuessWhoEngine
@@ -85,6 +86,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 hasAudioFocus = false
                 if (::tts.isInitialized) {
                     tts.stop()
+                }
+                if (::neuralTts.isInitialized) {
+                    neuralTts.stop()
                 }
             }
 
@@ -152,6 +156,18 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         brainTrainerEngine = BrainTrainerEngine(this)
         newsEngine = NewsEngine(this)
         tts = TextToSpeech(this, this)
+        neuralTts = ElevenLabsTtsPlayer(
+            context = this,
+            onStart = { utteranceId ->
+                mainHandler.post { handleSpeechStart(utteranceId) }
+            },
+            onDone = { utteranceId ->
+                mainHandler.post { handleSpeechDone(utteranceId) }
+            },
+            onError = { utteranceId, error ->
+                mainHandler.post { handleNeuralTtsError(utteranceId, error) }
+            }
+        )
 
         createSpeechRecognizer()
 
@@ -455,157 +471,199 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
         tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) {
-                DawDebugLog.log(
-                    this@RoadGameMediaService,
-                    "TTS_START",
-                    "id=" + utteranceId + " game=" + activeGame
-                )
+                handleSpeechStart(utteranceId)
             }
 
             override fun onError(utteranceId: String?) {
-                DawDebugLog.log(
-                    this@RoadGameMediaService,
-                    "TTS_ERROR",
-                    "id=" + utteranceId + " game=" + activeGame
-                )
-                if (!isChainedEnglishSegment(utteranceId)) {
-                    abandonAudioFocus("tts_error")
-                }
+                handleSystemTtsError(utteranceId)
             }
 
             override fun onDone(utteranceId: String?) {
-                DawDebugLog.log(
-                    this@RoadGameMediaService,
-                    "TTS_DONE",
-                    "id=" + utteranceId + " game=" + activeGame
-                )
-                if (utteranceId?.startsWith(FEEDBACK_PREROLL_PREFIX) == true) {
-                    DawDebugLog.log(
-                        this@RoadGameMediaService,
-                        "TTS_PREROLL_DONE",
-                        "id=" + utteranceId + " game=" + activeGame
-                    )
-                    return
-                }
+                handleSpeechDone(utteranceId)
+            }
+        })
+    }
 
-                if (isChainedEnglishSegment(utteranceId)) {
-                    mainHandler.post { playNextEnglishSpeechSegment() }
-                    return
-                }
 
-                abandonAudioFocus("tts_done")
-                when (utteranceId) {
-                    SESSION_INTRO_UTTERANCE_ID -> {
-                        val owner = sessionIntroOwner
-                        sessionIntroOwner = null
-                        mainHandler.post {
-                            runForOwner(owner) { game ->
-                                when (game) {
-                                    ActiveGame.SPELLING -> speakCurrentSpelling()
-                                    ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
-                                    ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
-                                    ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
-                                    ActiveGame.ENGLISH -> speakCurrentEnglishItem()
-                                    ActiveGame.BRAIN -> speakCurrentBrainChallenge()
-                                    ActiveGame.NEWS -> speakCurrentNewsHeadline()
-                                    ActiveGame.TRIVIA -> speakCurrentQuestion()
-                                }
-                            }
+    private data class NeuralFallback(
+        val text: String,
+        val utteranceId: String,
+        val withFeedbackPreroll: Boolean
+    )
+
+    private val neuralFallbacks = mutableMapOf<String, NeuralFallback>()
+
+    private fun handleSpeechStart(utteranceId: String?) {
+        DawDebugLog.log(
+                            this@RoadGameMediaService,
+                            "TTS_START",
+                            "id=" + utteranceId + " game=" + activeGame
+                        )
+    }
+
+    private fun handleSystemTtsError(utteranceId: String?) {
+        DawDebugLog.log(
+                            this@RoadGameMediaService,
+                            "TTS_ERROR",
+                            "id=" + utteranceId + " game=" + activeGame
+                        )
+                        if (!isChainedEnglishSegment(utteranceId)) {
+                            abandonAudioFocus("tts_error")
                         }
-                    }
+    }
 
-                    QUESTION_UTTERANCE_ID -> {
-                        val owner = questionOwner
-                        questionOwner = null
-                        mainHandler.post {
-                            runForOwner(owner) {
-                                if (awaitingAnswer) {
-                                    if (voiceModeEnabled) {
-                                        questionListeningStartedAt = SystemClock.elapsedRealtime()
-                                        startListeningForAnswer()
-                                    } else {
-                                        artworkState = ArtworkState.IDLE
-                                        updateMetadata()
+    private fun handleSpeechDone(utteranceId: String?) {
+        if (utteranceId != null) neuralFallbacks.remove(utteranceId)
+        DawDebugLog.log(
+                            this@RoadGameMediaService,
+                            "TTS_DONE",
+                            "id=" + utteranceId + " game=" + activeGame
+                        )
+                        if (utteranceId?.startsWith(FEEDBACK_PREROLL_PREFIX) == true) {
+                            DawDebugLog.log(
+                                this@RoadGameMediaService,
+                                "TTS_PREROLL_DONE",
+                                "id=" + utteranceId + " game=" + activeGame
+                            )
+                            return
+                        }
+        
+                        if (isChainedEnglishSegment(utteranceId)) {
+                            mainHandler.post { playNextEnglishSpeechSegment() }
+                            return
+                        }
+        
+                        abandonAudioFocus("tts_done")
+                        when (utteranceId) {
+                            SESSION_INTRO_UTTERANCE_ID -> {
+                                val owner = sessionIntroOwner
+                                sessionIntroOwner = null
+                                mainHandler.post {
+                                    runForOwner(owner) { game ->
+                                        when (game) {
+                                            ActiveGame.SPELLING -> speakCurrentSpelling()
+                                            ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
+                                            ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
+                                            ActiveGame.FAMILY -> speakCurrentFamilyQuestion()
+                                            ActiveGame.ENGLISH -> speakCurrentEnglishItem()
+                                            ActiveGame.BRAIN -> speakCurrentBrainChallenge()
+                                            ActiveGame.NEWS -> speakCurrentNewsHeadline()
+                                            ActiveGame.TRIVIA -> speakCurrentQuestion()
+                                        }
                                     }
                                 }
                             }
+        
+                            QUESTION_UTTERANCE_ID -> {
+                                val owner = questionOwner
+                                questionOwner = null
+                                mainHandler.post {
+                                    runForOwner(owner) {
+                                        if (awaitingAnswer) {
+                                            if (voiceModeEnabled) {
+                                                questionListeningStartedAt = SystemClock.elapsedRealtime()
+                                                startListeningForAnswer()
+                                            } else {
+                                                artworkState = ArtworkState.IDLE
+                                                updateMetadata()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+        
+                            FEEDBACK_UTTERANCE_ID -> {
+                                val owner = feedbackOwner
+                                feedbackOwner = null
+                                mainHandler.postDelayed({
+                                    runForOwner(owner) { game ->
+                                        when (game) {
+                                            ActiveGame.SPELLING -> moveToNextSpellingWord()
+                                            ActiveGame.GUESS_WHO -> moveToNextGuessWhoPerson()
+                                            ActiveGame.KIDS_TRIVIA -> moveToNextKidsQuestion()
+                                            ActiveGame.FAMILY -> moveToNextFamilyQuestion()
+                                            ActiveGame.ENGLISH -> moveToNextEnglishItem()
+                                            ActiveGame.BRAIN -> moveToNextBrainChallenge()
+                                            ActiveGame.NEWS -> moveToNextNews()
+                                            ActiveGame.TRIVIA -> moveToNextQuestion()
+                                        }
+                                    }
+                                }, FEEDBACK_ART_HOLD_MS)
+                            }
+        
+                            ROUND_SUMMARY_UTTERANCE_ID -> {
+                                val owner = roundSummaryOwner
+                                roundSummaryOwner = null
+                                mainHandler.postDelayed({
+                                    runForOwner(owner) { game ->
+                                        when (game) {
+                                            ActiveGame.SPELLING -> startNextSpellingRound()
+                                            ActiveGame.GUESS_WHO -> startNextGuessWhoRound()
+                                            ActiveGame.KIDS_TRIVIA -> startNextKidsRound()
+                                            ActiveGame.FAMILY -> startNextFamilySession()
+                                            ActiveGame.ENGLISH -> startNextEnglishRound()
+                                            ActiveGame.BRAIN -> startNextBrainRound()
+                                            ActiveGame.NEWS -> finishNewsBriefing()
+                                            ActiveGame.TRIVIA -> startNextRound()
+                                        }
+                                    }
+                                }, 700)
+                            }
+        
+                            COMMAND_UTTERANCE_ID -> {
+                                val owner = commandOwner
+                                commandOwner = null
+                                mainHandler.postDelayed({
+                                    runForOwner(owner) {
+                                        if (awaitingAnswer && voiceModeEnabled) {
+                                            startListeningForAnswer()
+                                        }
+                                    }
+                                }, 250)
+                            }
+        
+                            RETRY_UTTERANCE_ID -> {
+                                val owner = retryOwner
+                                retryOwner = null
+                                mainHandler.postDelayed({
+                                    runForOwner(owner) {
+                                        if (awaitingAnswer && voiceModeEnabled) {
+                                            questionListeningStartedAt = SystemClock.elapsedRealtime()
+                                            startListeningForAnswer()
+                                        }
+                                    }
+                                }, 200)
+                            }
+        
+                            LANGUAGE_UTTERANCE_ID -> {
+                                mainHandler.postDelayed({
+                                    awaitingAnswer = false
+                                    artworkState = ArtworkState.IDLE
+                                    setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
+                                    notifyChildrenChanged(ROOT_ID)
+                                }, 250)
+                            }
                         }
-                    }
+    }
 
-                    FEEDBACK_UTTERANCE_ID -> {
-                        val owner = feedbackOwner
-                        feedbackOwner = null
-                        mainHandler.postDelayed({
-                            runForOwner(owner) { game ->
-                                when (game) {
-                                    ActiveGame.SPELLING -> moveToNextSpellingWord()
-                                    ActiveGame.GUESS_WHO -> moveToNextGuessWhoPerson()
-                                    ActiveGame.KIDS_TRIVIA -> moveToNextKidsQuestion()
-                                    ActiveGame.FAMILY -> moveToNextFamilyQuestion()
-                                    ActiveGame.ENGLISH -> moveToNextEnglishItem()
-                                    ActiveGame.BRAIN -> moveToNextBrainChallenge()
-                                    ActiveGame.NEWS -> moveToNextNews()
-                                    ActiveGame.TRIVIA -> moveToNextQuestion()
-                                }
-                            }
-                        }, FEEDBACK_ART_HOLD_MS)
-                    }
-
-                    ROUND_SUMMARY_UTTERANCE_ID -> {
-                        val owner = roundSummaryOwner
-                        roundSummaryOwner = null
-                        mainHandler.postDelayed({
-                            runForOwner(owner) { game ->
-                                when (game) {
-                                    ActiveGame.SPELLING -> startNextSpellingRound()
-                                    ActiveGame.GUESS_WHO -> startNextGuessWhoRound()
-                                    ActiveGame.KIDS_TRIVIA -> startNextKidsRound()
-                                    ActiveGame.FAMILY -> startNextFamilySession()
-                                    ActiveGame.ENGLISH -> startNextEnglishRound()
-                                    ActiveGame.BRAIN -> startNextBrainRound()
-                                    ActiveGame.NEWS -> finishNewsBriefing()
-                                    ActiveGame.TRIVIA -> startNextRound()
-                                }
-                            }
-                        }, 700)
-                    }
-
-                    COMMAND_UTTERANCE_ID -> {
-                        val owner = commandOwner
-                        commandOwner = null
-                        mainHandler.postDelayed({
-                            runForOwner(owner) {
-                                if (awaitingAnswer && voiceModeEnabled) {
-                                    startListeningForAnswer()
-                                }
-                            }
-                        }, 250)
-                    }
-
-                    RETRY_UTTERANCE_ID -> {
-                        val owner = retryOwner
-                        retryOwner = null
-                        mainHandler.postDelayed({
-                            runForOwner(owner) {
-                                if (awaitingAnswer && voiceModeEnabled) {
-                                    questionListeningStartedAt = SystemClock.elapsedRealtime()
-                                    startListeningForAnswer()
-                                }
-                            }
-                        }, 200)
-                    }
-
-                    LANGUAGE_UTTERANCE_ID -> {
-                        mainHandler.postDelayed({
-                            awaitingAnswer = false
-                            artworkState = ArtworkState.IDLE
-                            setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
-                            notifyChildrenChanged(ROOT_ID)
-                        }, 250)
-                    }
-                }
-            }
-        })
+    private fun handleNeuralTtsError(utteranceId: String, error: Throwable?) {
+        DawDebugLog.log(
+            this,
+            "NEURAL_TTS_FALLBACK",
+            "id=" + utteranceId +
+                " game=" + activeGame +
+                " error=" + (error?.message ?: error?.javaClass?.simpleName ?: "unknown")
+        )
+        val fallback = neuralFallbacks.remove(utteranceId)
+        if (fallback != null) {
+            performSystemTtsSpeak(
+                fallback.text,
+                fallback.utteranceId,
+                fallback.withFeedbackPreroll
+            )
+        } else {
+            handleSystemTtsError(utteranceId)
+        }
     }
 
     override fun onGetRoot(
@@ -2706,6 +2764,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         stopListening()
         awaitingAnswer = false
         tts.stop()
+        if (::neuralTts.isInitialized) neuralTts.stop()
         setPlaybackState(PlaybackStateCompat.STATE_PAUSED)
     }
 
@@ -2720,6 +2779,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         fallbackNoticeSpoken = false
         if (::tts.isInitialized) {
             tts.stop()
+        }
+        if (::neuralTts.isInitialized) {
+            neuralTts.stop()
         }
         if (::mediaSession.isInitialized) {
             setPlaybackState(PlaybackStateCompat.STATE_STOPPED)
@@ -3515,55 +3577,103 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     ) {
         setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
 
-        val result = if (withFeedbackPreroll) {
-            // Keep the car audio route open before speaking. Without this BMW
-            // often fades in after the first word ("Správně") has already begun.
-            val prerollId = FEEDBACK_PREROLL_PREFIX + utteranceId
-            val silenceResult = tts.playSilentUtterance(
-                FEEDBACK_AUDIO_PREROLL_MS,
-                TextToSpeech.QUEUE_FLUSH,
-                prerollId
-            )
-            DawDebugLog.log(
-                this,
-                "TTS_PREROLL",
-                "id=" + utteranceId + " silenceResult=" + silenceResult + " game=" + activeGame
-            )
-            tts.speak(
-                text,
-                TextToSpeech.QUEUE_ADD,
-                null,
-                utteranceId
-            )
+        val locale = tts.language ?: if (activeGame == ActiveGame.NEWS) {
+            Locale("cs", "CZ")
         } else {
-            tts.speak(
-                text,
-                TextToSpeech.QUEUE_FLUSH,
-                null,
-                utteranceId
-            )
+            triviaEngine.language().locale
+        }
+        val style = when {
+            utteranceId == FEEDBACK_UTTERANCE_ID ||
+                utteranceId == ROUND_SUMMARY_UTTERANCE_ID -> NeuralSpeechStyle.FEEDBACK
+            utteranceId == COMMAND_UTTERANCE_ID ||
+                utteranceId == RETRY_UTTERANCE_ID ||
+                utteranceId == SYSTEM_UTTERANCE_ID ||
+                utteranceId == LANGUAGE_UTTERANCE_ID -> NeuralSpeechStyle.UI
+            else -> NeuralSpeechStyle.NARRATION
         }
 
-        if (result == TextToSpeech.ERROR) {
-            DawDebugLog.log(
-                this,
-                "TTS_SPEAK_RETRY",
-                "id=" + utteranceId + " game=" + activeGame
+        if (::neuralTts.isInitialized) {
+            neuralFallbacks[utteranceId] = NeuralFallback(text, utteranceId, withFeedbackPreroll)
+            val accepted = neuralTts.speak(
+                text = text,
+                locale = locale,
+                style = style,
+                utteranceId = utteranceId,
+                delayMs = if (withFeedbackPreroll) FEEDBACK_AUDIO_PREROLL_MS else 0L
             )
-            mainHandler.postDelayed({
-                tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
-            }, 300L)
+            if (accepted) {
+                DawDebugLog.log(
+                    this,
+                    "NEURAL_TTS_REQUEST",
+                    "id=" + utteranceId +
+                        " locale=" + locale.toLanguageTag() +
+                        " style=" + style +
+                        " game=" + activeGame
+                )
+                return
+            }
+            neuralFallbacks.remove(utteranceId)
         }
 
-        DawDebugLog.log(
-            this,
-            "TTS_SPEAK_CALL",
-            "id=" + utteranceId +
-                " result=" + result +
-                " preroll=" + withFeedbackPreroll +
-                " focus=" + hasAudioFocus +
-                " game=" + activeGame
-        )
+        performSystemTtsSpeak(text, utteranceId, withFeedbackPreroll)
+    }
+
+    private fun performSystemTtsSpeak(
+        text: String,
+        utteranceId: String,
+        withFeedbackPreroll: Boolean = isFeedbackUtterance(utteranceId)
+    ) {
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        
+                val result = if (withFeedbackPreroll) {
+                    // Keep the car audio route open before speaking. Without this BMW
+                    // often fades in after the first word ("Správně") has already begun.
+                    val prerollId = FEEDBACK_PREROLL_PREFIX + utteranceId
+                    val silenceResult = tts.playSilentUtterance(
+                        FEEDBACK_AUDIO_PREROLL_MS,
+                        TextToSpeech.QUEUE_FLUSH,
+                        prerollId
+                    )
+                    DawDebugLog.log(
+                        this,
+                        "TTS_PREROLL",
+                        "id=" + utteranceId + " silenceResult=" + silenceResult + " game=" + activeGame
+                    )
+                    tts.speak(
+                        text,
+                        TextToSpeech.QUEUE_ADD,
+                        null,
+                        utteranceId
+                    )
+                } else {
+                    tts.speak(
+                        text,
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        utteranceId
+                    )
+                }
+        
+                if (result == TextToSpeech.ERROR) {
+                    DawDebugLog.log(
+                        this,
+                        "TTS_SPEAK_RETRY",
+                        "id=" + utteranceId + " game=" + activeGame
+                    )
+                    mainHandler.postDelayed({
+                        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+                    }, 300L)
+                }
+        
+                DawDebugLog.log(
+                    this,
+                    "TTS_SPEAK_CALL",
+                    "id=" + utteranceId +
+                        " result=" + result +
+                        " preroll=" + withFeedbackPreroll +
+                        " focus=" + hasAudioFocus +
+                        " game=" + activeGame
+                )
     }
 
     private fun abandonAudioFocus(reason: String) {
@@ -3680,6 +3790,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         speechRecognizer = null
         tts.stop()
         tts.shutdown()
+        if (::neuralTts.isInitialized) neuralTts.release()
         mediaSession.release()
         super.onDestroy()
     }
