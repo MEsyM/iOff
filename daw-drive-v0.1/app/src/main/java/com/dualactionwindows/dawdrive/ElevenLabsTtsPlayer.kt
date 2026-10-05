@@ -33,10 +33,7 @@ class ElevenLabsTtsPlayer(
     @Volatile
     private var generation = 0L
 
-    fun isConfigured(): Boolean =
-        BuildConfig.ELEVENLABS_API_KEY.isNotBlank() &&
-            (BuildConfig.ELEVENLABS_CS_VOICE_ID.isNotBlank() ||
-                BuildConfig.ELEVENLABS_EN_VOICE_ID.isNotBlank())
+    fun isConfigured(): Boolean = true
 
     fun speak(
         text: String,
@@ -46,9 +43,6 @@ class ElevenLabsTtsPlayer(
         delayMs: Long = 0L
     ): Boolean {
         if (!isConfigured() || text.isBlank()) return false
-
-        val voiceId = voiceId(locale)
-        if (voiceId.isBlank()) return false
 
         val requestGeneration = synchronized(this) {
             generation += 1
@@ -62,7 +56,6 @@ class ElevenLabsTtsPlayer(
                 val audio = cachedOrGenerate(
                     text = normalized,
                     locale = locale,
-                    voiceId = voiceId,
                     style = style
                 )
 
@@ -125,12 +118,9 @@ class ElevenLabsTtsPlayer(
 
     fun prefetch(text: String, locale: Locale, style: NeuralSpeechStyle = NeuralSpeechStyle.NARRATION) {
         if (!isConfigured() || text.isBlank()) return
-        val voiceId = voiceId(locale)
-        if (voiceId.isBlank()) return
-
         executor.execute {
             try {
-                cachedOrGenerate(formatForSpeech(text), locale, voiceId, style)
+                cachedOrGenerate(formatForSpeech(text), locale, style)
             } catch (_: Throwable) {
                 // Prefetch is best effort only.
             }
@@ -167,13 +157,6 @@ class ElevenLabsTtsPlayer(
         player = null
     }
 
-    private fun voiceId(locale: Locale): String =
-        if (locale.language.equals("en", ignoreCase = true)) {
-            BuildConfig.ELEVENLABS_EN_VOICE_ID.ifBlank { BuildConfig.ELEVENLABS_CS_VOICE_ID }
-        } else {
-            BuildConfig.ELEVENLABS_CS_VOICE_ID.ifBlank { BuildConfig.ELEVENLABS_EN_VOICE_ID }
-        }
-
     private fun settings(style: NeuralSpeechStyle): VoiceSettings = when (style) {
         NeuralSpeechStyle.NARRATION -> VoiceSettings(0.45, 0.80, 0.15, 0.97)
         NeuralSpeechStyle.FEEDBACK -> VoiceSettings(0.30, 0.80, 0.35, 1.03)
@@ -183,7 +166,6 @@ class ElevenLabsTtsPlayer(
     private fun cachedOrGenerate(
         text: String,
         locale: Locale,
-        voiceId: String,
         style: NeuralSpeechStyle
     ): File {
         val voiceSettings = settings(style)
@@ -191,8 +173,7 @@ class ElevenLabsTtsPlayer(
             listOf(
                 text,
                 locale.toLanguageTag(),
-                voiceId,
-                BuildConfig.ELEVENLABS_MODEL,
+                CACHE_VERSION,
                 voiceSettings.toString()
             ).joinToString("|")
         )
@@ -200,35 +181,21 @@ class ElevenLabsTtsPlayer(
         if (finalFile.exists() && finalFile.length() > 512L) return finalFile
 
         val tempFile = File(cacheDir, "$key.tmp")
-        val endpoint =
-            "https://api.elevenlabs.io/v1/text-to-speech/" +
-                voiceId +
-                "/stream?output_format=mp3_44100_128"
-
-        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+        val connection = (URL(TTS_ENDPOINT).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 8_000
-            readTimeout = 25_000
+            readTimeout = 35_000
             doOutput = true
             setRequestProperty("Accept", "audio/mpeg")
             setRequestProperty("Content-Type", "application/json")
-            setRequestProperty("xi-api-key", BuildConfig.ELEVENLABS_API_KEY)
+            setRequestProperty("User-Agent", "LoneRider-Android")
         }
 
         try {
             val body = JSONObject().apply {
                 put("text", text)
-                put("model_id", BuildConfig.ELEVENLABS_MODEL)
-                put(
-                    "voice_settings",
-                    JSONObject().apply {
-                        put("stability", voiceSettings.stability)
-                        put("similarity_boost", voiceSettings.similarity)
-                        put("style", voiceSettings.style)
-                        put("use_speaker_boost", true)
-                        put("speed", voiceSettings.speed)
-                    }
-                )
+                put("language", if (locale.language.equals("en", true)) "en" else "cs")
+                put("style", style.name.lowercase(Locale.ROOT))
             }.toString()
 
             connection.outputStream.bufferedWriter(Charsets.UTF_8).use { it.write(body) }
@@ -291,4 +258,9 @@ class ElevenLabsTtsPlayer(
         val style: Double,
         val speed: Double
     )
+
+    companion object {
+        private const val TTS_ENDPOINT = "https://api-production-c853.up.railway.app/v1/tts"
+        private const val CACHE_VERSION = "proxy-v1"
+    }
 }
