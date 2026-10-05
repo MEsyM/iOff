@@ -29,6 +29,7 @@ class CarPreviewActivity : ComponentActivity() {
     private var question by mutableStateOf("Press Play to start")
     private var isPlaying by mutableStateOf(false)
     private var connected by mutableStateOf(false)
+    private var currentLanguage by mutableStateOf(TriviaGameEngine.Language.EN)
     private var selectedGame by mutableStateOf(Game.TRIVIA)
     private var pendingAfterPermission: (() -> Unit)? = null
 
@@ -37,7 +38,9 @@ class CarPreviewActivity : ComponentActivity() {
         SPELLING(MEDIA_ID_SPELLING),
         GUESS_WHO(MEDIA_ID_GUESS_WHO),
         KIDS(MEDIA_ID_KIDS),
-        FAMILY(MEDIA_ID_FAMILY)
+        FAMILY(MEDIA_ID_FAMILY),
+        ENGLISH(MEDIA_ID_ENGLISH),
+        BRAIN(MEDIA_ID_BRAIN)
     }
 
     private val controllerCallback = object : MediaControllerCompat.Callback() {
@@ -46,7 +49,7 @@ class CarPreviewActivity : ComponentActivity() {
             title = metadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE)
                 ?: selectedGameTitle()
             subtitle = metadata.getString(MediaMetadataCompat.METADATA_KEY_ARTIST)
-                ?: "DAW Drive"
+                ?: "Lone Rider"
             question = metadata.getString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE)
                 ?: "Ready"
         }
@@ -73,6 +76,12 @@ class CarPreviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        currentLanguage = TriviaGameEngine(this).language()
+        selectedGame = gameFromIntent(intent)
+        title = selectedGameTitle()
+        subtitle = "Lone Rider • Car Game Hub"
+        question = "Press Play to start"
 
         mediaBrowser = MediaBrowserCompat(
             this,
@@ -113,9 +122,12 @@ class CarPreviewActivity : ComponentActivity() {
                     Game.GUESS_WHO -> "guesswho"
                     Game.KIDS -> "kids"
                     Game.FAMILY -> "family"
+                    Game.ENGLISH -> "english"
+                    Game.BRAIN -> "brain"
                 },
                 isPlaying = isPlaying,
                 connected = connected,
+                language = currentLanguage,
                 onSelectTrivia = {
                     selectGame(Game.TRIVIA)
                 },
@@ -130,6 +142,15 @@ class CarPreviewActivity : ComponentActivity() {
                 },
                 onSelectFamily = {
                     selectGame(Game.FAMILY)
+                },
+                onSelectEnglish = {
+                    selectGame(Game.ENGLISH)
+                },
+                onSelectBrain = {
+                    selectGame(Game.BRAIN)
+                },
+                onLanguageChange = { language ->
+                    setLanguage(language)
                 },
                 onFamilySetup = {
                     startActivity(Intent(this, FamilySetupActivity::class.java))
@@ -185,6 +206,16 @@ class CarPreviewActivity : ComponentActivity() {
         super.onDestroy()
     }
 
+    private fun setLanguage(language: TriviaGameEngine.Language) {
+        currentLanguage = language
+        TriviaGameEngine(this).setLanguage(language)
+        startService(
+            Intent(this, RoadGameMediaService::class.java)
+                .setAction(RoadGameMediaService.ACTION_SET_LANGUAGE)
+                .putExtra(RoadGameMediaService.EXTRA_LANGUAGE, language.code)
+        )
+    }
+
     private fun selectGame(game: Game) {
         if (selectedGame == game) return
 
@@ -196,6 +227,17 @@ class CarPreviewActivity : ComponentActivity() {
         isPlaying = false
     }
 
+    private fun gameFromIntent(intent: Intent?): Game =
+        when (intent?.getStringExtra(EXTRA_GAME)?.lowercase()) {
+            "spelling" -> Game.SPELLING
+            "guesswho" -> Game.GUESS_WHO
+            "kids" -> Game.KIDS
+            "family" -> Game.FAMILY
+            "english" -> Game.ENGLISH
+            "brain" -> Game.BRAIN
+            else -> Game.TRIVIA
+        }
+
     private fun selectedGameTitle(): String =
         when (selectedGame) {
             Game.TRIVIA -> "Quick Trivia"
@@ -203,6 +245,8 @@ class CarPreviewActivity : ComponentActivity() {
             Game.GUESS_WHO -> "Guess Who"
             Game.KIDS -> "Trivia Kids 6–12"
             Game.FAMILY -> "Family"
+            Game.ENGLISH -> "English Lessons"
+            Game.BRAIN -> "Brain Trainer"
         }
 
     private fun runWithPermissions(action: () -> Unit) {
@@ -262,10 +306,13 @@ class CarPreviewActivity : ComponentActivity() {
     }
 
     companion object {
+        const val EXTRA_GAME = "lone_rider_game"
         private const val MEDIA_ID_TRIVIA = "trivia_career"
         private const val MEDIA_ID_SPELLING = "spelling_bee"
         private const val MEDIA_ID_GUESS_WHO = "guess_who"
         private const val MEDIA_ID_KIDS = "kids_trivia"
         private const val MEDIA_ID_FAMILY = "family_game"
+        private const val MEDIA_ID_ENGLISH = "english_lessons"
+        private const val MEDIA_ID_BRAIN = "brain_trainer"
     }
 }

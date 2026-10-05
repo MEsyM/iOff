@@ -58,7 +58,7 @@ class DebugLogsActivity : ComponentActivity() {
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "DAW Drive Debug Logs",
+                            text = "Lone Rider Debug Logs",
                             color = Color.White,
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold
@@ -78,7 +78,7 @@ class DebugLogsActivity : ComponentActivity() {
                                     val clipboard = getSystemService(ClipboardManager::class.java)
                                     clipboard.setPrimaryClip(
                                         ClipData.newPlainText(
-                                            "DAW Drive debug log",
+                                            "Lone Rider debug log",
                                             logText
                                         )
                                     )
