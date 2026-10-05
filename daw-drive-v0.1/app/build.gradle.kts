@@ -35,8 +35,8 @@ android {
         applicationId = "com.dualactionwindows.dawdrive"
         minSdk = 35
         targetSdk = 36
-        versionCode = ciVersionCode ?: 100400
-        versionName = ciVersionName ?: "1.13-news"
+        versionCode = ciVersionCode ?: 100500
+        versionName = ciVersionName ?: "1.14-news"
     }
 
     buildTypes {
@@ -80,5 +80,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.media:media:1.8.0")
+    implementation("org.jsoup:jsoup:1.18.3")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
