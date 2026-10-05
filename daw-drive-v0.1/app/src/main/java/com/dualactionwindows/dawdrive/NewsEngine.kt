@@ -3,6 +3,8 @@ package com.dualactionwindows.dawdrive
 import android.content.Context
 import android.text.Html
 import android.util.Xml
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Element
 import org.xmlpull.v1.XmlPullParser
 import java.net.HttpURLConnection
 import java.net.URL
@@ -19,6 +21,13 @@ class NewsEngine(private val context: Context) {
         val defaultEnabled: Boolean = true
     )
 
+    data class Topic(
+        val id: String,
+        val name: String,
+        val keywords: List<String>,
+        val defaultEnabled: Boolean = false
+    )
+
     data class Article(
         val sourceId: String,
         val sourceName: String,
@@ -26,7 +35,8 @@ class NewsEngine(private val context: Context) {
         val summary: String,
         val link: String,
         val publishedAt: Long,
-        val language: String
+        val language: String,
+        val topics: Set<String>
     )
 
     data class DailyBriefing(
@@ -51,6 +61,23 @@ class NewsEngine(private val context: Context) {
         Source("bbc_world", "BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml", language = "en", defaultEnabled = false)
     )
 
+    val topics: List<Topic> = listOf(
+        Topic("top", "Hlavní zprávy", emptyList(), defaultEnabled = true),
+        Topic("czech", "Česko", listOf("česko", "česk", "praha", "brno", "ostrava", "vláda", "sněmovna", "senát"), defaultEnabled = true),
+        Topic("world", "Svět", listOf("svět", "usa", "ukraj", "rusko", "evropa", "eu ", "china", "čína", "israel", "gaza", "nato"), defaultEnabled = true),
+        Topic("politics", "Politika", listOf("polit", "vláda", "premiér", "prezident", "volb", "parlament", "sněmovna", "senát", "minister"), defaultEnabled = true),
+        Topic("economy", "Ekonomika", listOf("ekonom", "inflac", "hospodář", "hdp", "nezaměst", "rozpočet", "daně", "úrok"), defaultEnabled = true),
+        Topic("finance", "Finance & trhy", listOf("burza", "akcie", "dluhopis", "bitcoin", "krypto", "invest", "trhy", "wall street", "nasdaq", "s&p"), defaultEnabled = false),
+        Topic("business", "Byznys", listOf("firma", "firmy", "společnost", "podnik", "startup", "ceo", "obchod", "výrobce"), defaultEnabled = false),
+        Topic("tech", "Technologie & AI", listOf("technolog", "ai ", "umělá inteligence", "openai", "google", "apple", "microsoft", "čip", "software", "robot"), defaultEnabled = true),
+        Topic("science", "Věda", listOf("věda", "výzkum", "vědci", "vesmír", "nasa", "objev", "studie"), defaultEnabled = false),
+        Topic("culture", "Kultura", listOf("film", "seriál", "hudb", "koncert", "divad", "kultura", "herec", "režisér", "festival"), defaultEnabled = false),
+        Topic("sport", "Sport", listOf("sport", "tenis", "hokej", "formule", "f1", "olymp", "liga", "zápas"), defaultEnabled = true),
+        Topic("football", "Fotbal", listOf("fotbal", "liga mistrů", "premier league", "champions league", "reprezentace", "sparta", "slavia", "plzeň"), defaultEnabled = true),
+        Topic("cars", "Auta & mobilita", listOf("auto", "automobil", "elektromobil", "bmw", "tesla", "škoda", "volkswagen", "doprava", "motor"), defaultEnabled = false),
+        Topic("health", "Zdraví", listOf("zdrav", "nemoc", "lékař", "nemocnice", "virus", "vakcín", "léčb", "medic"), defaultEnabled = false)
+    )
+
     fun isEnabled(source: Source): Boolean =
         prefs.getBoolean(KEY_SOURCE_PREFIX + source.id, source.defaultEnabled)
 
@@ -59,6 +86,15 @@ class NewsEngine(private val context: Context) {
     }
 
     fun enabledSources(): List<Source> = sources.filter(::isEnabled)
+
+    fun isTopicEnabled(topic: Topic): Boolean =
+        prefs.getBoolean(KEY_TOPIC_PREFIX + topic.id, topic.defaultEnabled)
+
+    fun setTopicEnabled(topicId: String, enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_TOPIC_PREFIX + topicId, enabled).apply()
+    }
+
+    fun enabledTopicIds(): Set<String> = topics.filter(::isTopicEnabled).map { it.id }.toSet()
 
     fun saveArticle(article: Article) {
         if (article.link.isBlank()) return
@@ -89,11 +125,20 @@ class NewsEngine(private val context: Context) {
             }
         }
 
+        val enabledTopics = enabledTopicIds()
+        val useTopicFilter = enabledTopics.any { it != "top" }
         val seen = HashSet<String>()
         val cutoff = System.currentTimeMillis() - 36L * 60L * 60L * 1000L
         val recent = all.filter { it.publishedAt >= cutoff }
         val pool = if (recent.isNotEmpty()) recent else all
-        val selected = pool
+        val topicFiltered = if (useTopicFilter) {
+            pool.filter { article -> article.topics.any(enabledTopics::contains) }
+        } else {
+            pool
+        }
+
+        val selectedPool = if (topicFiltered.isNotEmpty()) topicFiltered else pool
+        val selected = selectedPool
             .sortedByDescending { it.publishedAt }
             .filter { article ->
                 val key = normalizeTitle(article.title)
@@ -104,12 +149,72 @@ class NewsEngine(private val context: Context) {
         return DailyBriefing(selected, System.currentTimeMillis(), errors)
     }
 
+    fun loadFullArticle(article: Article): String {
+        if (article.link.isBlank()) return article.summary
+
+        val doc = Jsoup.connect(article.link)
+            .userAgent("LoneRider/1.14 (+Android)")
+            .timeout(12000)
+            .followRedirects(true)
+            .get()
+
+        val selectors = listOf(
+            "article p",
+            "main article p",
+            "main p",
+            "[role=main] p",
+            ".article-body p",
+            ".article__body p",
+            ".article-content p",
+            ".story-body p",
+            ".storytext p"
+        )
+
+        var paragraphs: List<String> = emptyList()
+        for (selector in selectors) {
+            val candidate = cleanParagraphs(doc.select(selector).toList())
+            if (candidate.sumOf { it.length } >= 500) {
+                paragraphs = candidate
+                break
+            }
+        }
+
+        if (paragraphs.isEmpty()) {
+            paragraphs = cleanParagraphs(doc.select("p").toList())
+        }
+
+        val text = paragraphs
+            .distinct()
+            .joinToString("\n\n")
+            .trim()
+            .take(MAX_ARTICLE_CHARS)
+
+        return text.ifBlank { article.summary }
+    }
+
+    private fun cleanParagraphs(elements: List<Element>): List<String> =
+        elements.mapNotNull { element ->
+            val text = clean(element.text())
+            val lower = text.lowercase(Locale.ROOT)
+            when {
+                text.length < 45 -> null
+                lower.contains("přihlaste se") -> null
+                lower.contains("předplatné") -> null
+                lower.contains("subscribe") -> null
+                lower.contains("sign in") -> null
+                lower.contains("cookies") -> null
+                lower.contains("reklama") -> null
+                lower.contains("advertisement") -> null
+                else -> text
+            }
+        }
+
     private fun fetch(source: Source): List<Article> {
         val connection = (URL(source.url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 8000
             readTimeout = 10000
             instanceFollowRedirects = true
-            setRequestProperty("User-Agent", "LoneRider/1.13 (+Android)")
+            setRequestProperty("User-Agent", "LoneRider/1.14 (+Android)")
             setRequestProperty("Accept", "application/rss+xml, application/atom+xml, application/xml, text/xml")
         }
         try {
@@ -158,18 +263,21 @@ class NewsEngine(private val context: Context) {
                         }
                     }
                 }
+
                 XmlPullParser.END_TAG -> {
                     if ((name == "item" || name == "entry") && inItem) {
                         val cleanTitle = clean(title)
+                        val cleanSummary = clean(summary).ifBlank { cleanTitle }
                         if (cleanTitle.isNotBlank()) {
                             result += Article(
                                 sourceId = source.id,
                                 sourceName = source.name,
                                 title = cleanTitle,
-                                summary = clean(summary).ifBlank { cleanTitle },
+                                summary = cleanSummary,
                                 link = link.trim(),
                                 publishedAt = parseDate(date),
-                                language = source.language
+                                language = source.language,
+                                topics = classifyTopics(cleanTitle + " " + cleanSummary)
                             )
                         }
                         inItem = false
@@ -181,14 +289,25 @@ class NewsEngine(private val context: Context) {
         return result
     }
 
+    private fun classifyTopics(text: String): Set<String> {
+        val normalized = text.lowercase(Locale.ROOT)
+        return topics
+            .filter { it.id != "top" && it.keywords.any(normalized::contains) }
+            .map { it.id }
+            .toSet()
+    }
+
     private fun safeNextText(parser: XmlPullParser): String =
-        try { parser.nextText() } catch (_: Throwable) { "" }
+        try {
+            parser.nextText()
+        } catch (_: Throwable) {
+            ""
+        }
 
     private fun clean(value: String): String {
         val decoded = Html.fromHtml(value, Html.FROM_HTML_MODE_LEGACY).toString()
         return decoded
             .replace(Regex("\\s+"), " ")
-            .replace(" ", " ")
             .trim()
     }
 
@@ -221,7 +340,9 @@ class NewsEngine(private val context: Context) {
     companion object {
         private const val PREFS = "lone_rider_news"
         private const val KEY_SOURCE_PREFIX = "source_"
+        private const val KEY_TOPIC_PREFIX = "topic_"
         private const val KEY_DAILY_LIMIT = "daily_limit"
         private const val KEY_SAVED_LINKS = "saved_links"
+        private const val MAX_ARTICLE_CHARS = 24000
     }
 }
