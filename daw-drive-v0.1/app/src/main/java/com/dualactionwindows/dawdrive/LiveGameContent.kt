@@ -40,7 +40,16 @@ class LiveGameContent(private val context: Context) {
                     if (code !in 200..299) return@runCatching
                     val raw = c.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
                     val root = JSONObject(raw)
-                    val items = root.optJSONArray("items") ?: JSONArray()
+                    val rawItems = root.optJSONArray("items") ?: JSONArray()
+                    val items = JSONArray()
+                    for (i in 0 until rawItems.length()) {
+                        val wrapper = rawItems.optJSONObject(i) ?: continue
+                        val data = wrapper.optJSONObject("data") ?: wrapper
+                        if (!data.has("id")) data.put("id", wrapper.optString("id"))
+                        if (!data.has("category")) data.put("category", wrapper.optString("category"))
+                        if (!data.has("difficulty")) data.put("difficulty", wrapper.optInt("difficulty", 1))
+                        items.put(data)
+                    }
                     if (items.length() > 0) {
                         prefs.edit()
                             .putString(cacheKey(kind), items.toString())
