@@ -36,7 +36,7 @@ android {
         minSdk = 35
         targetSdk = 36
         versionCode = ciVersionCode ?: 100500
-        versionName = ciVersionName ?: "1.14-news"
+        versionName = ciVersionName ?: "1.16-ai-games"
     }
 
     buildTypes {
