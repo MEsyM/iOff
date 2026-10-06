@@ -100,7 +100,16 @@ def seed_content_if_empty():
 
             active=db.scalar(select(ContentRelease).where(ContentRelease.active==True).order_by(ContentRelease.published_at.desc()))
             active_games=(active.snapshot or {}).get("games", {}) if active else {}
-            if "kids_game" not in active_games:
+            published_keys={
+                (kind, item.get("id"))
+                for kind, items in active_games.items()
+                for item in items
+            } if active else set()
+            missing_from_release=any(
+                (row["kind"], row["public_id"]) not in published_keys
+                for row in payload["items"]
+            )
+            if active is None or missing_from_release:
                 rows=db.scalars(
                     select(ContentItem)
                     .where(ContentItem.enabled==True, ContentItem.status!="archived")
@@ -128,7 +137,7 @@ def seed_content_if_empty():
                 db.query(ContentRelease).update({ContentRelease.active:False})
                 db.add(ContentRelease(
                     version=version,
-                    note="Automatic Android live-content migration",
+                    note="Automatic Android live-content seed migration",
                     active=True,
                     item_count=len(rows),
                     snapshot=snapshot,
