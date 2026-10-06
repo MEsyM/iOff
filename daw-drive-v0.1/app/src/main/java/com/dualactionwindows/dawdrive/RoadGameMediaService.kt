@@ -48,6 +48,13 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     private lateinit var englishEngine: EnglishLearningEngine
     private lateinit var brainTrainerEngine: BrainTrainerEngine
     private lateinit var newsEngine: NewsEngine
+    private lateinit var soundEngine: NameThatSoundEngine
+    private lateinit var storyEngine: StoryAdventureEngine
+    private lateinit var wordChainEngine: WordChainEngine
+    private lateinit var aiEnglishEngine: AiEnglishConversationEngine
+
+    private enum class AuxGame { SOUNDS, STORY, WORD_CHAIN, AI_ENGLISH }
+    private var auxiliaryGame: AuxGame? = null
 
     private enum class ActiveGame { TRIVIA, SPELLING, GUESS_WHO, KIDS_TRIVIA, FAMILY, ENGLISH, BRAIN, NEWS }
     private enum class ArtworkState { IDLE, LISTENING, CORRECT, WRONG }
@@ -155,6 +162,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         englishEngine = EnglishLearningEngine(this)
         brainTrainerEngine = BrainTrainerEngine(this)
         newsEngine = NewsEngine(this)
+        soundEngine = NameThatSoundEngine(this)
+        storyEngine = StoryAdventureEngine(this)
+        wordChainEngine = WordChainEngine(this)
+        aiEnglishEngine = AiEnglishConversationEngine(this)
         tts = TextToSpeech(this, this)
         neuralTts = ElevenLabsTtsPlayer(
             context = this,
@@ -217,7 +228,34 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     roundSummaryOwner = null
                     commandOwner = null
                     retryOwner = null
+                    auxiliaryGame = null
                     when (mediaId) {
+                        MEDIA_ID_SOUNDS -> {
+                            auxiliaryGame = AuxGame.SOUNDS
+                            activeGame = ActiveGame.TRIVIA
+                            sessionStarted = false
+                            startOrResumeAuxGame()
+                        }
+                        MEDIA_ID_STORY -> {
+                            auxiliaryGame = AuxGame.STORY
+                            activeGame = ActiveGame.TRIVIA
+                            sessionStarted = false
+                            startOrResumeAuxGame()
+                        }
+                        MEDIA_ID_WORD_CHAIN -> {
+                            auxiliaryGame = AuxGame.WORD_CHAIN
+                            activeGame = ActiveGame.TRIVIA
+                            sessionStarted = false
+                            wordChainEngine.reset()
+                            startOrResumeAuxGame()
+                        }
+                        MEDIA_ID_AI_ENGLISH -> {
+                            auxiliaryGame = AuxGame.AI_ENGLISH
+                            activeGame = ActiveGame.TRIVIA
+                            sessionStarted = false
+                            aiEnglishEngine.reset()
+                            startOrResumeAuxGame()
+                        }
                         MEDIA_ID_SPELLING -> {
                             activeGame = ActiveGame.SPELLING
                             sessionStarted = false
@@ -274,6 +312,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     }
 
                     if (awaitingAnswer) {
+                        if (auxiliaryGame != null) {
+                            evaluateAuxCandidates(listOf(spoken))
+                            return
+                        }
                         when (activeGame) {
                             ActiveGame.SPELLING -> evaluateSpellingCandidates(listOf(spoken))
                             ActiveGame.GUESS_WHO -> evaluateGuessWhoCandidates(listOf(spoken))
@@ -375,6 +417,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         return
                     }
 
+                    if (auxiliaryGame != null) {
+                        evaluateAuxCandidates(candidates)
+                        return
+                    }
                     when (activeGame) {
                         ActiveGame.SPELLING -> evaluateSpellingCandidates(candidates)
                         ActiveGame.GUESS_WHO -> evaluateGuessWhoCandidates(candidates)
@@ -540,7 +586,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 sessionIntroOwner = null
                                 mainHandler.post {
                                     runForOwner(owner) { game ->
-                                        when (game) {
+                                        if (auxiliaryGame != null) {
+                                            speakCurrentAux()
+                                        } else when (game) {
                                             ActiveGame.SPELLING -> speakCurrentSpelling()
                                             ActiveGame.GUESS_WHO -> speakCurrentGuessWhoHint()
                                             ActiveGame.KIDS_TRIVIA -> speakCurrentKidsQuestion()
@@ -577,7 +625,9 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                                 feedbackOwner = null
                                 mainHandler.postDelayed({
                                     runForOwner(owner) { game ->
-                                        when (game) {
+                                        if (auxiliaryGame != null) {
+                                            moveToNextAux()
+                                        } else when (game) {
                                             ActiveGame.SPELLING -> moveToNextSpellingWord()
                                             ActiveGame.GUESS_WHO -> moveToNextGuessWhoPerson()
                                             ActiveGame.KIDS_TRIVIA -> moveToNextKidsQuestion()
@@ -790,12 +840,20 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                     if (p.language == TriviaGameEngine.Language.CS) "Denní zprávy" else "Daily News",
                     if (p.language == TriviaGameEngine.Language.CS) "Dnešní přehled • headline → více / další" else "Today's briefing • headline → more / next",
                     R.drawable.trivia_idle
-                )
+                ),
+                mediaItem(MEDIA_ID_SOUNDS, "Name That Sound", if (p.language == TriviaGameEngine.Language.CS) "Poznej zvuk hlasem" else "Identify the sound by voice", R.drawable.trivia_idle),
+                mediaItem(MEDIA_ID_STORY, "Story Adventure", if (p.language == TriviaGameEngine.Language.CS) "Interaktivní hlasový příběh" else "Interactive voice adventure", R.drawable.trivia_idle),
+                mediaItem(MEDIA_ID_WORD_CHAIN, "Word Chain", if (p.language == TriviaGameEngine.Language.CS) "Slovní fotbal hlasem" else "Voice word-chain challenge", R.drawable.trivia_idle),
+                mediaItem(MEDIA_ID_AI_ENGLISH, "AI English Conversation", "Natural English role-play", R.drawable.game_english)
             )
         )
     }
 
     private fun startOrResumeActiveGame() {
+        if (auxiliaryGame != null) {
+            startOrResumeAuxGame()
+            return
+        }
         when (activeGame) {
             ActiveGame.SPELLING -> startOrResumeSpelling()
             ActiveGame.GUESS_WHO -> startOrResumeGuessWho()
@@ -1788,6 +1846,146 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         )
     }
 
+    private fun startOrResumeAuxGame() {
+        if (!ensurePlaybackForeground()) return
+        if (!ttsReady) {
+            pendingStartAfterTts = true
+            setPlaybackState(PlaybackStateCompat.STATE_BUFFERING)
+            return
+        }
+        applyVoiceLanguage()
+        setPlaybackState(PlaybackStateCompat.STATE_PLAYING)
+        updateMetadata()
+        if (!sessionStarted) {
+            sessionStarted = true
+            val intro = when (auxiliaryGame) {
+                AuxGame.SOUNDS -> if (triviaEngine.language() == TriviaGameEngine.Language.CS) "Name That Sound. Poslouchej zvuk a řekni, co to je." else "Name That Sound. Listen and tell me what it is."
+                AuxGame.STORY -> if (triviaEngine.language() == TriviaGameEngine.Language.CS) "Story Adventure. Ty rozhoduješ, jak bude příběh pokračovat." else "Story Adventure. You decide what happens next."
+                AuxGame.WORD_CHAIN -> if (triviaEngine.language() == TriviaGameEngine.Language.CS) "Slovní fotbal. Každé další slovo musí začínat posledním písmenem předchozího." else "Word Chain. Each word must start with the last letter of the previous word."
+                AuxGame.AI_ENGLISH -> "AI English Conversation. Answer naturally in English. I will keep the role-play moving."
+                null -> return
+            }
+            speak(intro, SESSION_INTRO_UTTERANCE_ID)
+        } else {
+            speakCurrentAux()
+        }
+    }
+
+    private fun speakCurrentAux() {
+        if (!ttsReady || auxiliaryGame == null) return
+        stopListening()
+        awaitingAnswer = true
+        retryCount = 0
+        artworkState = ArtworkState.IDLE
+        updateMetadata()
+        when (auxiliaryGame) {
+            AuxGame.SOUNDS -> {
+                val r = soundEngine.current()
+                speak(r.cue + ". " + r.prompt, QUESTION_UTTERANCE_ID)
+            }
+            AuxGame.STORY -> {
+                val scene = storyEngine.current()
+                if (scene.ending) {
+                    storyEngine.restart()
+                    speak(scene.narration + " " + if (triviaEngine.language() == TriviaGameEngine.Language.CS) "Začínáme nový příběh." else "Starting a new adventure.", FEEDBACK_UTTERANCE_ID)
+                } else {
+                    val choices = scene.choices.joinToString(" nebo ") { it.label }
+                    speak(scene.narration + if (choices.isBlank()) "" else " " + (if (triviaEngine.language() == TriviaGameEngine.Language.CS) "Řekni: " else "Say: ") + choices + ".", QUESTION_UTTERANCE_ID)
+                }
+            }
+            AuxGame.WORD_CHAIN -> speak(wordChainEngine.prompt(triviaEngine.language() == TriviaGameEngine.Language.CS), QUESTION_UTTERANCE_ID)
+            AuxGame.AI_ENGLISH -> speakEnglishSequence(
+                listOf(SpeechSegment(aiEnglishEngine.current().rolePrompt, Locale.US)),
+                QUESTION_UTTERANCE_ID
+            )
+            null -> Unit
+        }
+    }
+
+    private fun evaluateAuxCandidates(candidates: List<String>) {
+        if (!awaitingAnswer || auxiliaryGame == null) return
+        stopListening()
+        awaitingAnswer = false
+        val spoken = candidates.firstOrNull().orEmpty()
+        when (auxiliaryGame) {
+            AuxGame.SOUNDS -> {
+                val r = soundEngine.answer(spoken)
+                artworkState = if (r.correct) ArtworkState.CORRECT else ArtworkState.WRONG
+                updateMetadata()
+                val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+                val msg = if (r.correct) {
+                    if (cs) "Správně. " + r.explanation else "Correct. " + r.explanation
+                } else {
+                    if (cs) "Ne. Správně je " + r.answer + ". " + r.explanation else "Not quite. It was " + r.answer + ". " + r.explanation
+                }
+                speak(msg, FEEDBACK_UTTERANCE_ID)
+            }
+            AuxGame.STORY -> {
+                val ok = storyEngine.choose(spoken)
+                artworkState = if (ok) ArtworkState.CORRECT else ArtworkState.WRONG
+                updateMetadata()
+                speak(
+                    if (ok) {
+                        if (triviaEngine.language() == TriviaGameEngine.Language.CS) "Dobrá volba." else "Good choice."
+                    } else {
+                        if (triviaEngine.language() == TriviaGameEngine.Language.CS) "Té volbě jsem nerozuměl. Zkus jednu z nabízených možností." else "I didn't understand that choice. Try one of the offered options."
+                    },
+                    if (ok) FEEDBACK_UTTERANCE_ID else RETRY_UTTERANCE_ID
+                )
+            }
+            AuxGame.WORD_CHAIN -> {
+                val r = wordChainEngine.submit(spoken)
+                artworkState = if (r.first) ArtworkState.CORRECT else ArtworkState.WRONG
+                updateMetadata()
+                val cs = triviaEngine.language() == TriviaGameEngine.Language.CS
+                val msg = if (r.first) {
+                    if (cs) "Platí. Máš " + wordChainEngine.score() + " bodů." else "Accepted. You have " + wordChainEngine.score() + " points."
+                } else {
+                    when (r.second) {
+                        "used" -> if (cs) "To slovo už bylo." else "That word was already used."
+                        "wrong_letter" -> if (cs) "Špatné počáteční písmeno." else "Wrong starting letter."
+                        else -> if (cs) "Tohle slovo neberu. Zkus jiné." else "I can't accept that word. Try another."
+                    }
+                }
+                speak(msg, if (r.first) FEEDBACK_UTTERANCE_ID else RETRY_UTTERANCE_ID)
+            }
+            AuxGame.AI_ENGLISH -> {
+                val r = aiEnglishEngine.answer(spoken)
+                artworkState = if (r.first) ArtworkState.CORRECT else ArtworkState.WRONG
+                updateMetadata()
+                speakEnglishSequence(
+                    listOf(
+                        SpeechSegment(r.second, Locale.US)
+                    ),
+                    FEEDBACK_UTTERANCE_ID
+                )
+            }
+            null -> Unit
+        }
+    }
+
+    private fun moveToNextAux() {
+        artworkState = ArtworkState.IDLE
+        updateMetadata()
+        speakCurrentAux()
+    }
+
+    private fun skipAux() {
+        stopListening()
+        awaitingAnswer = false
+        when (auxiliaryGame) {
+            AuxGame.SOUNDS -> soundEngine.skip()
+            AuxGame.STORY -> storyEngine.restart()
+            AuxGame.WORD_CHAIN -> wordChainEngine.reset()
+            AuxGame.AI_ENGLISH -> aiEnglishEngine.reset()
+            null -> return
+        }
+        speak(
+            if (triviaEngine.language() == TriviaGameEngine.Language.CS) "Přeskakuji." else "Skipped.",
+            FEEDBACK_UTTERANCE_ID
+        )
+    }
+
     private fun startListeningForAnswer() {
         if (!voiceModeEnabled || !awaitingAnswer || listening) return
 
@@ -2301,6 +2499,14 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
     private fun repeatCurrentQuestion() {
         if (!ensurePlaybackForeground()) return
+        if (auxiliaryGame != null) {
+            stopListening()
+            awaitingAnswer = true
+            retryCount = 0
+            artworkState = ArtworkState.IDLE
+            speakCurrentAux()
+            return
+        }
         stopListening()
         awaitingAnswer = true
         retryCount = 0
@@ -2319,6 +2525,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
     private fun skipCurrentQuestion() {
         if (!ensurePlaybackForeground()) return
+        if (auxiliaryGame != null) {
+            skipAux()
+            return
+        }
 
         stopListening()
         awaitingAnswer = false
@@ -2473,6 +2683,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
     }
 
     private fun autoSkipAfterSilence() {
+        if (auxiliaryGame != null) {
+            skipAux()
+            return
+        }
         awaitingAnswer = false
         stopListening()
 
@@ -2954,6 +3168,35 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             ArtworkState.IDLE -> null
         }
 
+        if (auxiliaryGame != null) {
+            val aux = auxiliaryGame!!
+            val title = when (aux) {
+                AuxGame.SOUNDS -> "Name That Sound"
+                AuxGame.STORY -> "Story Adventure"
+                AuxGame.WORD_CHAIN -> "Word Chain"
+                AuxGame.AI_ENGLISH -> "AI English Conversation"
+            }
+            val prompt = when (aux) {
+                AuxGame.SOUNDS -> soundEngine.current().let { it.cue + "  " + it.prompt }
+                AuxGame.STORY -> storyEngine.current().narration
+                AuxGame.WORD_CHAIN -> wordChainEngine.prompt(cs)
+                AuxGame.AI_ENGLISH -> aiEnglishEngine.current().rolePrompt
+            }
+            publishMetadata(
+                MediaMetadataCompat.Builder()
+                    .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, metadataId)
+                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, if (cs) "Live obsah z backendu" else "Live backend content")
+                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_SUBTITLE, feedbackLabel ?: prompt)
+                    .putString(MediaMetadataCompat.METADATA_KEY_DISPLAY_DESCRIPTION, title)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, artBitmap)
+                    .putBitmap(MediaMetadataCompat.METADATA_KEY_DISPLAY_ICON, artBitmap)
+                    .build()
+            )
+            return
+        }
+
         if (activeGame == ActiveGame.NEWS) {
             val article = currentNewsArticle()
             val saved = article?.let(newsEngine::isSaved) == true
@@ -3389,10 +3632,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
 
     private fun applyVoiceLanguage() {
         if (!ttsReady) return
-        tts.language = if (activeGame == ActiveGame.NEWS) {
-            Locale("cs", "CZ")
-        } else {
-            triviaEngine.language().locale
+        tts.language = when {
+            auxiliaryGame == AuxGame.AI_ENGLISH -> Locale.US
+            activeGame == ActiveGame.NEWS -> Locale("cs", "CZ")
+            else -> triviaEngine.language().locale
         }
     }
 
@@ -3816,6 +4059,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
         private const val MEDIA_ID_ENGLISH = "english_lessons"
         private const val MEDIA_ID_BRAIN = "brain_trainer"
         private const val MEDIA_ID_NEWS = "daily_news"
+        private const val MEDIA_ID_SOUNDS = "name_that_sound"
+        private const val MEDIA_ID_STORY = "story_adventure"
+        private const val MEDIA_ID_WORD_CHAIN = "word_chain"
+        private const val MEDIA_ID_AI_ENGLISH = "ai_english"
         private const val MEDIA_ID_LANGUAGE_CS = "language_cs"
         private const val MEDIA_ID_LANGUAGE_EN = "language_en"
 
