@@ -1924,6 +1924,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 val ok = storyEngine.choose(spoken)
                 artworkState = if (ok) ArtworkState.CORRECT else ArtworkState.WRONG
                 updateMetadata()
+                if (!ok) awaitingAnswer = true
                 speak(
                     if (ok) {
                         if (triviaEngine.language() == TriviaGameEngine.Language.CS) "Dobrá volba." else "Good choice."
@@ -1947,6 +1948,7 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                         else -> if (cs) "Tohle slovo neberu. Zkus jiné." else "I can't accept that word. Try another."
                     }
                 }
+                if (!r.first) awaitingAnswer = true
                 speak(msg, if (r.first) FEEDBACK_UTTERANCE_ID else RETRY_UTTERANCE_ID)
             }
             AuxGame.AI_ENGLISH -> {
