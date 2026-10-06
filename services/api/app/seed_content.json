@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedFrom": "Android Lone Rider content incl. bilingual Kids Trivia 2026-10-03",
+  "generatedFrom": "Android Lone Rider content + v1.16 backend-driven voice games 2026-10-06",
   "items": [
     {
       "public_id": "geo001",
@@ -17903,6 +17903,617 @@
             "explanation": "Dvojnásobek patnácti je třicet."
           }
         },
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "snd_dog",
+      "kind": "name_that_sound",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "snd_dog",
+        "cue": "Haf haf!",
+        "prompt": "Které zvíře vydává tento zvuk?",
+        "answers": [
+          "pes",
+          "dog"
+        ],
+        "explanation": "Je to pes.",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "snd_cat",
+      "kind": "name_that_sound",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "snd_cat",
+        "cue": "Mňau!",
+        "prompt": "Které zvíře vydává tento zvuk?",
+        "answers": [
+          "kočka",
+          "kocka",
+          "cat"
+        ],
+        "explanation": "Je to kočka.",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "snd_cow",
+      "kind": "name_that_sound",
+      "category": "animals",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "snd_cow",
+        "cue": "Búú!",
+        "prompt": "Které zvíře vydává tento zvuk?",
+        "answers": [
+          "kráva",
+          "krava",
+          "cow"
+        ],
+        "explanation": "Je to kráva.",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "snd_owl",
+      "kind": "name_that_sound",
+      "category": "animals",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "snd_owl",
+        "cue": "Hú hú!",
+        "prompt": "Který noční pták to může být?",
+        "answers": [
+          "sova",
+          "owl"
+        ],
+        "explanation": "Je to sova.",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "snd_train",
+      "kind": "name_that_sound",
+      "category": "vehicles",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "snd_train",
+        "cue": "Čú čú!",
+        "prompt": "Co může vydávat tento zvuk?",
+        "answers": [
+          "vlak",
+          "train"
+        ],
+        "explanation": "Je to vlak.",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "snd_horn",
+      "kind": "name_that_sound",
+      "category": "vehicles",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "snd_horn",
+        "cue": "Tů tů!",
+        "prompt": "Co v provozu vydává tento zvuk?",
+        "answers": [
+          "klakson",
+          "auto",
+          "car horn",
+          "horn"
+        ],
+        "explanation": "Je to klakson auta.",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "snd_rain",
+      "kind": "name_that_sound",
+      "category": "nature",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "snd_rain",
+        "cue": "Ššš, kap kap kap.",
+        "prompt": "Jaký přírodní zvuk slyšíš?",
+        "answers": [
+          "déšť",
+          "dest",
+          "rain"
+        ],
+        "explanation": "Je to déšť.",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "snd_thunder",
+      "kind": "name_that_sound",
+      "category": "nature",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "snd_thunder",
+        "cue": "Bum! Hrrrrom!",
+        "prompt": "Jaký přírodní jev to připomíná?",
+        "answers": [
+          "hrom",
+          "bouřka",
+          "bourka",
+          "thunder"
+        ],
+        "explanation": "Je to hrom při bouřce.",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "story_start",
+      "kind": "story_adventure",
+      "category": "castle",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "start",
+        "narration": "Stojíš před opuštěným hradem. Vlevo vede cesta do lesa, vpravo jsou otevřené dveře hradu.",
+        "choices": [
+          {
+            "label": "les",
+            "aliases": [
+              "les",
+              "do lesa",
+              "forest"
+            ],
+            "next": "forest"
+          },
+          {
+            "label": "hrad",
+            "aliases": [
+              "hrad",
+              "dovnitř",
+              "castle"
+            ],
+            "next": "castle"
+          }
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "story_forest",
+      "kind": "story_adventure",
+      "category": "castle",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "forest",
+        "narration": "V lese najdeš zářící klíč. Můžeš ho vzít, nebo ho nechat být.",
+        "choices": [
+          {
+            "label": "vzít klíč",
+            "aliases": [
+              "vezmu klíč",
+              "klíč",
+              "vzít",
+              "key"
+            ],
+            "next": "key"
+          },
+          {
+            "label": "nechat ho",
+            "aliases": [
+              "nechat",
+              "nechám",
+              "leave"
+            ],
+            "next": "lost"
+          }
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "story_key",
+      "kind": "story_adventure",
+      "category": "castle",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "key",
+        "narration": "S klíčem se vracíš ke hradu. Věž je zamčená, ale klíč přesně pasuje.",
+        "choices": [
+          {
+            "label": "odemknout věž",
+            "aliases": [
+              "odemknout",
+              "otevřít",
+              "věž",
+              "unlock"
+            ],
+            "next": "win"
+          }
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "story_castle",
+      "kind": "story_adventure",
+      "category": "castle",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "castle",
+        "narration": "Uvnitř hradu slyšíš kroky. Můžeš jít do sklepa, nebo do věže.",
+        "choices": [
+          {
+            "label": "sklep",
+            "aliases": [
+              "sklep",
+              "dolů",
+              "cellar"
+            ],
+            "next": "cellar"
+          },
+          {
+            "label": "věž",
+            "aliases": [
+              "věž",
+              "nahoru",
+              "tower"
+            ],
+            "next": "locked"
+          }
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "story_cellar",
+      "kind": "story_adventure",
+      "category": "castle",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "cellar",
+        "narration": "Ve sklepě najdeš starou mapu a tajný průchod ven.",
+        "choices": [
+          {
+            "label": "tajný průchod",
+            "aliases": [
+              "průchod",
+              "ven",
+              "tunnel"
+            ],
+            "next": "map"
+          }
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "story_locked",
+      "kind": "story_adventure",
+      "category": "castle",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "locked",
+        "narration": "Věž je zamčená. Bez klíče se dovnitř nedostaneš.",
+        "choices": [
+          {
+            "label": "vrátit se ven",
+            "aliases": [
+              "zpět",
+              "ven",
+              "vrátit",
+              "back"
+            ],
+            "next": "start"
+          }
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "story_map",
+      "kind": "story_adventure",
+      "category": "castle",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "map",
+        "narration": "Mapa ukazuje místo pokladu hluboko v lese.",
+        "choices": [
+          {
+            "label": "jít za pokladem",
+            "aliases": [
+              "poklad",
+              "jít",
+              "treasure"
+            ],
+            "next": "treasure"
+          }
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "story_treasure",
+      "kind": "story_adventure",
+      "category": "castle",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "treasure",
+        "narration": "Najdeš truhlu, ale hlídá ji starý havran. Nabídne ti hádanku.",
+        "choices": [
+          {
+            "label": "přijmout hádanku",
+            "aliases": [
+              "ano",
+              "hádanka",
+              "prijmout",
+              "riddle"
+            ],
+            "next": "win"
+          }
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "story_lost",
+      "kind": "story_adventure",
+      "category": "castle",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "lost",
+        "narration": "Bez klíče bloudíš lesem a nakonec se vrátíš na začátek.",
+        "choices": [
+          {
+            "label": "zkusit znovu",
+            "aliases": [
+              "znovu",
+              "začátek",
+              "again"
+            ],
+            "next": "start"
+          }
+        ],
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "story_win",
+      "kind": "story_adventure",
+      "category": "castle",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "win",
+        "narration": "Otevřeš věž a objevíš mapu k dalšímu dobrodružství. Vyhrál jsi.",
+        "choices": [],
+        "ending": true,
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "aien_start",
+      "kind": "ai_english",
+      "category": "hotel",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "start",
+        "role_prompt": "You are checking into a hotel. Hello, welcome. What is your name?",
+        "expected": [
+          "my name is",
+          "i am",
+          "i'm"
+        ],
+        "feedback": "Great. A natural answer is: My name is ...",
+        "next": "booking",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "aien_booking",
+      "kind": "ai_english",
+      "category": "hotel",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "booking",
+        "role_prompt": "Nice to meet you. Do you have a reservation?",
+        "expected": [
+          "yes",
+          "reservation",
+          "booking",
+          "no"
+        ],
+        "feedback": "Good. You can say: Yes, I have a reservation.",
+        "next": "nights",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "aien_nights",
+      "kind": "ai_english",
+      "category": "hotel",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "nights",
+        "role_prompt": "How many nights are you staying?",
+        "expected": [
+          "one",
+          "two",
+          "three",
+          "four",
+          "five",
+          "night"
+        ],
+        "feedback": "Nice. For example: I am staying for two nights.",
+        "next": "breakfast",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "aien_breakfast",
+      "kind": "ai_english",
+      "category": "hotel",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "breakfast",
+        "role_prompt": "Breakfast is served from seven. Would you like breakfast included?",
+        "expected": [
+          "yes",
+          "no",
+          "please",
+          "breakfast"
+        ],
+        "feedback": "Good answer. Keep it short and natural.",
+        "next": "bags",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "aien_bags",
+      "kind": "ai_english",
+      "category": "hotel",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "bags",
+        "role_prompt": "Would you like help with your bags?",
+        "expected": [
+          "yes",
+          "no",
+          "please",
+          "thank"
+        ],
+        "feedback": "Great. That sounds natural.",
+        "next": "start",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "aien_airport_start",
+      "kind": "ai_english",
+      "category": "airport",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "airport_start",
+        "role_prompt": "Airport role-play. May I see your passport and boarding pass, please?",
+        "expected": [
+          "here",
+          "passport",
+          "boarding pass",
+          "of course"
+        ],
+        "feedback": "Perfect. You can say: Of course, here you are.",
+        "next": "airport_bag",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "aien_airport_bag",
+      "kind": "ai_english",
+      "category": "airport",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "airport_bag",
+        "role_prompt": "Are you checking in any bags today?",
+        "expected": [
+          "yes",
+          "no",
+          "bag",
+          "luggage"
+        ],
+        "feedback": "Good. Try to answer in a full sentence.",
+        "next": "airport_seat",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "aien_airport_seat",
+      "kind": "ai_english",
+      "category": "airport",
+      "difficulty": 2,
+      "enabled": true,
+      "data": {
+        "id": "airport_seat",
+        "role_prompt": "Would you prefer a window or an aisle seat?",
+        "expected": [
+          "window",
+          "aisle",
+          "seat"
+        ],
+        "feedback": "Excellent. For example: I would prefer a window seat.",
+        "next": "start",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "wc_block_0",
+      "kind": "word_chain",
+      "category": "rules",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "wc_block_0",
+        "word": "xxx",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "wc_block_1",
+      "kind": "word_chain",
+      "category": "rules",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "wc_block_1",
+        "word": "yyy",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "wc_block_2",
+      "kind": "word_chain",
+      "category": "rules",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "wc_block_2",
+        "word": "fuck",
+        "enabled": true
+      }
+    },
+    {
+      "public_id": "wc_block_3",
+      "kind": "word_chain",
+      "category": "rules",
+      "difficulty": 1,
+      "enabled": true,
+      "data": {
+        "id": "wc_block_3",
+        "word": "shit",
         "enabled": true
       }
     }
