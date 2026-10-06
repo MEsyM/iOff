@@ -40,7 +40,11 @@ class CarPreviewActivity : ComponentActivity() {
         KIDS(MEDIA_ID_KIDS),
         FAMILY(MEDIA_ID_FAMILY),
         ENGLISH(MEDIA_ID_ENGLISH),
-        BRAIN(MEDIA_ID_BRAIN)
+        BRAIN(MEDIA_ID_BRAIN),
+        SOUNDS(MEDIA_ID_SOUNDS),
+        STORY(MEDIA_ID_STORY),
+        WORD_CHAIN(MEDIA_ID_WORD_CHAIN),
+        AI_ENGLISH(MEDIA_ID_AI_ENGLISH)
     }
 
     private val controllerCallback = object : MediaControllerCompat.Callback() {
@@ -124,6 +128,10 @@ class CarPreviewActivity : ComponentActivity() {
                     Game.FAMILY -> "family"
                     Game.ENGLISH -> "english"
                     Game.BRAIN -> "brain"
+                    Game.SOUNDS -> "sounds"
+                    Game.STORY -> "story"
+                    Game.WORD_CHAIN -> "wordchain"
+                    Game.AI_ENGLISH -> "aienglish"
                 },
                 isPlaying = isPlaying,
                 connected = connected,
@@ -148,6 +156,18 @@ class CarPreviewActivity : ComponentActivity() {
                 },
                 onSelectBrain = {
                     selectGame(Game.BRAIN)
+                },
+                onSelectSounds = {
+                    selectGame(Game.SOUNDS)
+                },
+                onSelectStory = {
+                    selectGame(Game.STORY)
+                },
+                onSelectWordChain = {
+                    selectGame(Game.WORD_CHAIN)
+                },
+                onSelectAiEnglish = {
+                    selectGame(Game.AI_ENGLISH)
                 },
                 onLanguageChange = { language ->
                     setLanguage(language)
@@ -235,6 +255,10 @@ class CarPreviewActivity : ComponentActivity() {
             "family" -> Game.FAMILY
             "english" -> Game.ENGLISH
             "brain" -> Game.BRAIN
+            "sounds" -> Game.SOUNDS
+            "story" -> Game.STORY
+            "wordchain" -> Game.WORD_CHAIN
+            "aienglish" -> Game.AI_ENGLISH
             else -> Game.TRIVIA
         }
 
@@ -247,6 +271,10 @@ class CarPreviewActivity : ComponentActivity() {
             Game.FAMILY -> "Family"
             Game.ENGLISH -> "English Lessons"
             Game.BRAIN -> "Brain Trainer"
+            Game.SOUNDS -> "Name That Sound"
+            Game.STORY -> "Story Adventure"
+            Game.WORD_CHAIN -> "Word Chain"
+            Game.AI_ENGLISH -> "AI English Conversation"
         }
 
     private fun runWithPermissions(action: () -> Unit) {
@@ -314,5 +342,9 @@ class CarPreviewActivity : ComponentActivity() {
         private const val MEDIA_ID_FAMILY = "family_game"
         private const val MEDIA_ID_ENGLISH = "english_lessons"
         private const val MEDIA_ID_BRAIN = "brain_trainer"
+        private const val MEDIA_ID_SOUNDS = "name_that_sound"
+        private const val MEDIA_ID_STORY = "story_adventure"
+        private const val MEDIA_ID_WORD_CHAIN = "word_chain"
+        private const val MEDIA_ID_AI_ENGLISH = "ai_english"
     }
 }
