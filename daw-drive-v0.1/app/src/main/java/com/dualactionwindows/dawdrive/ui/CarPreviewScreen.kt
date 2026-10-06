@@ -19,6 +19,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -46,6 +48,10 @@ fun CarPreviewScreen(
     onSelectFamily: () -> Unit,
     onSelectEnglish: () -> Unit,
     onSelectBrain: () -> Unit,
+    onSelectSounds: () -> Unit,
+    onSelectStory: () -> Unit,
+    onSelectWordChain: () -> Unit,
+    onSelectAiEnglish: () -> Unit,
     onLanguageChange: (TriviaGameEngine.Language) -> Unit,
     onFamilySetup: () -> Unit,
     onPlayPause: () -> Unit,
@@ -61,6 +67,10 @@ fun CarPreviewScreen(
         "family" -> GameVisual("🏆", "FAMILY QUIZ", LoneRiderColors.Pink)
         "english" -> GameVisual("🇬🇧", "ENGLISH LESSONS", LoneRiderColors.Cyan)
         "brain" -> GameVisual("🧠", "BRAIN TRAINER", LoneRiderColors.Green)
+        "sounds" -> GameVisual("🔊", "NAME THAT SOUND", LoneRiderColors.Amber)
+        "story" -> GameVisual("📖", "STORY ADVENTURE", LoneRiderColors.Purple)
+        "wordchain" -> GameVisual("🔗", "WORD CHAIN", LoneRiderColors.Green)
+        "aienglish" -> GameVisual("💬", "AI ENGLISH", LoneRiderColors.Cyan)
         else -> GameVisual("💡", "QUICK TRIVIA", LoneRiderColors.Purple)
     }
 
@@ -88,7 +98,11 @@ fun CarPreviewScreen(
                     onSelectKids = onSelectKids,
                     onSelectFamily = onSelectFamily,
                     onSelectEnglish = onSelectEnglish,
-                    onSelectBrain = onSelectBrain
+                    onSelectBrain = onSelectBrain,
+                    onSelectSounds = onSelectSounds,
+                    onSelectStory = onSelectStory,
+                    onSelectWordChain = onSelectWordChain,
+                    onSelectAiEnglish = onSelectAiEnglish
                 )
 
                 Column(
@@ -220,7 +234,11 @@ private fun NavigationRail(
     onSelectKids: () -> Unit,
     onSelectFamily: () -> Unit,
     onSelectEnglish: () -> Unit,
-    onSelectBrain: () -> Unit
+    onSelectBrain: () -> Unit,
+    onSelectSounds: () -> Unit,
+    onSelectStory: () -> Unit,
+    onSelectWordChain: () -> Unit,
+    onSelectAiEnglish: () -> Unit
 ) {
     Surface(
         modifier = Modifier.width(92.dp),
@@ -230,6 +248,7 @@ private fun NavigationRail(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(vertical = 12.dp, horizontal = 9.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(9.dp)
@@ -242,6 +261,10 @@ private fun NavigationRail(
             RailButton("🏆", selectedGame == "family", onSelectFamily)
             RailButton("🇬🇧", selectedGame == "english", onSelectEnglish)
             RailButton("🧠", selectedGame == "brain", onSelectBrain)
+            RailButton("🔊", selectedGame == "sounds", onSelectSounds)
+            RailButton("📖", selectedGame == "story", onSelectStory)
+            RailButton("🔗", selectedGame == "wordchain", onSelectWordChain)
+            RailButton("💬", selectedGame == "aienglish", onSelectAiEnglish)
         }
     }
 }

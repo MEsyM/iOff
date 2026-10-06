@@ -9,6 +9,7 @@ on:
     branches:
       - codex/lone-rider-ui-v1
       - codex/lone-rider-v1.15-neural-tts
+      - codex/lone-rider-v1.16-ai-games
   workflow_dispatch:
 
 jobs:
@@ -56,7 +57,7 @@ jobs:
           echo "DAW_TEST_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
           echo "DAW_TEST_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
           echo "LONE_RIDER_VERSION_CODE=$((100000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
-          echo "LONE_RIDER_VERSION_NAME=1.15-neural-tts.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "LONE_RIDER_VERSION_NAME=1.16-ai-games.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
 
       - name: Build updateable test APK
         run: gradle -p daw-drive-v0.1 assembleDebug --stacktrace
@@ -74,6 +75,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Lone-Rider-v1.15-${{ github.run_number }}
+          name: Lone-Rider-v1.16-${{ github.run_number }}
           path: Lone-Rider-*.apk
           if-no-files-found: error

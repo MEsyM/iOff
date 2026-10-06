@@ -140,6 +140,10 @@ fun DawDriveApp(
                     onFamily = onFamilySetupClick,
                     onEnglish = { onCarGameClick("english") },
                     onBrain = onBrainTrainerClick,
+                    onNameThatSound = { onCarGameClick("sounds") },
+                    onStoryAdventure = { onCarGameClick("story") },
+                    onWordChain = { onCarGameClick("wordchain") },
+                    onAiEnglish = { onCarGameClick("aienglish") },
                     onOpenCar = onCarPreviewClick
                 )
 
@@ -625,6 +629,10 @@ private fun GamesScreen(
     onFamily: () -> Unit,
     onEnglish: () -> Unit,
     onBrain: () -> Unit,
+    onNameThatSound: () -> Unit,
+    onStoryAdventure: () -> Unit,
+    onWordChain: () -> Unit,
+    onAiEnglish: () -> Unit,
     onOpenCar: () -> Unit
 ) {
     val compact = LocalConfiguration.current.screenWidthDp < 700
@@ -720,6 +728,48 @@ private fun GamesScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "🔊",
+                    title = "Name That Sound",
+                    subtitle = "Listen, identify, score.",
+                    accent = LoneRiderColors.Amber,
+                    onClick = onNameThatSound
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "📖",
+                    title = "Story Adventure",
+                    subtitle = "Choose the story by voice.",
+                    accent = LoneRiderColors.Purple,
+                    onClick = onStoryAdventure
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "🔗",
+                    title = "Word Chain",
+                    subtitle = "Voice word-chain challenge.",
+                    accent = LoneRiderColors.Green,
+                    onClick = onWordChain
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f).height(150.dp),
+                    icon = "💬",
+                    title = "AI English",
+                    subtitle = "Natural English role-play.",
+                    accent = LoneRiderColors.Cyan,
+                    onClick = onAiEnglish
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                GameCard(
                     modifier = Modifier.fillMaxWidth().height(150.dp),
                     icon = "🚙",
                     title = "Car Game Hub",
@@ -800,6 +850,48 @@ private fun GamesScreen(
                     subtitle = "Memory • sequences • math • logic • attention.",
                     accent = LoneRiderColors.Green,
                     onClick = onBrain
+                )
+            }
+            Row(
+                modifier = Modifier.height(210.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "🔊",
+                    title = "Name That Sound",
+                    subtitle = "Listen and identify sounds.",
+                    accent = LoneRiderColors.Amber,
+                    onClick = onNameThatSound
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "📖",
+                    title = "Story Adventure",
+                    subtitle = "Interactive voice-driven stories.",
+                    accent = LoneRiderColors.Purple,
+                    onClick = onStoryAdventure
+                )
+                GameCard(
+                    modifier = Modifier.weight(1f),
+                    icon = "🔗",
+                    title = "Word Chain",
+                    subtitle = "Keep the word chain alive.",
+                    accent = LoneRiderColors.Green,
+                    onClick = onWordChain
+                )
+            }
+            Row(
+                modifier = Modifier.height(160.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                GameCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = "💬",
+                    title = "AI English Conversation",
+                    subtitle = "Natural role-play conversations with backend scenarios.",
+                    accent = LoneRiderColors.Cyan,
+                    onClick = onAiEnglish
                 )
             }
 
