@@ -11,7 +11,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, func, select
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.main import Base, SessionLocal
+from app.main import Base, SessionLocal, User, UserCredential, Profile, Device, Progress, RefreshToken, password_hash
 
 def utcnow():
     return datetime.now(timezone.utc)
@@ -73,6 +73,9 @@ class AdminPatchIn(BaseModel):
 class PasswordChangeIn(BaseModel):
     current_password: str = Field(min_length=12, max_length=256)
     new_password: str = Field(min_length=12, max_length=256)
+
+class AppUserPasswordIn(BaseModel):
+    new_password: str = Field(min_length=6, max_length=256)
 
 class AdminPrincipal:
     def __init__(self, user: AdminUser, session: AdminSession):
@@ -305,3 +308,106 @@ def patch_admin_user(user_id: uuid.UUID, body: AdminPatchIn, principal: AdminPri
         if password or body.active is False:
             db.query(AdminSession).filter(AdminSession.admin_user_id == user.id).update({"revoked_at": utcnow()})
         db.commit(); db.refresh(user); return serialize_user(user)
+
+
+@router.get("/app-users")
+def list_app_users(q: str | None = None, principal: AdminPrincipal = Depends(require_admin)):
+    with SessionLocal() as db:
+        stmt = select(User)
+        if q:
+            stmt = stmt.where(User.email.ilike("%" + q.strip() + "%"))
+        users = db.scalars(stmt.order_by(User.created_at.desc()).limit(500)).all()
+        out = []
+        for user in users:
+            profile_count = db.scalar(select(func.count()).select_from(Profile).where(Profile.user_id == user.id)) or 0
+            device_count = db.scalar(select(func.count()).select_from(Device).where(Device.user_id == user.id)) or 0
+            last_seen = db.scalar(select(func.max(Device.last_seen_at)).where(Device.user_id == user.id))
+            credential = db.get(UserCredential, user.id)
+            out.append({
+                "id": str(user.id),
+                "email": user.email,
+                "status": user.status,
+                "created_at": user.created_at,
+                "last_login_at": user.last_login_at,
+                "profile_count": profile_count,
+                "device_count": device_count,
+                "last_seen_at": last_seen,
+                "has_password": credential is not None,
+            })
+        return {"items": out, "total": len(out)}
+
+@router.get("/app-users/{user_id}")
+def app_user_detail(user_id: uuid.UUID, principal: AdminPrincipal = Depends(require_admin)):
+    with SessionLocal() as db:
+        user = db.get(User, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        profiles = db.scalars(select(Profile).where(Profile.user_id == user.id).order_by(Profile.created_at)).all()
+        devices = db.scalars(select(Device).where(Device.user_id == user.id).order_by(Device.last_seen_at.desc())).all()
+
+        profile_rows = []
+        for profile in profiles:
+            progress_rows = db.scalars(
+                select(Progress).where(Progress.profile_id == profile.id).order_by(Progress.game)
+            ).all()
+            profile_rows.append({
+                "id": str(profile.id),
+                "name": profile.name,
+                "language": profile.language,
+                "age_group": profile.age_group,
+                "created_at": profile.created_at,
+                "progress": [{
+                    "game": x.game,
+                    "xp": x.xp,
+                    "level": x.level,
+                    "current_streak": x.current_streak,
+                    "best_streak": x.best_streak,
+                    "total_answered": x.total_answered,
+                    "total_correct": x.total_correct,
+                    "updated_at": x.updated_at,
+                } for x in progress_rows],
+            })
+
+        return {
+            "id": str(user.id),
+            "email": user.email,
+            "status": user.status,
+            "created_at": user.created_at,
+            "last_login_at": user.last_login_at,
+            "has_password": db.get(UserCredential, user.id) is not None,
+            "profiles": profile_rows,
+            "devices": [{
+                "id": str(x.id),
+                "platform": x.platform,
+                "device_name": x.device_name,
+                "app_version": x.app_version,
+                "last_seen_at": x.last_seen_at,
+            } for x in devices],
+        }
+
+@router.patch("/app-users/{user_id}/password", status_code=204)
+def set_app_user_password(
+    user_id: uuid.UUID,
+    body: AppUserPasswordIn,
+    principal: AdminPrincipal = Depends(require_admin_write),
+):
+    with SessionLocal() as db:
+        user = db.get(User, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        credential = db.get(UserCredential, user.id)
+        if credential is None:
+            credential = UserCredential(user_id=user.id, password_hash=password_hash(body.new_password))
+            db.add(credential)
+        else:
+            credential.password_hash = password_hash(body.new_password)
+            credential.updated_at = utcnow()
+
+        db.query(RefreshToken).filter(
+            RefreshToken.user_id == user.id,
+            RefreshToken.revoked_at.is_(None),
+        ).update({"revoked_at": utcnow()}, synchronize_session=False)
+
+        db.commit()
