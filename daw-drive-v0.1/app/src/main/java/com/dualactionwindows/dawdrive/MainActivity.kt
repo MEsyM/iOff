@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
 
         val triviaEngine = TriviaGameEngine(this)
         val accountManager = AccountManager(this)
+        val liveContent = LiveGameContent(this)
         val appVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "unknown"
         refreshPermissionState()
         drivingVoiceArmed = prefs.getBoolean(KEY_DRIVING_VOICE_ARMED, false)
@@ -83,8 +84,14 @@ class MainActivity : ComponentActivity() {
             var accountState by remember {
                 mutableStateOf(accountManager.state())
             }
+            var contentStatus by remember {
+                mutableStateOf(liveContent.diagnostics())
+            }
 
             LaunchedEffect(Unit) {
+                liveContent.refreshAll { result ->
+                    runOnUiThread { contentStatus = result }
+                }
                 if (accountState.loggedIn) {
                     accountState = accountManager.state(busy = true)
                     accountManager.restoreSession(profile.language.code) { result ->
@@ -245,6 +252,13 @@ class MainActivity : ComponentActivity() {
                             profile = triviaEngine.profile()
                             dashboard = triviaEngine.dashboardData()
                         }
+                    }
+                },
+                contentStatus = contentStatus,
+                onRefreshContent = {
+                    contentStatus = liveContent.diagnostics().copy(syncing = true)
+                    liveContent.refreshAll { result ->
+                        runOnUiThread { contentStatus = result }
                     }
                 }
             )
