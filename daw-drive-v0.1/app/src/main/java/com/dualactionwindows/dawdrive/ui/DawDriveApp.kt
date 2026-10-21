@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dualactionwindows.dawdrive.R
 import com.dualactionwindows.dawdrive.AccountManager
+import com.dualactionwindows.dawdrive.LiveGameContent
 import com.dualactionwindows.dawdrive.TriviaGameEngine
 import com.dualactionwindows.dawdrive.TriviaQuestionBank
 
@@ -95,7 +96,9 @@ fun DawDriveApp(
     onAccountLogin: (String, String) -> Unit,
     onAccountGuest: () -> Unit,
     onAccountLogout: () -> Unit,
-    onAccountSync: () -> Unit
+    onAccountSync: () -> Unit,
+    contentStatus: LiveGameContent.ContentStatus,
+    onRefreshContent: () -> Unit
 ) {
     var screen by remember { mutableStateOf(LoneScreen.HOME) }
 
@@ -187,7 +190,9 @@ fun DawDriveApp(
                     onBack = { screen = LoneScreen.HOME },
                     onOpenLogs = onDebugLogsClick,
                     onStopVoice = onRoadVoiceStop,
-                    onOpenCar = onCarPreviewClick
+                    onOpenCar = onCarPreviewClick,
+                    contentStatus = contentStatus,
+                    onRefreshContent = onRefreshContent
                 )
             }
         }
@@ -1267,7 +1272,9 @@ private fun DiagnosticsScreen(
     onBack: () -> Unit,
     onOpenLogs: () -> Unit,
     onStopVoice: () -> Unit,
-    onOpenCar: () -> Unit
+    onOpenCar: () -> Unit,
+    contentStatus: LiveGameContent.ContentStatus,
+    onRefreshContent: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -1285,6 +1292,49 @@ private fun DiagnosticsScreen(
             StatusCard(Modifier.weight(1f), "MIC", "READY")
             StatusCard(Modifier.weight(1f), "AUDIO", "READY")
             StatusCard(Modifier.weight(1f), "CAR", "AVAILABLE")
+        }
+
+        SectionCard("Live content") {
+            val sourceColor = if (contentStatus.source == "BACKEND") LoneRiderColors.Green else LoneRiderColors.Amber
+            Text(
+                "Content source: " + contentStatus.source,
+                color = sourceColor,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Content version: " + (contentStatus.contentVersion ?: "bundled/local"),
+                color = LoneRiderColors.TextSecondary,
+                fontSize = 13.sp
+            )
+            Text(
+                "Last sync: " + if (contentStatus.lastSyncAt > 0L) {
+                    java.text.DateFormat.getDateTimeInstance().format(java.util.Date(contentStatus.lastSyncAt))
+                } else {
+                    "never"
+                },
+                color = LoneRiderColors.TextSecondary,
+                fontSize = 13.sp
+            )
+            contentStatus.counts.forEach { (kind, count) ->
+                Text(
+                    kind.replace("_", " ").replaceFirstChar { it.uppercase() } + ": " + count,
+                    color = LoneRiderColors.TextSecondary,
+                    fontSize = 12.sp
+                )
+            }
+            if (!contentStatus.lastError.isNullOrBlank()) {
+                Text(
+                    "Last error: " + contentStatus.lastError,
+                    color = LoneRiderColors.Amber,
+                    fontSize = 12.sp
+                )
+            }
+            CompactButton(
+                if (contentStatus.syncing) "REFRESHING…" else "REFRESH CONTENT",
+                contentStatus.source == "BACKEND",
+                onRefreshContent
+            )
         }
 
         SectionCard("Runtime") {
