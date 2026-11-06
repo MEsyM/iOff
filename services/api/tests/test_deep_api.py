@@ -20,7 +20,7 @@ def test_full_user_profile_progress_and_admin_password_flow():
     from app.main import app
 
     with TestClient(app) as client:
-        email = f"ci-{uuid.uuid4().hex[:10]}@example.test"
+        email = f"ci-{uuid.uuid4().hex[:10]}@example.com"
         old_password = f"old-{uuid.uuid4().hex}"
         new_password = f"new-{uuid.uuid4().hex}"
 
