@@ -64,9 +64,11 @@ jobs:
         run: python -m compileall -q app
       - name: Run deep API tests
         working-directory: services/api
+        env:
+          PYTHONPATH: .
         run: |
           mkdir -p ../../artifacts
-          pytest -q tests/test_deep_api.py --junitxml=../../artifacts/backend-junit.xml
+          python -m pytest -q tests/test_deep_api.py --junitxml=../../artifacts/backend-junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -84,14 +86,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
       - name: Install SDK 36
         run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
       - name: Build debug APK
         run: gradle -p daw-drive-v0.1 assembleDebug --stacktrace --no-daemon
       - name: Lint
@@ -113,14 +114,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
       - name: Install SDK 36
         run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
       - name: Build APK for emulator
         run: gradle -p daw-drive-v0.1 assembleDebug --stacktrace --no-daemon
       - name: Install Maestro
