@@ -27,10 +27,17 @@ if [ "$settings_status" -ne 0 ]; then
   exit "$settings_status"
 fi
 
-# Require six non-empty screenshots from onboarding, home, games, diagnostics, settings and account.
-count=$(find artifacts/maestro-guest artifacts/maestro-settings -type f -name '*.png' -size +1k | wc -l)
+maestro test .maestro/ai-english-v2.yaml --format junit --output artifacts/maestro-ai-english.xml --test-output-dir=artifacts/maestro-ai-english
+ai_english_status=$?
+if [ "$ai_english_status" -ne 0 ]; then
+  capture_failure ai-english
+  exit "$ai_english_status"
+fi
+
+# Require seven non-empty screenshots including the AI English v2 configuration journey.
+count=$(find artifacts/maestro-guest artifacts/maestro-settings artifacts/maestro-ai-english -type f -name '*.png' -size +1k | wc -l)
 echo "Maestro screenshot evidence: $count PNG files"
-if [ "$count" -lt 6 ]; then
+if [ "$count" -lt 7 ]; then
   capture_failure screenshots
   exit 1
 fi
