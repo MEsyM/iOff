@@ -144,3 +144,33 @@ def test_live_content_manifest_and_each_published_kind_are_readable():
             body = response.json()
             assert body["contentVersion"] == payload["contentVersion"]
             assert len(body["items"]) == meta["count"]
+
+
+def test_ai_english_conversation_turn_has_safe_fallback_shape():
+    reset_db()
+    from app.main import app
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/english/conversation/turn",
+            json={
+                "session_id": "ci-english-session",
+                "level": "B2",
+                "topic": "business",
+                "scenario": "sales_call",
+                "user_text": "We need a better solution because our current process is too slow.",
+                "turn": 1,
+                "gentle_corrections": True,
+                "history": [
+                    {"role": "assistant", "text": "Hi, thanks for calling. Tell me what problem you are trying to solve."}
+                ],
+            },
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert isinstance(body["natural"], bool)
+        assert body["feedback"]
+        assert body["next_prompt"]
+        for key in ("grammar", "vocabulary", "fluency", "pronunciation"):
+            assert 0 <= body[key] <= 100
+        assert body["source"] in {"fallback", "ai"}
