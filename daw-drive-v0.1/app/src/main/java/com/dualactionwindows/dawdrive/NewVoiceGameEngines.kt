@@ -198,7 +198,7 @@ class AiEnglishConversationEngine(private val context: Context) {
     private var fluencyTotal = 0
     private var pronunciationTotal = 0
     private val history = mutableListOf<Pair<String, String>>()
-    private val sessionId = UUID.randomUUID().toString()
+    private var sessionId = UUID.randomUUID().toString()
 
     init {
         reset()
@@ -247,6 +247,7 @@ class AiEnglishConversationEngine(private val context: Context) {
     }
 
     fun reset() {
+        sessionId = UUID.randomUUID().toString()
         answered = 0
         grammarTotal = 0
         vocabularyTotal = 0
