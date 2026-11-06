@@ -18,10 +18,21 @@ name: Guest core journey
 - tapOn:
     text: "Games|Hry"
 - assertVisible: "Quick Trivia"
+- scrollUntilVisible:
+    element:
+      text: "Name That Sound"
+    direction: DOWN
+    timeout: 10000
 - assertVisible: "Name That Sound"
-- assertVisible: "AI English Conversation"
+- scrollUntilVisible:
+    element:
+      text: "AI English|AI English Conversation"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    text: "AI English|AI English Conversation"
 - takeScreenshot: artifacts/screenshots/03-games
-- tapOn: "‹ BACK"
+- pressKey: BACK
 - assertVisible:
     text: "Tools|Nástroje"
 - tapOn:
