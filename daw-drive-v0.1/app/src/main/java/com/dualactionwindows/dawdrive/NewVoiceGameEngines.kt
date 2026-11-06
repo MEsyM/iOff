@@ -282,8 +282,8 @@ class AiEnglishConversationEngine(private val context: Context) {
         vocabularyTotal += reply.vocabulary.coerceIn(0, 100)
         fluencyTotal += reply.fluency.coerceIn(0, 100)
         pronunciationTotal += reply.pronunciation.coerceIn(0, 100)
-        history += "user" to spoken
-        history += "assistant" to reply.nextPrompt
+        history.add("user" to spoken)
+        history.add("assistant" to reply.nextPrompt)
         while (history.size > 12) history.removeAt(0)
         currentPrompt = if (answered >= SESSION_TURNS) {
             openingPrompt(settings().scenario)
