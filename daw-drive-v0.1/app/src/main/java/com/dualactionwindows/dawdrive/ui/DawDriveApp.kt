@@ -1246,7 +1246,7 @@ private fun SettingsScreen(
         SettingsRow(
             title = if (cs) "Účet & cloud" else "Account & cloud",
             subtitle = if (cs) "Přihlášení, profil a synchronizace progressu" else "Sign in, profile and progress sync",
-            actions = { CompactButton(if (cs) "ÚČET" else "ACCOUNT", true, onAccount) }
+            actions = { CompactButton(if (cs) "OTEVŘÍT ÚČET" else "OPEN ACCOUNT", true, onAccount) }
         )
 
         SettingsRow(
