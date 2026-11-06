@@ -1,0 +1,17 @@
+appId: com.dualactionwindows.dawdrive
+name: Settings and account journey
+---
+- launchApp
+- assertVisible: "LONE RIDER"
+- tapOn: "SETTINGS"
+- assertVisible: "Settings"
+- assertVisible: "Account & cloud"
+- takeScreenshot: artifacts/screenshots/05-settings
+- tapOn:
+    text: "OPEN"
+    index: 0
+- assertVisible: "ACCOUNT & CLOUD"
+- assertVisible: "Guest"
+- takeScreenshot: artifacts/screenshots/06-account-cloud
+- tapOn: "‹ BACK"
+- assertVisible: "Settings"
