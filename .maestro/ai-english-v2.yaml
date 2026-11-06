@@ -1,0 +1,33 @@
+appId: com.dualactionwindows.dawdrive
+name: AI English v2 settings journey
+---
+- launchApp
+- assertVisible: "LONE RIDER"
+- tapOn:
+    text: "SETTINGS|NASTAVENÍ"
+- assertVisible:
+    text: "Settings|Nastavení"
+- scrollUntilVisible:
+    element:
+      text: "English"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    text: "PROFILES|PROFILY"
+- assertVisible: "English profiles"
+- scrollUntilVisible:
+    element:
+      text: "AI Conversation v2"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "AI Conversation v2"
+- assertVisible: "CEFR level"
+- tapOn: "C2"
+- scrollUntilVisible:
+    element:
+      text: "Customer complaint"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Customer complaint"
+- assertVisible: "GENTLE|DIRECT"
+- takeScreenshot: artifacts/screenshots/07-ai-english-v2
