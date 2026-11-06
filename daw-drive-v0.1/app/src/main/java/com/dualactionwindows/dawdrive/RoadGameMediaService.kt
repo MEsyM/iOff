@@ -1971,6 +1971,8 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                             }
                         }.trim()
                         if (r.sessionFinished) {
+                            val snapshot = aiEnglishEngine.sessionSnapshot()
+                            AccountManager(this@RoadGameMediaService).syncAiEnglishSession(snapshot)
                             aiEnglishEngine.reset()
                         }
                         speakEnglishSequence(
