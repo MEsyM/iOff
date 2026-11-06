@@ -63,19 +63,23 @@ jobs:
           python -m pip install pytest httpx
       - name: Compile backend
         working-directory: services/api
-        run: python -m compileall -q app
+        run: |
+          mkdir -p ../../artifacts
+          set -o pipefail
+          python -m compileall -q app 2>&1 | tee ../../artifacts/backend-compile.log
       - name: Run deep API tests
         working-directory: services/api
         env:
           PYTHONPATH: .
         run: |
           mkdir -p ../../artifacts
-          python -m pytest -q tests/test_deep_api.py --junitxml=../../artifacts/backend-junit.xml
+          set -o pipefail
+          python -m pytest -q tests/test_deep_api.py --junitxml=../../artifacts/backend-junit.xml 2>&1 | tee ../../artifacts/backend-pytest.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: backend-deep-report
-          path: artifacts/backend-junit.xml
+          path: artifacts/
           if-no-files-found: warn
 
   android-build:
@@ -96,14 +100,25 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"
       - name: Build debug APK
-        run: gradle -p daw-drive-v0.1 assembleDebug --stacktrace --no-daemon
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          gradle -p daw-drive-v0.1 assembleDebug --stacktrace --no-daemon 2>&1 | tee artifacts/android-build.log
       - name: Lint
-        run: gradle -p daw-drive-v0.1 lintDebug --stacktrace --no-daemon
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          gradle -p daw-drive-v0.1 lintDebug --stacktrace --no-daemon 2>&1 | tee artifacts/android-lint.log
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: lone-rider-deep-test-apk
-          path: daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          name: lone-rider-android-build
+          path: |
+            artifacts/
+            daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk
+            daw-drive-v0.1/app/build/reports/lint-results-debug.html
+            daw-drive-v0.1/app/build/reports/lint-results-debug.xml
+          if-no-files-found: warn
 
   android-e2e:
     name: Android emulator E2E and screenshots
