@@ -143,10 +143,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            mkdir -p artifacts/screenshots
-            adb install -r daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk
-            maestro test .maestro/guest-core.yaml --format junit --output artifacts/maestro-guest.xml
-            maestro test .maestro/settings-account.yaml --format junit --output artifacts/maestro-settings.xml
+            bash .github/scripts/run-lone-rider-e2e.sh
       - name: Capture failure evidence
         if: failure()
         run: |
