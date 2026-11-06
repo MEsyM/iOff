@@ -1,0 +1,25 @@
+appId: com.dualactionwindows.dawdrive
+name: Guest core journey
+---
+- launchApp:
+    clearState: true
+- assertVisible: "CONTINUE AS GUEST"
+- takeScreenshot: artifacts/screenshots/01-onboarding
+- tapOn: "CONTINUE AS GUEST"
+- assertVisible: "LONE RIDER"
+- assertVisible: "Games"
+- takeScreenshot: artifacts/screenshots/02-home
+- tapOn: "Games"
+- assertVisible: "Quick Trivia"
+- assertVisible: "Name That Sound"
+- assertVisible: "AI English Conversation"
+- takeScreenshot: artifacts/screenshots/03-games
+- tapOn: "‹ BACK"
+- assertVisible: "Tools"
+- tapOn: "Tools"
+- assertVisible: "Diagnostics"
+- assertVisible: "Live content"
+- extendedWaitUntil:
+    visible: "Content source: BACKEND"
+    timeout: 15000
+- takeScreenshot: artifacts/screenshots/04-diagnostics-backend
