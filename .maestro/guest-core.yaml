@@ -3,21 +3,31 @@ name: Guest core journey
 ---
 - launchApp:
     clearState: true
-- assertVisible: "CONTINUE AS GUEST"
+- scrollUntilVisible:
+    element:
+      text: "CONTINUE AS GUEST|POKRAČOVAT JAKO HOST"
+    direction: DOWN
+    timeout: 10000
 - takeScreenshot: artifacts/screenshots/01-onboarding
-- tapOn: "CONTINUE AS GUEST"
+- tapOn:
+    text: "CONTINUE AS GUEST|POKRAČOVAT JAKO HOST"
 - assertVisible: "LONE RIDER"
-- assertVisible: "Games"
+- assertVisible:
+    text: "Games|Hry"
 - takeScreenshot: artifacts/screenshots/02-home
-- tapOn: "Games"
+- tapOn:
+    text: "Games|Hry"
 - assertVisible: "Quick Trivia"
 - assertVisible: "Name That Sound"
 - assertVisible: "AI English Conversation"
 - takeScreenshot: artifacts/screenshots/03-games
 - tapOn: "‹ BACK"
-- assertVisible: "Tools"
-- tapOn: "Tools"
-- assertVisible: "Diagnostics"
+- assertVisible:
+    text: "Tools|Nástroje"
+- tapOn:
+    text: "Tools|Nástroje"
+- assertVisible:
+    text: "Diagnostics|Diagnostika"
 - assertVisible: "Live content"
 - extendedWaitUntil:
     visible: "Content source: BACKEND"
