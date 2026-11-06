@@ -13,10 +13,12 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  actions: read
+  pull-requests: write
 
 concurrency:
-  group: lone-rider-deep-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: lone-rider-deep-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
