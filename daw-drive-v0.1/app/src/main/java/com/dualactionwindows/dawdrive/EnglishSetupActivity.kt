@@ -36,11 +36,14 @@ class EnglishSetupActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val engine = EnglishLearningEngine(this)
+        val aiEngine = AiEnglishConversationEngine(this)
 
         setContent {
             var selectedPlayer by remember { mutableStateOf(engine.selectedPlayerId()) }
             var revision by remember { mutableStateOf(0) }
+            var aiRevision by remember { mutableStateOf(0) }
             val profile = remember(selectedPlayer, revision) { engine.settings(selectedPlayer) }
+            val aiSettings = remember(aiRevision) { aiEngine.settings() }
             val names = engine.playerNames()
 
             LoneRiderTheme {
@@ -145,6 +148,88 @@ class EnglishSetupActivity : ComponentActivity() {
                                         EnglishLearningEngine.Mode.CHALLENGE
                                     )
                                     revision++
+                                }
+                            }
+                        }
+
+                        Section("AI Conversation v2") {
+                            Text(
+                                "Hands-free role-play. AI drží kontext, průběžně opravuje angličtinu a po 8 tazích dá skóre.",
+                                color = LoneRiderColors.TextSecondary,
+                                fontSize = 13.sp
+                            )
+
+                            Text("CEFR level", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    AiEnglishConversationEngine.Level.A1,
+                                    AiEnglishConversationEngine.Level.A2,
+                                    AiEnglishConversationEngine.Level.B1
+                                ).forEach { level ->
+                                    ChoiceButton(level.name, aiSettings.level == level) {
+                                        aiEngine.saveSettings(level, aiSettings.topic, aiSettings.scenario, aiSettings.gentleCorrections)
+                                        aiRevision++
+                                    }
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    AiEnglishConversationEngine.Level.B2,
+                                    AiEnglishConversationEngine.Level.C1,
+                                    AiEnglishConversationEngine.Level.C2
+                                ).forEach { level ->
+                                    ChoiceButton(level.name, aiSettings.level == level) {
+                                        aiEngine.saveSettings(level, aiSettings.topic, aiSettings.scenario, aiSettings.gentleCorrections)
+                                        aiRevision++
+                                    }
+                                }
+                            }
+
+                            Text("Topic", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    AiEnglishConversationEngine.Topic.TRAVEL,
+                                    AiEnglishConversationEngine.Topic.BUSINESS
+                                ).forEach { topic ->
+                                    ChoiceButton(topic.label, aiSettings.topic == topic) {
+                                        aiEngine.saveSettings(aiSettings.level, topic, aiSettings.scenario, aiSettings.gentleCorrections)
+                                        aiRevision++
+                                    }
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    AiEnglishConversationEngine.Topic.DAILY_LIFE,
+                                    AiEnglishConversationEngine.Topic.KIDS
+                                ).forEach { topic ->
+                                    ChoiceButton(topic.label, aiSettings.topic == topic) {
+                                        aiEngine.saveSettings(aiSettings.level, topic, aiSettings.scenario, aiSettings.gentleCorrections)
+                                        aiRevision++
+                                    }
+                                }
+                            }
+
+                            Text("Role-play", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            AiEnglishConversationEngine.Scenario.entries.chunked(2).forEach { row ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    row.forEach { scenario ->
+                                        ChoiceButton(scenario.label, aiSettings.scenario == scenario) {
+                                            aiEngine.saveSettings(aiSettings.level, aiSettings.topic, scenario, aiSettings.gentleCorrections)
+                                            aiRevision++
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text("Corrections", color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ChoiceButton("GENTLE", aiSettings.gentleCorrections) {
+                                    aiEngine.saveSettings(aiSettings.level, aiSettings.topic, aiSettings.scenario, true)
+                                    aiRevision++
+                                }
+                                ChoiceButton("DIRECT", !aiSettings.gentleCorrections) {
+                                    aiEngine.saveSettings(aiSettings.level, aiSettings.topic, aiSettings.scenario, false)
+                                    aiRevision++
                                 }
                             }
                         }

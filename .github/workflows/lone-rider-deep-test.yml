@@ -7,14 +7,11 @@ on:
       - 'services/api/**'
       - '.maestro/**'
       - '.github/workflows/lone-rider-deep-test.yml'
-  push:
-    branches:
-      - codex/lone-rider-mcp-deep-test-system
   workflow_dispatch:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
   pull-requests: write
 
 concurrency:
@@ -185,8 +182,8 @@ jobs:
       - android-e2e
     if: >-
       always() &&
-      github.event_name == 'push' &&
-      github.ref_name == 'codex/lone-rider-mcp-deep-test-system' &&
+      startsWith(github.event.pull_request.head.ref || github.ref_name, 'codex/lone-rider-') &&
+      (github.event.pull_request.head.ref || github.ref_name) != 'codex/lone-rider-v1.18-user-admin' &&
       (
         needs.backend-deep.result != 'success' ||
         needs.android-build.result != 'success' ||
@@ -195,7 +192,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      TARGET_BRANCH: codex/lone-rider-mcp-deep-test-system
+      TARGET_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
       BASE_BRANCH: codex/lone-rider-v1.18-user-admin
       MAX_SELF_HEAL_ATTEMPTS: "10"
 
@@ -203,7 +200,7 @@ jobs:
       - name: Check out failing branch
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ env.TARGET_BRANCH }}
           fetch-depth: 0
 
       - name: Verify OpenAI key
@@ -239,7 +236,7 @@ jobs:
             Repair the current Lone Rider branch after a failed deep-test run.
             Diagnose the failure from .self-heal/evidence and the current source tree.
             The required result is that all existing checks pass: backend deep API,
-            Android build/lint, Android emulator E2E, both Maestro journeys, and
+            Android build/lint, Android emulator E2E, all Maestro journeys, and
             required screenshot evidence.
 
             Make the smallest safe production-quality fix.
@@ -261,8 +258,9 @@ jobs:
           fi
           git diff --check
 
-      - name: Commit and push repair
+      - name: Commit, push and immediately retest repair
         env:
+          GH_TOKEN: ${{ github.token }}
           ATTEMPT: ${{ steps.attempts.outputs.count }}
         run: |
           NEXT=$((ATTEMPT + 1))
@@ -271,6 +269,7 @@ jobs:
           git add -A
           git commit -m "self-heal: Lone Rider CI repair attempt $NEXT"
           git push origin "HEAD:$TARGET_BRANCH"
+          gh workflow run lone-rider-deep-test.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
 
   finish:
     name: Auto-merge when green
@@ -280,15 +279,15 @@ jobs:
       - android-e2e
     if: >-
       always() &&
-      github.event_name == 'push' &&
-      github.ref_name == 'codex/lone-rider-mcp-deep-test-system' &&
+      startsWith(github.event.pull_request.head.ref || github.ref_name, 'codex/lone-rider-') &&
+      (github.event.pull_request.head.ref || github.ref_name) != 'codex/lone-rider-v1.18-user-admin' &&
       needs.backend-deep.result == 'success' &&
       needs.android-build.result == 'success' &&
       needs.android-e2e.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      TARGET_BRANCH: codex/lone-rider-mcp-deep-test-system
+      TARGET_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
       BASE_BRANCH: codex/lone-rider-v1.18-user-admin
 
     steps:
