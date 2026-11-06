@@ -9,7 +9,7 @@ name: AI English v2 settings journey
     text: "Settings|Nastavení"
 - scrollUntilVisible:
     element:
-      text: "English"
+      text: "PROFILES|PROFILY"
     direction: DOWN
     timeout: 10000
 - tapOn:
