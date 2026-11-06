@@ -186,7 +186,7 @@ class AccountManager(private val context: Context) {
                     .put("game", "ai_english")
                     .put("event_type", "progress_snapshot")
                     .put("question_id", snapshot.scenario)
-                    .put("xp_delta", snapshot.sessionCount * 100)
+                    .put("xp_delta", 100)
                     .put("correct", JSONObject.NULL)
                     .put("occurred_at", Instant.now().toString())
                     .put(
