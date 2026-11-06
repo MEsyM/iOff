@@ -7,14 +7,11 @@ on:
       - 'services/api/**'
       - '.maestro/**'
       - '.github/workflows/lone-rider-deep-test.yml'
-  push:
-    branches:
-      - 'codex/lone-rider-*'
   workflow_dispatch:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
   pull-requests: write
 
 concurrency:
@@ -261,8 +258,9 @@ jobs:
           fi
           git diff --check
 
-      - name: Commit and push repair
+      - name: Commit, push and immediately retest repair
         env:
+          GH_TOKEN: ${{ github.token }}
           ATTEMPT: ${{ steps.attempts.outputs.count }}
         run: |
           NEXT=$((ATTEMPT + 1))
@@ -271,6 +269,7 @@ jobs:
           git add -A
           git commit -m "self-heal: Lone Rider CI repair attempt $NEXT"
           git push origin "HEAD:$TARGET_BRANCH"
+          gh workflow run lone-rider-deep-test.yml --repo "$GITHUB_REPOSITORY" --ref "$TARGET_BRANCH"
 
   finish:
     name: Auto-merge when green
