@@ -7,11 +7,16 @@ name: Settings and account journey
     text: "SETTINGS|NASTAVENÍ"
 - assertVisible:
     text: "Settings|Nastavení"
+- scrollUntilVisible:
+    element:
+      text: "Account & cloud|Účet & cloud"
+    direction: DOWN
+    timeout: 10000
 - assertVisible:
     text: "Account & cloud|Účet & cloud"
 - takeScreenshot: artifacts/screenshots/05-settings
 - tapOn:
-    text: "OPEN"
+    text: "OPEN|OTEVŘÍT"
     index: 0
 - assertVisible:
     text: "ACCOUNT & CLOUD|ÚČET & CLOUD"
