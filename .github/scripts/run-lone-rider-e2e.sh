@@ -13,20 +13,27 @@ capture_failure() {
 
 adb install -r daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk
 
-maestro test .maestro/guest-core.yaml --format junit --output artifacts/maestro-guest.xml
+maestro test .maestro/guest-core.yaml --format junit --output artifacts/maestro-guest.xml --test-output-dir=artifacts/maestro-guest
 guest_status=$?
 if [ "$guest_status" -ne 0 ]; then
   capture_failure guest
   exit "$guest_status"
 fi
 
-maestro test .maestro/settings-account.yaml --format junit --output artifacts/maestro-settings.xml
+maestro test .maestro/settings-account.yaml --format junit --output artifacts/maestro-settings.xml --test-output-dir=artifacts/maestro-settings
 settings_status=$?
 if [ "$settings_status" -ne 0 ]; then
   capture_failure settings
   exit "$settings_status"
 fi
 
+# Require six non-empty screenshots from onboarding, home, games, diagnostics, settings and account.
+count=$(find artifacts/maestro-guest artifacts/maestro-settings -type f -name '*.png' -size +1k | wc -l)
+echo "Maestro screenshot evidence: $count PNG files"
+if [ "$count" -lt 6 ]; then
+  capture_failure screenshots
+  exit 1
+fi
 adb exec-out screencap -p > artifacts/screenshots/07-final.png || true
 adb logcat -d > artifacts/logcat.txt || true
 exit 0
