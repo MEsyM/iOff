@@ -105,7 +105,7 @@ jobs:
 
   android-e2e:
     name: Android emulator E2E and screenshots
-    runs-on: macos-14
+    runs-on: ubuntu-latest
     timeout-minutes: 35
     needs: android-build
     steps:
@@ -127,6 +127,12 @@ jobs:
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Enable KVM access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: Run phone journeys
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -135,6 +141,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
             mkdir -p artifacts/screenshots
             adb install -r daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk
