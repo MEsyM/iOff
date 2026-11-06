@@ -185,9 +185,8 @@ jobs:
       - android-e2e
     if: >-
       always() &&
-      github.event_name == 'push' &&
-      startsWith(github.ref_name, 'codex/lone-rider-') &&
-      github.ref_name != 'codex/lone-rider-v1.18-user-admin' &&
+      startsWith(github.event.pull_request.head.ref || github.ref_name, 'codex/lone-rider-') &&
+      (github.event.pull_request.head.ref || github.ref_name) != 'codex/lone-rider-v1.18-user-admin' &&
       (
         needs.backend-deep.result != 'success' ||
         needs.android-build.result != 'success' ||
@@ -196,7 +195,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      TARGET_BRANCH: ${{ github.ref_name }}
+      TARGET_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
       BASE_BRANCH: codex/lone-rider-v1.18-user-admin
       MAX_SELF_HEAL_ATTEMPTS: "10"
 
@@ -204,7 +203,7 @@ jobs:
       - name: Check out failing branch
         uses: actions/checkout@v5
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ env.TARGET_BRANCH }}
           fetch-depth: 0
 
       - name: Verify OpenAI key
@@ -281,16 +280,15 @@ jobs:
       - android-e2e
     if: >-
       always() &&
-      github.event_name == 'push' &&
-      startsWith(github.ref_name, 'codex/lone-rider-') &&
-      github.ref_name != 'codex/lone-rider-v1.18-user-admin' &&
+      startsWith(github.event.pull_request.head.ref || github.ref_name, 'codex/lone-rider-') &&
+      (github.event.pull_request.head.ref || github.ref_name) != 'codex/lone-rider-v1.18-user-admin' &&
       needs.backend-deep.result == 'success' &&
       needs.android-build.result == 'success' &&
       needs.android-e2e.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      TARGET_BRANCH: ${{ github.ref_name }}
+      TARGET_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
       BASE_BRANCH: codex/lone-rider-v1.18-user-admin
 
     steps:
