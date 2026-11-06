@@ -162,7 +162,7 @@ class AccountManager(private val context: Context) {
 
     fun syncAiEnglishSession(
         snapshot: AiEnglishConversationEngine.SessionSnapshot,
-        callback: (AccountState) -> Unit = {}
+        callback: (AccountState) -> Unit = { _ -> }
     ) {
         val profileId = prefs.getString(KEY_PROFILE_ID, null)
         if (
