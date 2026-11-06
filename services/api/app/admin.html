@@ -31,7 +31,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px;bord
 <button class="secondary" onclick="newItem()">+ New</button><button class="primary" onclick="publish()">Publish version</button></div><div id="content"></div></div></main></div>
 <div id="modal"><div class="modalbox"><div style="display:flex"><h2 id="modalTitle">Edit</h2><button class="secondary" style="margin-left:auto" onclick="closeModal()">Close</button></div><div id="form" class="grid"></div><div style="display:flex;gap:8px;margin-top:16px"><button class="primary" onclick="save()">Save draft</button><button class="secondary" onclick="archiveCurrent()">Disable / archive</button></div></div></div>
 <script>
-const kinds=[["trivia","Trivia"],["kids_game","Kids Trivia EN/CZ"],["kids_trivia","Kids Trivia CZ Pack"],["guess_who","Guess WHO"],["spelling_bee","Spelling Bee"],["english_lesson","English Lessons"],["game_config","Game Settings"],["releases","Releases"],["admin_users","Admin Users"]];
+const kinds=[["trivia","Trivia"],["kids_game","Kids Trivia EN/CZ"],["kids_trivia","Kids Trivia CZ Pack"],["guess_who","Guess WHO"],["spelling_bee","Spelling Bee"],["english_lesson","English Lessons"],["game_config","Game Settings"],["releases","Releases"],["app_users","App Users"],["admin_users","Admin Users"]];
 let kind="trivia",items=[],current=null,csrf="",me=null,setupRequired=false;
 function headers(write=false){let out={"Content-Type":"application/json"};if(write&&csrf)out["X-CSRF-Token"]=csrf;return out}
 async function api(url,opt={}){let write=opt.method&&opt.method!=="GET";opt.headers={...(opt.headers||{}),...headers(write)};opt.credentials="same-origin";let r=await fetch(url,opt);if(r.status===401){document.querySelector("#login").style.display="flex";throw Error("Unauthorized")}if(!r.ok){let t=await r.text();throw Error(t)}return r.status===204?null:r.json()}
@@ -41,7 +41,7 @@ async function login(){loginError.style.display="none";try{let body={login:email
 async function logout(){try{await api("/v1/admin/auth/logout",{method:"POST"})}catch(e){}csrf="";me=null;document.querySelector("#login").style.display="flex";await checkAuth()}
 function makeNav(){nav.innerHTML=kinds.map(x=>'<button data-k="'+x[0]+'" onclick="selectKind(\''+x[0]+'\')">'+x[1]+'</button>').join("");markNav()}function markNav(){document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.k===kind))}
 function selectKind(k){kind=k;markNav();category.value="";loadItems()}async function loadSummary(){let s=await api("/v1/admin/content/summary");releaseLabel.textContent=s.active_release?"LIVE "+s.active_release:"NOT PUBLISHED";cards.innerHTML=Object.entries(s.counts).map(([k,v])=>'<div class="card"><span class="muted">'+k.replaceAll("_"," ")+'</span><strong>'+v+'</strong></div>').join("")}
-async function loadItems(){applyRoleUi();if(kind==="releases")return loadReleases();if(kind==="admin_users")return loadAdminUsers();let d=await api('/v1/admin/content?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(search.value||"")+'&category='+encodeURIComponent(category.value||"")+'&page_size=200');items=d.items;renderTable();refreshCats()}
+async function loadItems(){applyRoleUi();if(kind==="releases")return loadReleases();if(kind==="app_users")return loadAppUsers();if(kind==="admin_users")return loadAdminUsers();let d=await api('/v1/admin/content?kind='+encodeURIComponent(kind)+'&q='+encodeURIComponent(search.value||"")+'&category='+encodeURIComponent(category.value||"")+'&page_size=200');items=d.items;renderTable();refreshCats()}
 function label(x){let d=x.data||{};return d.localized?.en?.prompt||d.prompt||d.promptEn||d.name||d.word||x.public_id}
 function renderTable(){let canEdit=me&&["editor","admin"].includes(me.role);content.innerHTML='<table><thead><tr><th>ID</th><th>Content</th><th>Category</th><th>Difficulty</th><th>Status</th><th></th></tr></thead><tbody>'+items.map(x=>'<tr><td>'+esc(x.public_id)+'</td><td>'+esc(label(x))+'</td><td>'+esc(x.category||"")+'</td><td>'+(x.difficulty??"")+'</td><td><span class="badge">'+x.status+'</span> '+(x.enabled?"":"<span class=off>OFF</span>")+'</td><td>'+(canEdit?'<button class=secondary onclick="edit(\''+x.id+'\')">Edit</button>':'')+'</td></tr>').join("")+'</tbody></table>'}
 function refreshCats(){let cs=[...new Set(items.map(x=>x.category).filter(Boolean))].sort();let cur=category.value;category.innerHTML='<option value="">All categories</option>'+cs.map(x=>'<option>'+esc(x)+'</option>').join("");category.value=cur}
@@ -68,7 +68,65 @@ async function publish(){let note=prompt("Release note (optional):","Content upd
 async function loadReleases(){let rs=await api("/v1/admin/releases");content.innerHTML='<table><tr><th>Version</th><th>Items</th><th>Published</th><th>Note</th><th></th></tr>'+rs.map(r=>'<tr><td><b>'+r.version+'</b> '+(r.active?'<span class=badge>LIVE</span>':'')+'</td><td>'+r.item_count+'</td><td>'+new Date(r.published_at).toLocaleString()+'</td><td>'+esc(r.note||"")+'</td><td>'+(r.active?"":'<button class=secondary onclick="activate(\''+r.id+'\')">Activate / rollback</button>')+'</td></tr>').join("")+'</table>'}
 async function activate(id){if(confirm("Make this version live?")){await api("/v1/admin/releases/"+id+"/activate",{method:"POST"});loadSummary();loadReleases()}}makeNav();
 
-function applyRoleUi(){document.querySelectorAll(".editorOnly").forEach(x=>x.style.display=me&&["editor","admin"].includes(me.role)?"":"none");document.querySelectorAll(".adminOnly").forEach(x=>x.style.display=me&&me.role==="admin"?"":"none");document.querySelectorAll('nav button[data-k="admin_users"]').forEach(x=>x.style.display=me&&me.role==="admin"?"":"none")}
+function applyRoleUi(){document.querySelectorAll(".editorOnly").forEach(x=>x.style.display=me&&["editor","admin"].includes(me.role)?"":"none");document.querySelectorAll(".adminOnly").forEach(x=>x.style.display=me&&me.role==="admin"?"":"none");document.querySelectorAll('nav button[data-k="admin_users"],nav button[data-k="app_users"]').forEach(x=>x.style.display=me&&me.role==="admin"?"":"none")}
+
+async function loadAppUsers(){
+  if(!me||me.role!=="admin"){content.innerHTML="<p>Admin role required.</p>";return}
+  let q=search.value||"";
+  let d=await api("/v1/admin/auth/app-users?q="+encodeURIComponent(q));
+  content.innerHTML=
+    '<div class="toolbar"><input id="userSearch" placeholder="Search users by email…" value="'+esc(q)+'" oninput="search.value=this.value;loadAppUsers()"></div>'+
+    '<table><tr><th>Email</th><th>Status</th><th>Profiles</th><th>Devices</th><th>Last login</th><th>Last seen</th><th></th></tr>'+
+    d.items.map(r=>
+      '<tr><td><b>'+esc(r.email)+'</b><br><span class="muted">'+(r.has_password?"Password login":"No password")+'</span></td>'+
+      '<td><span class="badge">'+esc(r.status)+'</span></td>'+
+      '<td>'+r.profile_count+'</td>'+
+      '<td>'+r.device_count+'</td>'+
+      '<td>'+(r.last_login_at?new Date(r.last_login_at).toLocaleString():"—")+'</td>'+
+      '<td>'+(r.last_seen_at?new Date(r.last_seen_at).toLocaleString():"—")+'</td>'+
+      '<td style="white-space:nowrap"><button class="secondary" onclick="viewAppUser(\''+r.id+'\')">Details</button> '+
+      '<button class="primary" onclick="changeAppUserPassword(\''+r.id+'\',\''+esc(r.email).replaceAll("&#39;","")+'\')">Change password</button></td></tr>'
+    ).join("")+
+    '</table>';
+}
+
+async function viewAppUser(id){
+  let u=await api("/v1/admin/auth/app-users/"+id);
+  let profileHtml=(u.profiles||[]).map(p=>{
+    let progress=(p.progress||[]).map(x=>
+      '<tr><td>'+esc(x.game)+'</td><td>'+x.level+'</td><td>'+x.xp+'</td><td>'+x.total_correct+' / '+x.total_answered+'</td><td>'+x.best_streak+'</td></tr>'
+    ).join("");
+    return '<div class="panel" style="margin-top:12px"><b>'+esc(p.name)+'</b> <span class="badge">'+esc(p.language)+'</span>'+
+      '<div class="muted" style="margin:6px 0">Profile '+esc(p.id)+'</div>'+
+      (progress?'<table><tr><th>Game</th><th>Level</th><th>XP</th><th>Correct</th><th>Best streak</th></tr>'+progress+'</table>':'<p class="muted">No synced progress yet.</p>')+
+      '</div>';
+  }).join("");
+  let devices=(u.devices||[]).map(d=>
+    '<tr><td>'+esc(d.platform)+'</td><td>'+esc(d.device_name||"—")+'</td><td>'+esc(d.app_version||"—")+'</td><td>'+(d.last_seen_at?new Date(d.last_seen_at).toLocaleString():"—")+'</td></tr>'
+  ).join("");
+
+  content.innerHTML=
+    '<div class="toolbar"><button class="secondary" onclick="loadAppUsers()">← Back to users</button>'+
+    '<button class="primary" onclick="changeAppUserPassword(\''+u.id+'\',\''+esc(u.email).replaceAll("&#39;","")+'\')">Change password</button></div>'+
+    '<div class="panel"><h2 style="margin-top:0">'+esc(u.email)+'</h2>'+
+    '<div class="muted">Status: '+esc(u.status)+' · Created: '+new Date(u.created_at).toLocaleString()+
+    ' · Last login: '+(u.last_login_at?new Date(u.last_login_at).toLocaleString():"—")+'</div></div>'+
+    '<h3>Profiles</h3>'+(profileHtml||'<p class="muted">No profiles.</p>')+
+    '<h3>Devices</h3>'+(devices?'<table><tr><th>Platform</th><th>Device</th><th>App version</th><th>Last seen</th></tr>'+devices+'</table>':'<p class="muted">No devices.</p>');
+}
+
+async function changeAppUserPassword(id,email){
+  let pw=prompt("Set new password for "+email+" (minimum 6 characters):","");
+  if(pw===null)return;
+  if(pw.length<6){alert("Password must be at least 6 characters.");return}
+  let confirmPw=prompt("Repeat the new password:","");
+  if(confirmPw===null)return;
+  if(pw!==confirmPw){alert("Passwords do not match.");return}
+  await api("/v1/admin/auth/app-users/"+id+"/password",{method:"PATCH",body:JSON.stringify({new_password:pw})});
+  alert("Password changed. Existing refresh sessions were signed out.");
+  if(kind==="app_users")loadAppUsers();
+}
+
 async function loadAdminUsers(){if(!me||me.role!=="admin"){content.innerHTML="<p>Admin role required.</p>";return}let rows=await api("/v1/admin/auth/users");content.innerHTML='<div class="toolbar"><button class="primary" onclick="createAdminUser()">+ Add administrator</button></div><table><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th>Last login</th><th></th></tr>'+rows.map(r=>'<tr><td>'+esc(r.email)+'</td><td>'+esc(r.display_name)+'</td><td>'+r.role+'</td><td>'+(r.active?"Active":"Disabled")+'</td><td>'+(r.last_login_at?new Date(r.last_login_at).toLocaleString():"—")+'</td><td><button class="secondary" onclick="editAdminUser(\''+r.id+'\',\''+r.role+'\','+(r.active?"true":"false")+')">Edit</button></td></tr>').join("")+'</table>'}
 async function createAdminUser(){let email=prompt("Admin email");if(!email)return;let name=prompt("Display name",email.split("@")[0]);if(!name)return;let role=prompt("Role: viewer, editor, admin","editor");if(!role)return;let password=prompt("Temporary password (min 12 chars)");if(!password)return;await api("/v1/admin/auth/users",{method:"POST",body:JSON.stringify({email,password,display_name:name,role})});loadAdminUsers()}
 async function editAdminUser(id,role,active){let newRole=prompt("Role: viewer, editor, admin",role);if(!newRole)return;let activeText=prompt("Active? yes/no",active?"yes":"no");if(activeText===null)return;let body={role:newRole,active:activeText.toLowerCase()==="yes"};let pw=prompt("New password (leave blank to keep current)","");if(pw)body.password=pw;await api("/v1/admin/auth/users/"+id,{method:"PATCH",body:JSON.stringify(body)});loadAdminUsers()}

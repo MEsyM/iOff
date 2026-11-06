@@ -160,6 +160,67 @@ class AccountManager(private val context: Context) {
         }.start()
     }
 
+    fun syncAiEnglishSession(
+        snapshot: AiEnglishConversationEngine.SessionSnapshot,
+        callback: (AccountState) -> Unit = { _ -> }
+    ) {
+        val profileId = prefs.getString(KEY_PROFILE_ID, null)
+        if (
+            prefs.getString(KEY_ACCESS, null).isNullOrBlank() ||
+            profileId.isNullOrBlank()
+        ) {
+            callback(state(message = "AI English saved locally"))
+            return
+        }
+
+        Thread {
+            try {
+                val transcript = JSONArray().apply {
+                    snapshot.transcript.takeLast(16).forEach { (role, text) ->
+                        put(JSONObject().put("role", role).put("text", text))
+                    }
+                }
+                val payload = JSONObject()
+                    .put("event_id", UUID.randomUUID().toString())
+                    .put("profile_id", profileId)
+                    .put("game", "ai_english")
+                    .put("event_type", "progress_snapshot")
+                    .put("question_id", snapshot.scenario)
+                    .put("xp_delta", 100)
+                    .put("correct", JSONObject.NULL)
+                    .put("occurred_at", Instant.now().toString())
+                    .put(
+                        "payload",
+                        JSONObject()
+                            .put("total_answered", snapshot.totalTurns)
+                            .put("total_correct", 0)
+                            .put("current_streak", 0)
+                            .put("best_streak", 0)
+                            .put("session_count", snapshot.sessionCount)
+                            .put("level", snapshot.level)
+                            .put("topic", snapshot.topic)
+                            .put("scenario", snapshot.scenario)
+                            .put("grammar", snapshot.grammar)
+                            .put("vocabulary", snapshot.vocabulary)
+                            .put("fluency", snapshot.fluency)
+                            .put("pronunciation", snapshot.pronunciation)
+                            .put("transcript", transcript)
+                    )
+
+                authorizedRequest(
+                    path = "/v1/sync/events",
+                    method = "POST",
+                    body = JSONObject().put("events", JSONArray().put(payload))
+                )
+                val now = System.currentTimeMillis()
+                prefs.edit().putLong(KEY_LAST_SYNC, now).apply()
+                callback(state(message = "AI English synced"))
+            } catch (t: Throwable) {
+                callback(state(message = "AI English sync failed: " + cleanError(t)))
+            }
+        }.start()
+    }
+
     private fun auth(
         path: String,
         email: String,

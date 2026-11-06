@@ -1952,15 +1952,35 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
                 speak(msg, if (r.first) FEEDBACK_UTTERANCE_ID else RETRY_UTTERANCE_ID)
             }
             AuxGame.AI_ENGLISH -> {
-                val r = aiEnglishEngine.answer(spoken)
-                artworkState = if (r.first) ArtworkState.CORRECT else ArtworkState.WRONG
+                artworkState = ArtworkState.LISTENING
                 updateMetadata()
-                speakEnglishSequence(
-                    listOf(
-                        SpeechSegment(r.second, Locale.US)
-                    ),
-                    FEEDBACK_UTTERANCE_ID
-                )
+                aiEnglishEngine.answerAsync(spoken) { r ->
+                    mainHandler.post {
+                        if (auxiliaryGame != AuxGame.AI_ENGLISH) return@post
+                        artworkState = if (r.natural) ArtworkState.CORRECT else ArtworkState.WRONG
+                        updateMetadata()
+                        val spokenFeedback = buildString {
+                            append(r.feedback)
+                            if (r.correction.isNotBlank() && !r.feedback.contains(r.correction, ignoreCase = true)) {
+                                append(" ")
+                                append(r.correction)
+                            }
+                            if (r.sessionFinished && r.summary.isNotBlank()) {
+                                append(" ")
+                                append(r.summary)
+                            }
+                        }.trim()
+                        if (r.sessionFinished) {
+                            val snapshot = aiEnglishEngine.sessionSnapshot()
+                            AccountManager(this@RoadGameMediaService).syncAiEnglishSession(snapshot)
+                            aiEnglishEngine.reset()
+                        }
+                        speakEnglishSequence(
+                            listOf(SpeechSegment(spokenFeedback, Locale.US)),
+                            FEEDBACK_UTTERANCE_ID
+                        )
+                    }
+                }
             }
             null -> Unit
         }
@@ -2015,9 +2035,10 @@ class RoadGameMediaService : MediaBrowserServiceCompat(), TextToSpeech.OnInitLis
             return
         }
 
-        val locale = when (activeGame) {
-            ActiveGame.ENGLISH -> Locale.US
-            ActiveGame.NEWS -> Locale("cs", "CZ")
+        val locale = when {
+            auxiliaryGame == AuxGame.AI_ENGLISH -> Locale.US
+            activeGame == ActiveGame.ENGLISH -> Locale.US
+            activeGame == ActiveGame.NEWS -> Locale("cs", "CZ")
             else -> triviaEngine.language().locale
         }
 

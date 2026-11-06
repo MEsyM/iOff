@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     elevenlabs_cs_voice_id: str = ""
     elevenlabs_en_voice_id: str = ""
     elevenlabs_model: str = "eleven_multilingual_v2"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-6-luna"
 
 settings = Settings()
 engine = create_engine(settings.database_url, pool_pre_ping=True)
@@ -184,10 +186,200 @@ class TtsIn(BaseModel):
     language: str=Field(default="cs",pattern="^(cs|en)$")
     style: str=Field(default="narration",pattern="^(narration|feedback|ui)$")
 
+class EnglishConversationHistoryItem(BaseModel):
+    role: str=Field(pattern="^(user|assistant)$")
+    text: str=Field(min_length=1,max_length=1000)
+
+class EnglishConversationIn(BaseModel):
+    session_id: str=Field(min_length=1,max_length=100)
+    level: str=Field(pattern="^(A1|A2|B1|B2|C1|C2)$")
+    topic: str=Field(pattern="^(travel|business|daily_life|kids)$")
+    scenario: str=Field(pattern="^(hotel|airport|restaurant|meeting|sales_call|customer_complaint)$")
+    user_text: str=Field(min_length=1,max_length=1500)
+    turn: int=Field(ge=1,le=50)
+    gentle_corrections: bool=True
+    history: list[EnglishConversationHistoryItem]=Field(default_factory=list,max_length=12)
+
 app=FastAPI(title="Lone Rider API",version="0.1.0")
 
 @app.get("/health")
 def health(): return {"status":"ok","service":"lone-rider-api","version":"0.1.0"}
+
+def _english_follow_up(scenario:str,turn:int)->str:
+    prompts={
+        "hotel":[
+            "Do you already have a reservation?",
+            "How many nights will you be staying?",
+            "Would you prefer one bed or two?",
+            "Would you like breakfast included?",
+            "Do you need help with your bags?",
+            "What time would you like a wake-up call?",
+            "Is there anything else I can arrange for you?",
+        ],
+        "airport":[
+            "Are you checking any bags today?",
+            "Did you pack your bags yourself?",
+            "Would you prefer a window or aisle seat?",
+            "Do you have any liquids or restricted items?",
+            "Your gate changed. How would you ask where the new gate is?",
+            "Your flight is delayed. What would you like to ask the airline?",
+            "You have arrived. Ask me where to collect your luggage.",
+        ],
+        "restaurant":[
+            "What would you like to drink?",
+            "Would you like to hear today's special?",
+            "How would you like your meal prepared?",
+            "Do you have any allergies?",
+            "Would you like anything else with your meal?",
+            "How is everything tasting?",
+            "Would you like dessert or the bill?",
+        ],
+        "meeting":[
+            "What is the biggest priority for your team?",
+            "What result would make this project successful?",
+            "Could you explain the main risk?",
+            "What do you recommend we do next?",
+            "Who needs to approve the decision?",
+            "When could your team deliver the first version?",
+            "Can you summarize the agreement in one sentence?",
+        ],
+        "sales_call":[
+            "What are you using today?",
+            "What is the biggest problem with the current solution?",
+            "What matters most: price, speed, quality, or support?",
+            "Who else is involved in the decision?",
+            "What timeline are you working with?",
+            "What would stop you from moving forward?",
+            "How would you ask for the next meeting?",
+        ],
+        "customer_complaint":[
+            "When did you first notice the problem?",
+            "What exactly did you expect to receive?",
+            "What impact has this caused for you?",
+            "What solution would feel fair?",
+            "Would a replacement solve the problem?",
+            "How quickly do you need this resolved?",
+            "Please summarize what you want us to do next.",
+        ],
+    }
+    options=prompts.get(scenario,prompts["hotel"])
+    return options[(max(1,turn)-1)%len(options)]
+
+def _english_fallback(body:EnglishConversationIn)->dict[str,Any]:
+    words=[x for x in body.user_text.strip().lower().replace("?","").replace("!","").split() if x]
+    verbs={"am","is","are","have","has","want","need","would","could","can","like","think","work","book","order","help","prefer","stay"}
+    has_verb=any(x in verbs for x in words)
+    grammar=82 if len(words)>=5 and has_verb else 70 if len(words)>=3 else 55
+    vocabulary=min(88,58+len(set(words))*4)
+    fluency=min(88,55+len(words)*4)
+    pronunciation=78 if len(words)>=4 else 68
+    natural=len(words)>=3
+    if len(words)<3:
+        correction="Try a slightly fuller sentence."
+    elif not has_verb:
+        correction="Try adding a verb to make a complete sentence."
+    else:
+        correction=""
+    feedback=("Good. That sounds natural." if not correction else
+              ("Nice try. "+correction if body.gentle_corrections else correction))
+    return {
+        "natural":natural,
+        "feedback":feedback,
+        "correction":correction,
+        "next_prompt":_english_follow_up(body.scenario,body.turn),
+        "grammar":grammar,
+        "vocabulary":vocabulary,
+        "fluency":fluency,
+        "pronunciation":pronunciation,
+        "source":"fallback",
+    }
+
+def _responses_output_text(payload:dict[str,Any])->str:
+    for item in payload.get("output",[]):
+        if item.get("type")!="message":
+            continue
+        for part in item.get("content",[]):
+            if part.get("type")=="output_text" and part.get("text"):
+                return str(part["text"])
+    return ""
+
+def _english_ai_reply(body:EnglishConversationIn)->dict[str,Any]:
+    if not settings.openai_api_key:
+        return _english_fallback(body)
+
+    history="\n".join(f"{x.role}: {x.text}" for x in body.history[-12:])
+    correction_style=("Correct only important mistakes and keep encouragement short."
+                      if body.gentle_corrections else
+                      "Correct mistakes directly and concisely.")
+    prompt=f"""You are Lone Rider AI English Conversation, a voice-first English tutor used while driving.
+Keep the role-play natural and conversational. Continue the selected scenario instead of turning the exchange into a quiz.
+Learner CEFR level: {body.level}
+Topic: {body.topic}
+Scenario: {body.scenario}
+Turn: {body.turn}
+{correction_style}
+
+Score grammar, vocabulary and fluency from the transcribed sentence on a 0-100 scale.
+The pronunciation score is only a conservative speech-clarity proxy because you receive a transcript, not audio; do not pretend to hear pronunciation.
+Feedback must be brief enough to hear in a car. Never interrupt the role-play with a long lesson.
+Return a natural next_prompt in the role-play. Do not repeat the learner's whole sentence unless correcting it.
+
+Recent conversation:
+{history}
+
+Learner: {body.user_text}
+"""
+    schema={
+        "type":"object",
+        "additionalProperties":False,
+        "properties":{
+            "natural":{"type":"boolean"},
+            "feedback":{"type":"string"},
+            "correction":{"type":"string"},
+            "next_prompt":{"type":"string"},
+            "grammar":{"type":"integer","minimum":0,"maximum":100},
+            "vocabulary":{"type":"integer","minimum":0,"maximum":100},
+            "fluency":{"type":"integer","minimum":0,"maximum":100},
+            "pronunciation":{"type":"integer","minimum":0,"maximum":100},
+        },
+        "required":["natural","feedback","correction","next_prompt","grammar","vocabulary","fluency","pronunciation"],
+    }
+    request_body=json.dumps({
+        "model":settings.openai_model,
+        "input":prompt,
+        "text":{
+            "format":{
+                "type":"json_schema",
+                "name":"lone_rider_english_reply",
+                "strict":True,
+                "schema":schema,
+            }
+        },
+        "max_output_tokens":500,
+    }).encode("utf-8")
+    req=urllib.request.Request(
+        "https://api.openai.com/v1/responses",
+        data=request_body,
+        method="POST",
+        headers={
+            "Authorization":"Bearer "+settings.openai_api_key,
+            "Content-Type":"application/json",
+            "Accept":"application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req,timeout=20) as upstream:
+            response=json.loads(upstream.read().decode("utf-8"))
+        text=_responses_output_text(response)
+        parsed=json.loads(text)
+        parsed["source"]="ai"
+        return parsed
+    except Exception:
+        return _english_fallback(body)
+
+@app.post("/v1/english/conversation/turn")
+def english_conversation_turn(body:EnglishConversationIn):
+    return _english_ai_reply(body)
 
 @app.post("/v1/tts")
 def tts(body:TtsIn):
