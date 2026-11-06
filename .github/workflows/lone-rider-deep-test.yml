@@ -151,10 +151,10 @@ jobs:
         if: failure()
         run: |
           mkdir -p artifacts/screenshots
-          adb exec-out screencap -p > artifacts/screenshots/99-failure.png || true
-          adb shell uiautomator dump /sdcard/window.xml || true
-          adb pull /sdcard/window.xml artifacts/window.xml || true
-          adb logcat -d > artifacts/logcat.txt || true
+          timeout 20s adb exec-out screencap -p > artifacts/screenshots/99-failure.png || true
+          timeout 20s adb shell uiautomator dump /sdcard/window.xml || true
+          timeout 20s adb pull /sdcard/window.xml artifacts/window.xml || true
+          timeout 20s adb logcat -d > artifacts/logcat.txt || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
