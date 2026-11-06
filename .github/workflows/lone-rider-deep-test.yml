@@ -156,8 +156,5 @@ jobs:
         if: always()
         with:
           name: lone-rider-e2e-evidence
-          path: |
-            artifacts/screenshots/**
-            artifacts/*.xml
-            artifacts/logcat.txt
-          if-no-files-found: warn
+          path: artifacts/
+          if-no-files-found: error
