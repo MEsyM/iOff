@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: lone-rider-deep-${{ github.run_id }}
-  cancel-in-progress: false
+  group: lone-rider-deep-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend-deep:
