@@ -1,15 +1,16 @@
 package com.dualactionwindows.dawdrive
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 
-class VideoActivity : Activity() {
+class VideoActivity : ComponentActivity() {
     private lateinit var webView: WebView
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -18,6 +19,19 @@ class VideoActivity : Activity() {
 
         webView = WebView(this)
         setContentView(webView)
+
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (::webView.isInitialized && webView.canGoBack()) {
+                        webView.goBack()
+                    } else {
+                        finish()
+                    }
+                }
+            }
+        )
 
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
@@ -40,14 +54,6 @@ class VideoActivity : Activity() {
         webView.loadUrl("https://vidplay.top")
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (::webView.isInitialized && webView.canGoBack()) {
-            webView.goBack()
-        } else {
-            finish()
-        }
-    }
 
     override fun onDestroy() {
         if (::webView.isInitialized) {
