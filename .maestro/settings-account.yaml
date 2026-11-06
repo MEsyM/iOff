@@ -16,7 +16,7 @@ name: Settings and account journey
     text: "Account & cloud|Účet & cloud"
 - takeScreenshot: artifacts/screenshots/05-settings
 - tapOn:
-    text: "ACCOUNT|ÚČET"
+    text: "^OPEN ACCOUNT$|^OTEVŘÍT ÚČET$"
 - assertVisible:
     text: "ACCOUNT & CLOUD|ÚČET & CLOUD"
 - assertVisible:
