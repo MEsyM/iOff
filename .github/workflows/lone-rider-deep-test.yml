@@ -145,8 +145,26 @@ jobs:
           script: |
             mkdir -p artifacts/screenshots
             adb install -r daw-drive-v0.1/app/build/outputs/apk/debug/app-debug.apk
+            set +e
             maestro test .maestro/guest-core.yaml --format junit --output artifacts/maestro-guest.xml
+            guest_status=$?
+            if [ "$guest_status" -ne 0 ]; then
+              adb exec-out screencap -p > artifacts/screenshots/99-guest-failure.png || true
+              adb shell uiautomator dump /sdcard/window.xml || true
+              adb pull /sdcard/window.xml artifacts/guest-window.xml || true
+              adb logcat -d > artifacts/guest-logcat.txt || true
+              exit "$guest_status"
+            fi
             maestro test .maestro/settings-account.yaml --format junit --output artifacts/maestro-settings.xml
+            settings_status=$?
+            if [ "$settings_status" -ne 0 ]; then
+              adb exec-out screencap -p > artifacts/screenshots/99-settings-failure.png || true
+              adb shell uiautomator dump /sdcard/window.xml || true
+              adb pull /sdcard/window.xml artifacts/settings-window.xml || true
+              adb logcat -d > artifacts/settings-logcat.txt || true
+              exit "$settings_status"
+            fi
+            exit 0
       - name: Capture failure evidence
         if: failure()
         run: |
