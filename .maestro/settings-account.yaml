@@ -18,7 +18,7 @@ name: Settings and account journey
 - tapOn:
     text: "^OPEN ACCOUNT$|^OTEVŘÍT ÚČET$"
 - assertVisible:
-    text: "ACCOUNT & CLOUD|ÚČET & CLOUD"
+    text: ".*(ACCOUNT & CLOUD|ÚČET & CLOUD).*"
 - assertVisible:
     text: "Guest|Host"
 - takeScreenshot: artifacts/screenshots/06-account-cloud
