@@ -176,6 +176,20 @@ class AiEnglishConversationEngine(private val context: Context) {
         val summary: String
     )
 
+    data class SessionSnapshot(
+        val level: String,
+        val topic: String,
+        val scenario: String,
+        val turns: Int,
+        val totalTurns: Int,
+        val sessionCount: Int,
+        val grammar: Int,
+        val vocabulary: Int,
+        val fluency: Int,
+        val pronunciation: Int,
+        val transcript: List<Pair<String, String>>
+    )
+
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private var currentPrompt = ""
     private var answered = 0
@@ -243,6 +257,24 @@ class AiEnglishConversationEngine(private val context: Context) {
     }
 
     fun score(): String = summary()
+
+    fun sessionSnapshot(): SessionSnapshot {
+        val s = settings()
+        val safeTurns = answered.coerceAtLeast(1)
+        return SessionSnapshot(
+            level = s.level.name,
+            topic = s.topic.name.lowercase(Locale.US),
+            scenario = s.scenario.name.lowercase(Locale.US),
+            turns = answered,
+            totalTurns = prefs.getInt(KEY_TOTAL_TURNS, 0),
+            sessionCount = prefs.getInt(KEY_SESSION_COUNT, 0),
+            grammar = grammarTotal / safeTurns,
+            vocabulary = vocabularyTotal / safeTurns,
+            fluency = fluencyTotal / safeTurns,
+            pronunciation = pronunciationTotal / safeTurns,
+            transcript = history.toList()
+        )
+    }
 
     private fun applyReply(spoken: String, reply: Reply) {
         answered += 1
