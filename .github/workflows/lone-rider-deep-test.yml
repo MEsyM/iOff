@@ -160,3 +160,129 @@ jobs:
           name: lone-rider-e2e-evidence
           path: artifacts/
           if-no-files-found: error
+
+
+  self-heal:
+    name: Autonomous repair
+    needs:
+      - backend-deep
+      - android-build
+      - android-e2e
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref_name == 'codex/lone-rider-mcp-deep-test-system' &&
+      (
+        needs.backend-deep.result != 'success' ||
+        needs.android-build.result != 'success' ||
+        needs.android-e2e.result != 'success'
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TARGET_BRANCH: codex/lone-rider-mcp-deep-test-system
+      BASE_BRANCH: codex/lone-rider-v1.18-user-admin
+      MAX_SELF_HEAL_ATTEMPTS: "10"
+
+    steps:
+      - name: Check out failing branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Verify OpenAI key
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::Missing repository secret OPENAI_API_KEY."
+            exit 1
+          fi
+
+      - name: Enforce repair attempt limit
+        id: attempts
+        run: |
+          git fetch origin "$BASE_BRANCH" "$TARGET_BRANCH"
+          BASE_SHA="$(git merge-base HEAD "origin/$BASE_BRANCH")"
+          COUNT="$(git log --format=%s "$BASE_SHA..HEAD" | grep -c '^self-heal:' || true)"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          test "$COUNT" -lt "$MAX_SELF_HEAL_ATTEMPTS"
+
+      - name: Download test evidence
+        uses: actions/download-artifact@v4
+        with:
+          path: .self-heal/evidence
+
+      - name: Run autonomous Codex repair
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          allow-bots: true
+          prompt: |
+            Repair the current Lone Rider branch after a failed deep-test run.
+            Diagnose the failure from .self-heal/evidence and the current source tree.
+            The required result is that all existing checks pass: backend deep API,
+            Android build/lint, Android emulator E2E, both Maestro journeys, and
+            required screenshot evidence.
+
+            Make the smallest safe production-quality fix.
+            Do not disable, skip, delete, or weaken tests.
+            Do not modify credentials, secrets, repository permissions, billing,
+            or deployment settings.
+            Preserve intended product behavior.
+            Use screenshots, UI dumps, JUnit and logcat evidence instead of guessing.
+            Run practical focused checks before finishing.
+            Do not commit or push. Leave the working tree with the repair.
+            If there is not enough evidence for a safe fix, make no speculative change.
+
+      - name: Validate repair
+        run: |
+          rm -rf .self-heal
+          if git diff --quiet; then
+            echo "::error::Repair agent produced no code change."
+            exit 1
+          fi
+          git diff --check
+
+      - name: Commit and push repair
+        env:
+          ATTEMPT: ${{ steps.attempts.outputs.count }}
+        run: |
+          NEXT=$((ATTEMPT + 1))
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "self-heal: Lone Rider CI repair attempt $NEXT"
+          git push origin "HEAD:$TARGET_BRANCH"
+
+  finish:
+    name: Auto-merge when green
+    needs:
+      - backend-deep
+      - android-build
+      - android-e2e
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      github.ref_name == 'codex/lone-rider-mcp-deep-test-system' &&
+      needs.backend-deep.result == 'success' &&
+      needs.android-build.result == 'success' &&
+      needs.android-e2e.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TARGET_BRANCH: codex/lone-rider-mcp-deep-test-system
+      BASE_BRANCH: codex/lone-rider-v1.18-user-admin
+
+    steps:
+      - name: Merge matching PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$TARGET_BRANCH" --base "$BASE_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if [ -z "$PR" ]; then
+            exit 0
+          fi
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --merge --auto --delete-branch=false
