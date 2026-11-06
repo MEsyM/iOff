@@ -3,15 +3,22 @@ name: Settings and account journey
 ---
 - launchApp
 - assertVisible: "LONE RIDER"
-- tapOn: "SETTINGS"
-- assertVisible: "Settings"
-- assertVisible: "Account & cloud"
+- tapOn:
+    text: "SETTINGS|NASTAVENÍ"
+- assertVisible:
+    text: "Settings|Nastavení"
+- assertVisible:
+    text: "Account & cloud|Účet & cloud"
 - takeScreenshot: artifacts/screenshots/05-settings
 - tapOn:
     text: "OPEN"
     index: 0
-- assertVisible: "ACCOUNT & CLOUD"
-- assertVisible: "Guest"
+- assertVisible:
+    text: "ACCOUNT & CLOUD|ÚČET & CLOUD"
+- assertVisible:
+    text: "Guest|Host"
 - takeScreenshot: artifacts/screenshots/06-account-cloud
-- tapOn: "‹ BACK"
-- assertVisible: "Settings"
+- tapOn:
+    text: "‹ BACK|‹ ZPĚT"
+- assertVisible:
+    text: "Settings|Nastavení"
